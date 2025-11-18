@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System.Diagnostics;
+using Microsoft.AspNetCore.Mvc;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace FlyEaseTravel.Controllers
 {
@@ -25,3 +27,11 @@ namespace FlyEaseTravel.Controllers
         }
     }
 }
+
+
+
+
+
+
+
+

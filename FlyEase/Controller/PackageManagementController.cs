@@ -37,19 +37,27 @@ namespace FlyEase.Controllers
         {
             if (ModelState.IsValid)
             {
-                _context.Add(package);
-                await _context.SaveChangesAsync();
-                TempData["SuccessMessage"] = "Package created successfully!";
-                return RedirectToAction(nameof(PackageManagement));
+                try
+                {
+                    _context.Add(package);
+                    await _context.SaveChangesAsync();
+                    TempData["SuccessMessage"] = "Package created successfully!";
+                    return RedirectToAction(nameof(PackageManagement));
+                }
+                catch (System.Exception ex)
+                {
+                    TempData["ErrorMessage"] = $"Error creating package: {ex.Message}";
+                }
+            }
+            else
+            {
+                // Collect validation errors
+                var errors = ModelState.Values.SelectMany(v => v.Errors);
+                TempData["ErrorMessage"] = "Please fix the validation errors.";
             }
 
             // If validation fails, return to PackageManagement with errors
-            var packages = await _context.Packages
-                .Include(p => p.Category)
-                .ToListAsync();
-
-            ViewBag.Categories = await _context.PackageCategories.ToListAsync();
-            ViewBag.Packages = packages;
+            await LoadViewBagData();
             return View("PackageManagement", package);
         }
 
@@ -63,12 +71,7 @@ namespace FlyEase.Controllers
                 return RedirectToAction(nameof(PackageManagement));
             }
 
-            var packages = await _context.Packages
-                .Include(p => p.Category)
-                .ToListAsync();
-
-            ViewBag.Categories = await _context.PackageCategories.ToListAsync();
-            ViewBag.Packages = packages;
+            await LoadViewBagData();
             ViewBag.EditingId = id;
 
             return View("PackageManagement", package);
@@ -92,6 +95,7 @@ namespace FlyEase.Controllers
                     _context.Update(package);
                     await _context.SaveChangesAsync();
                     TempData["SuccessMessage"] = "Package updated successfully!";
+                    return RedirectToAction(nameof(PackageManagement));
                 }
                 catch (DbUpdateConcurrencyException)
                 {
@@ -105,18 +109,19 @@ namespace FlyEase.Controllers
                         throw;
                     }
                 }
-                return RedirectToAction(nameof(PackageManagement));
+                catch (System.Exception ex)
+                {
+                    TempData["ErrorMessage"] = $"Error updating package: {ex.Message}";
+                }
+            }
+            else
+            {
+                TempData["ErrorMessage"] = "Please fix the validation errors.";
             }
 
             // If validation fails
-            var packages = await _context.Packages
-                .Include(p => p.Category)
-                .ToListAsync();
-
-            ViewBag.Categories = await _context.PackageCategories.ToListAsync();
-            ViewBag.Packages = packages;
+            await LoadViewBagData();
             ViewBag.EditingId = id;
-
             return View("PackageManagement", package);
         }
 
@@ -125,23 +130,41 @@ namespace FlyEase.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Delete(int id)
         {
-            var package = await _context.Packages.FindAsync(id);
-            if (package != null)
+            try
             {
-                _context.Packages.Remove(package);
-                await _context.SaveChangesAsync();
-                TempData["SuccessMessage"] = "Package deleted successfully!";
+                var package = await _context.Packages.FindAsync(id);
+                if (package != null)
+                {
+                    _context.Packages.Remove(package);
+                    await _context.SaveChangesAsync();
+                    TempData["SuccessMessage"] = "Package deleted successfully!";
+                }
+                else
+                {
+                    TempData["ErrorMessage"] = "Package not found!";
+                }
             }
-            else
+            catch (System.Exception ex)
             {
-                TempData["ErrorMessage"] = "Package not found!";
+                TempData["ErrorMessage"] = $"Error deleting package: {ex.Message}";
             }
+
             return RedirectToAction(nameof(PackageManagement));
         }
 
         private bool PackageExists(int id)
         {
             return _context.Packages.Any(e => e.PackageID == id);
+        }
+
+        private async Task LoadViewBagData()
+        {
+            var packages = await _context.Packages
+                .Include(p => p.Category)
+                .ToListAsync();
+
+            ViewBag.Categories = await _context.PackageCategories.ToListAsync();
+            ViewBag.Packages = packages;
         }
     }
 }
