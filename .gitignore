@@ -269,3 +269,6 @@ __pycache__/
 
 # Cake - Uncomment if you are using it
 # tools/
+/FlyEase/Migrations/20251116184003_DbContext.cs
+/FlyEase/Migrations/FlyEaseDbContextModelSnapshot.cs
+/FlyEase/Migrations/FlyEaseDbContextModelSnapshot.cs
