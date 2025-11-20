@@ -82,3 +82,31 @@ footer {
     text-align: center;
     margin-top: 40px;
 }
+/* Add these styles to your existing layout.css */
+
+.inclusions {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid #eee;
+    font-size: 0.8em;
+}
+
+    .inclusions ul {
+        margin: 5px 0;
+        padding-left: 15px;
+    }
+
+    .inclusions li {
+        margin-bottom: 2px;
+        color: #666;
+    }
+
+.package-content p {
+    margin: 5px 0;
+    line-height: 1.4;
+}
+
+.package-content small {
+    color: #666;
+    font-size: 0.85em;
+}

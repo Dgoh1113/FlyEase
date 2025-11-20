@@ -1,4 +1,4 @@
-﻿@model FlyEase.Data.Package
+﻿@model FlyEase.ViewModels.PackageViewModel
 @{
     ViewData["Title"] = "Package Management";
     Layout = "~/Views/Shared/_Layout.cshtml";
@@ -43,95 +43,136 @@
                     </h3>
                 </div>
                 <div class="form-body">
-                    <form method="post" action="@(ViewBag.EditingId != null ? Url.Action("Edit", "PackageManagement") : Url.Action("Create", "PackageManagement"))">
+                    <form method="post" action="@(ViewBag.EditingId != null ? Url.Action("Edit", "PackageManagement") : Url.Action("Create", "PackageManagement"))"
+                          enctype="multipart/form-data">
                         @Html.AntiForgeryToken()
 
                         @if (ViewBag.EditingId != null)
                         {
-                            <input type="hidden" name="PackageID" value="@Model.PackageID" />
+                            <input type="hidden" asp-for="PackageID" />
                         }
 
                         <div class="form-row">
                             <div class="form-group">
-                                <label for="PackageName" class="form-label">Package Name *</label>
-                                <input type="text" class="form-control" id="PackageName" name="PackageName"
-                                       value="@Model.PackageName" required placeholder="Enter package name">
+                                <label asp-for="PackageName" class="form-label">Package Name *</label>
+                                <input asp-for="PackageName" class="form-control" placeholder="Enter package name" />
                                 <span asp-validation-for="PackageName" class="text-danger"></span>
                             </div>
 
                             <div class="form-group">
-                                <label for="CategoryID" class="form-label">Category *</label>
-                                <select class="form-control" id="CategoryID" name="CategoryID" required>
-                                    <option value="">Select Category</option>
-                                    @foreach (var category in ViewBag.Categories)
+                                <label class="form-label">Category *</label>
+
+                                <!-- Existing Categories Dropdown -->
+                                <select id="CategoryID" name="CategoryID" class="form-control"
+                                        onchange="handleCategoryChange(this)">
+                                    <option value="">Select Existing Category</option>
+                                    @if (Model.Categories != null)
                                     {
-                                        <option value="@category.CategoryID"
-                                                selected="@(Model.CategoryID == category.CategoryID)">
-                                            @category.CategoryName
-                                        </option>
+                                        foreach (var category in Model.Categories)
+                                        {
+                                            <option value="@category.CategoryID"
+                                                    selected="@(Model.CategoryID == category.CategoryID)">
+                                                @category.CategoryName
+                                            </option>
+                                        }
                                     }
                                 </select>
-                                <span asp-validation-for="CategoryID" class="text-danger"></span>
+
+                                <!-- Or Create New Category -->
+                                <div class="mt-2">
+                                    <small class="text-muted">- OR -</small>
+                                </div>
+
+                                <div class="mt-2">
+                                    <input type="text" id="NewCategoryName" name="NewCategoryName"
+                                           class="form-control" placeholder="Enter new category name"
+                                           value="@Model.NewCategoryName" />
+                                    <span class="text-danger field-validation-valid"
+                                          data-valmsg-for="NewCategoryName" data-valmsg-replace="true"></span>
+                                </div>
+
+                                <span class="text-danger" id="category-validation"></span>
                             </div>
                         </div>
 
                         <div class="form-group">
-                            <label for="Description" class="form-label">Description</label>
-                            <textarea class="form-control" id="Description" name="Description"
-                                      rows="3" placeholder="Enter package description">@Model.Description</textarea>
+                            <label asp-for="Description" class="form-label">Description</label>
+                            <textarea asp-for="Description" class="form-control" rows="3" placeholder="Enter package description"></textarea>
                             <span asp-validation-for="Description" class="text-danger"></span>
                         </div>
 
                         <div class="form-group">
-                            <label for="Destination" class="form-label">Destination *</label>
-                            <input type="text" class="form-control" id="Destination" name="Destination"
-                                   value="@Model.Destination" required placeholder="Enter destination">
+                            <label asp-for="Destination" class="form-label">Destination *</label>
+                            <input asp-for="Destination" class="form-control" placeholder="Enter destination" />
                             <span asp-validation-for="Destination" class="text-danger"></span>
                         </div>
 
                         <div class="form-row">
                             <div class="form-group">
-                                <label for="Price" class="form-label">Price (RM) *</label>
-                                <input type="number" step="0.01" class="form-control" id="Price" name="Price"
-                                       value="@Model.Price" required placeholder="0.00">
+                                <label asp-for="Price" class="form-label">Price (RM) *</label>
+                                <input asp-for="Price" type="number" step="0.01" class="form-control" placeholder="0.00" />
                                 <span asp-validation-for="Price" class="text-danger"></span>
                             </div>
 
                             <div class="form-group">
-                                <label for="AvailableSlots" class="form-label">Available Slots *</label>
-                                <input type="number" class="form-control" id="AvailableSlots" name="AvailableSlots"
-                                       value="@Model.AvailableSlots" required placeholder="0">
+                                <label asp-for="AvailableSlots" class="form-label">Available Slots *</label>
+                                <input asp-for="AvailableSlots" type="number" class="form-control" placeholder="0" />
                                 <span asp-validation-for="AvailableSlots" class="text-danger"></span>
                             </div>
                         </div>
 
                         <div class="form-row">
                             <div class="form-group">
-                                <label for="StartDate" class="form-label">Start Date *</label>
-                                <input type="date" class="form-control" id="StartDate" name="StartDate"
-                                       value="@(Model.StartDate.ToString("yyyy-MM-dd"))" required>
+                                <label asp-for="StartDate" class="form-label">Start Date *</label>
+                                <input asp-for="StartDate" type="date" class="form-control" />
                                 <span asp-validation-for="StartDate" class="text-danger"></span>
                             </div>
 
                             <div class="form-group">
-                                <label for="EndDate" class="form-label">End Date *</label>
-                                <input type="date" class="form-control" id="EndDate" name="EndDate"
-                                       value="@(Model.EndDate.ToString("yyyy-MM-dd"))" required>
+                                <label asp-for="EndDate" class="form-label">End Date *</label>
+                                <input asp-for="EndDate" type="date" class="form-control" />
                                 <span asp-validation-for="EndDate" class="text-danger"></span>
                             </div>
                         </div>
 
                         <div class="form-group">
-                            <label for="ImageURL" class="form-label">Image URL</label>
-                            <input type="text" class="form-control" id="ImageURL" name="ImageURL"
-                                   value="@Model.ImageURL" placeholder="https://example.com/image.jpg">
-                            <span asp-validation-for="ImageURL" class="text-danger"></span>
+                            <label asp-for="ImageFile" class="form-label">Package Image</label>
+
+                            <!-- Current Image Preview -->
+                            @if (!string.IsNullOrEmpty(Model.ImageURL))
+                            {
+                                <div class="current-image mb-2">
+                                    <p class="text-muted small">Current Image:</p>
+                                    <img src="@Model.ImageURL" alt="Current package image"
+                                         class="img-thumbnail" style="max-height: 150px;" />
+                                </div>
+                            }
+
+                            <!-- File Upload -->
+                            <input asp-for="ImageFile" type="file" class="form-control"
+                                   accept=".jpg,.jpeg,.png,.gif,.webp" />
+                            <span asp-validation-for="ImageFile" class="text-danger"></span>
+
+                            <!-- Help text -->
+                            <small class="form-text text-muted">
+                                Supported formats: JPG, JPEG, PNG, GIF, WebP. Max size: 5MB.
+                                @if (string.IsNullOrEmpty(Model.ImageURL))
+                                {
+                                    <text>If no image is selected, a default image will be used.</text>
+                                }
+                            </small>
+
+                            <!-- Hidden field to preserve existing ImageURL during edit -->
+                            @if (ViewBag.EditingId != null)
+                            {
+                                <input type="hidden" asp-for="ImageURL" />
+                            }
                         </div>
 
                         <div class="form-actions">
                             @if (ViewBag.EditingId != null)
                             {
-                                <button type="submit" class="btn btn-warning">
+                                <button type="submit" class="btn btn-warning" onclick="return validateCategory()">
                                     <i class="fas fa-save"></i> Update Package
                                 </button>
                                 <a href="@Url.Action("PackageManagement", "PackageManagement")" class="btn btn-secondary">
@@ -140,7 +181,7 @@
                             }
                             else
                             {
-                                <button type="submit" class="btn btn-primary">
+                                <button type="submit" class="btn btn-primary" onclick="return validateCategory()">
                                     <i class="fas fa-plus"></i> Create Package
                                 </button>
                             }
@@ -165,8 +206,9 @@
                             {
                                 <div class="package-management-card">
                                     <div class="package-image">
-                                        <img src="@(package.ImageURL ?? "https://images.unsplash.com/photo-1505761671935-60b3a7427bad")"
-                                             alt="@package.PackageName" />
+                                        <img src="@(package.ImageURL ?? "/img/default-package.jpg")"
+                                             alt="@package.PackageName"
+                                             onerror="this.src='/img/default-package.jpg'" />
                                         <div class="package-actions">
                                             <a href="@Url.Action("Edit", "PackageManagement", new { id = package.PackageID })"
                                                class="btn-edit" title="Edit Package">
@@ -229,16 +271,140 @@
         // Set min date for date inputs to today
         document.addEventListener('DOMContentLoaded', function() {
             const today = new Date().toISOString().split('T')[0];
-            document.getElementById('StartDate').min = today;
-            document.getElementById('EndDate').min = today;
-
-            // Validate end date is after start date
             const startDate = document.getElementById('StartDate');
             const endDate = document.getElementById('EndDate');
 
-            startDate.addEventListener('change', function() {
-                endDate.min = this.value;
-            });
+            if (startDate) {
+                startDate.min = today;
+                if (!startDate.value) {
+                    startDate.value = today;
+                }
+            }
+            if (endDate) {
+                endDate.min = today;
+                if (!endDate.value) {
+                    // Set end date to 7 days from today by default
+                    const nextWeek = new Date();
+                    nextWeek.setDate(nextWeek.getDate() + 7);
+                    endDate.value = nextWeek.toISOString().split('T')[0];
+                }
+            }
+
+            // Validate end date is after start date
+            if (startDate && endDate) {
+                startDate.addEventListener('change', function() {
+                    endDate.min = this.value;
+                    if (endDate.value < this.value) {
+                        endDate.value = this.value;
+                    }
+                });
+            }
+
+            // Initialize category handling
+            initializeCategoryHandling();
+
+            // File upload validation
+            initializeFileUploadValidation();
         });
+
+        // Category handling
+        function handleCategoryChange(select) {
+            const newCategoryInput = document.getElementById('NewCategoryName');
+            if (select.value) {
+                // Existing category selected, clear new category input
+                newCategoryInput.value = '';
+            }
+        }
+
+        function initializeCategoryHandling() {
+            const categorySelect = document.getElementById('CategoryID');
+            const newCategoryInput = document.getElementById('NewCategoryName');
+
+            // If new category has value, clear the select
+            if (newCategoryInput && newCategoryInput.value) {
+                categorySelect.value = '';
+            }
+
+            // If user types in new category, clear the select
+            if (newCategoryInput) {
+                newCategoryInput.addEventListener('input', function() {
+                    if (this.value) {
+                        categorySelect.value = '';
+                    }
+                });
+            }
+        }
+
+        function validateCategory() {
+            const categorySelect = document.getElementById('CategoryID');
+            const newCategoryInput = document.getElementById('NewCategoryName');
+            const validationElement = document.getElementById('category-validation');
+
+            // Check if either category is selected or new category is provided
+            if (!categorySelect.value && !newCategoryInput.value.trim()) {
+                validationElement.textContent = 'Please select an existing category or enter a new category name.';
+                return false;
+            }
+
+            validationElement.textContent = '';
+            return true;
+        }
+
+        // File upload validation
+        function initializeFileUploadValidation() {
+            const fileInput = document.querySelector('input[type="file"]');
+
+            if (fileInput) {
+                fileInput.addEventListener('change', function(e) {
+                    const file = e.target.files[0];
+                    const maxSize = 5 * 1024 * 1024; // 5MB
+                    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+
+                    if (file) {
+                        // Check file type
+                        if (!allowedTypes.includes(file.type)) {
+                            alert('Invalid file type. Please select JPG, JPEG, PNG, GIF, or WebP image.');
+                            e.target.value = '';
+                            return;
+                        }
+
+                        // Check file size
+                        if (file.size > maxSize) {
+                            alert('File size too large. Maximum size is 5MB.');
+                            e.target.value = '';
+                            return;
+                        }
+
+                        // Preview image
+                        previewImage(file);
+                    }
+                });
+            }
+        }
+
+        // Preview selected image
+        function previewImage(file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                // Remove existing preview if any
+                const existingPreview = document.querySelector('.image-preview');
+                if (existingPreview) {
+                    existingPreview.remove();
+                }
+
+                // Create new preview
+                const previewDiv = document.createElement('div');
+                previewDiv.className = 'image-preview mt-2';
+                previewDiv.innerHTML = `
+                    <p class="text-muted small">New Image Preview:</p>
+                    <img src="${e.target.result}" alt="Preview" class="img-thumbnail" style="max-height: 150px;" />
+                `;
+
+                // Insert after file input
+                const fileInput = document.querySelector('input[type="file"]');
+                fileInput.parentNode.insertBefore(previewDiv, fileInput.nextSibling);
+            };
+            reader.readAsDataURL(file);
+        }
     </script>
 }
