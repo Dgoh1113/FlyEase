@@ -117,9 +117,9 @@
               "Title": "PackageManagementController.cs",
               "DocumentMoniker": "C:\\Users\\User\\source\\repos\\Mini-Project\\FlyEase\\FlyEase\\Controller\\PackageManagementController.cs",
               "RelativeDocumentMoniker": "FlyEase\\Controller\\PackageManagementController.cs",
-              "ToolTip": "C:\\Users\\User\\source\\repos\\Mini-Project\\FlyEase\\FlyEase\\Controller\\PackageManagementController.cs*",
-              "RelativeToolTip": "FlyEase\\Controller\\PackageManagementController.cs*",
-              "ViewState": "AgIAAGMBAAAAAAAAAAAkwHcBAAABAAAAAAAAAA==",
+              "ToolTip": "C:\\Users\\User\\source\\repos\\Mini-Project\\FlyEase\\FlyEase\\Controller\\PackageManagementController.cs",
+              "RelativeToolTip": "FlyEase\\Controller\\PackageManagementController.cs",
+              "ViewState": "AgIAAGMBAAAAAAAAAAAowHcBAAABAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-11-17T17:43:05.325Z",
               "EditorCaption": ""
@@ -130,8 +130,8 @@
               "Title": "PackageManagementVM.cs",
               "DocumentMoniker": "C:\\Users\\User\\source\\repos\\Mini-Project\\FlyEase\\FlyEase\\Model\\PackageManagementVM.cs",
               "RelativeDocumentMoniker": "FlyEase\\Model\\PackageManagementVM.cs",
-              "ToolTip": "C:\\Users\\User\\source\\repos\\Mini-Project\\FlyEase\\FlyEase\\Model\\PackageManagementVM.cs*",
-              "RelativeToolTip": "FlyEase\\Model\\PackageManagementVM.cs*",
+              "ToolTip": "C:\\Users\\User\\source\\repos\\Mini-Project\\FlyEase\\FlyEase\\Model\\PackageManagementVM.cs",
+              "RelativeToolTip": "FlyEase\\Model\\PackageManagementVM.cs",
               "ViewState": "AgIAACkAAAAAAAAAAAA5wD0AAAABAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-11-17T17:53:41.689Z",
@@ -143,8 +143,8 @@
               "Title": "PackageManagement.cshtml",
               "DocumentMoniker": "C:\\Users\\User\\source\\repos\\Mini-Project\\FlyEase\\FlyEase\\Views\\PackageManagement\\PackageManagement.cshtml",
               "RelativeDocumentMoniker": "FlyEase\\Views\\PackageManagement\\PackageManagement.cshtml",
-              "ToolTip": "C:\\Users\\User\\source\\repos\\Mini-Project\\FlyEase\\FlyEase\\Views\\PackageManagement\\PackageManagement.cshtml*",
-              "RelativeToolTip": "FlyEase\\Views\\PackageManagement\\PackageManagement.cshtml*",
+              "ToolTip": "C:\\Users\\User\\source\\repos\\Mini-Project\\FlyEase\\FlyEase\\Views\\PackageManagement\\PackageManagement.cshtml",
+              "RelativeToolTip": "FlyEase\\Views\\PackageManagement\\PackageManagement.cshtml",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAJkBAAABAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
               "WhenOpened": "2025-11-17T17:44:36.927Z",
@@ -248,7 +248,8 @@
               "RelativeToolTip": "FlyEase\\wwwroot\\css\\packagemanagement.css",
               "ViewState": "AgIAAD8BAAAAAAAAAAAowFQBAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003000|",
-              "WhenOpened": "2025-11-17T17:54:47.679Z"
+              "WhenOpened": "2025-11-17T17:54:47.679Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
@@ -260,7 +261,8 @@
               "RelativeToolTip": "FlyEase\\Migrations\\20251116184003_DbContext.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-11-16T18:40:03.634Z"
+              "WhenOpened": "2025-11-16T18:40:03.634Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
@@ -272,7 +274,8 @@
               "RelativeToolTip": "FlyEase\\Details.cshtml",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAA8AAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
-              "WhenOpened": "2025-11-17T09:51:32.053Z"
+              "WhenOpened": "2025-11-17T09:51:32.053Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
@@ -284,7 +287,8 @@
               "RelativeToolTip": "FlyEase\\appsettings.json",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAoAAAAFAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
-              "WhenOpened": "2025-11-16T17:41:00.258Z"
+              "WhenOpened": "2025-11-16T17:41:00.258Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
@@ -306,7 +310,6 @@
               "RelativeDocumentMoniker": "FlyEase\\Migrations\\20251116183746_DbContext.cs",
               "ToolTip": "C:\\Users\\User\\source\\repos\\Mini-Project\\FlyEase\\FlyEase\\Migrations\\20251116183746_DbContext.cs",
               "RelativeToolTip": "FlyEase\\Migrations\\20251116183746_DbContext.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-11-16T18:37:47.139Z"
             },
@@ -318,7 +321,6 @@
               "RelativeDocumentMoniker": "FlyEase\\Migrations\\20251116183603_DbContext.cs",
               "ToolTip": "C:\\Users\\User\\source\\repos\\Mini-Project\\FlyEase\\FlyEase\\Migrations\\20251116183603_DbContext.cs",
               "RelativeToolTip": "FlyEase\\Migrations\\20251116183603_DbContext.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-11-16T18:36:04.322Z"
             },
@@ -330,7 +332,6 @@
               "RelativeDocumentMoniker": "FlyEase\\Migrations\\20251116183249_DbContext.cs",
               "ToolTip": "C:\\Users\\User\\source\\repos\\Mini-Project\\FlyEase\\FlyEase\\Migrations\\20251116183249_DbContext.cs",
               "RelativeToolTip": "FlyEase\\Migrations\\20251116183249_DbContext.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-11-16T18:32:49.887Z"
             },
@@ -344,7 +345,8 @@
               "RelativeToolTip": "FlyEase\\Program.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAB4AAAAKAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-11-16T17:40:56.025Z"
+              "WhenOpened": "2025-11-16T17:40:56.025Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
@@ -365,7 +367,6 @@
               "RelativeDocumentMoniker": "FlyEase\\Migrations\\20251116181241_DbContext.cs",
               "ToolTip": "C:\\Users\\User\\source\\repos\\Mini-Project\\FlyEase\\FlyEase\\Migrations\\20251116181241_DbContext.cs",
               "RelativeToolTip": "FlyEase\\Migrations\\20251116181241_DbContext.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-11-16T18:12:41.583Z"
             },
@@ -377,7 +378,6 @@
               "RelativeDocumentMoniker": "FlyEase\\Migrations\\20251116180650_DbContext.cs",
               "ToolTip": "C:\\Users\\User\\source\\repos\\Mini-Project\\FlyEase\\FlyEase\\Migrations\\20251116180650_DbContext.cs",
               "RelativeToolTip": "FlyEase\\Migrations\\20251116180650_DbContext.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAABQAAABgAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-11-16T18:06:50.602Z"
             },
@@ -389,7 +389,6 @@
               "RelativeDocumentMoniker": "FlyEase\\Migrations\\20251116180603_FlyEaseDB.cs",
               "ToolTip": "C:\\Users\\User\\source\\repos\\Mini-Project\\FlyEase\\FlyEase\\Migrations\\20251116180603_FlyEaseDB.cs",
               "RelativeToolTip": "FlyEase\\Migrations\\20251116180603_FlyEaseDB.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-11-16T18:06:03.401Z"
             },
@@ -401,7 +400,6 @@
               "RelativeDocumentMoniker": "FlyEase\\Migrations\\20251116180058_CreateDB.cs",
               "ToolTip": "C:\\Users\\User\\source\\repos\\Mini-Project\\FlyEase\\FlyEase\\Migrations\\20251116180058_CreateDB.cs",
               "RelativeToolTip": "FlyEase\\Migrations\\20251116180058_CreateDB.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-11-16T18:00:58.79Z"
             },
@@ -415,7 +413,8 @@
               "RelativeToolTip": "CreateDB.cs",
               "ViewState": "AgIAAP4AAAAAAAAAAAAcwBMBAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-11-16T17:58:11.277Z"
+              "WhenOpened": "2025-11-16T17:58:11.277Z",
+              "EditorCaption": ""
             }
           ]
         }
