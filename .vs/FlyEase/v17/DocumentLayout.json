@@ -7,6 +7,18 @@
       "RelativeMoniker": "D:0:0:{074FFDFB-D4A8-4F2E-8BF7-549F413D1EDF}|FlyEase\\FlyEase.csproj|solutionrelative:flyease\\wwwroot\\css\\layout.css||{A5401142-F49D-43DB-90B1-F57BA349E55C}"
     },
     {
+      "AbsoluteMoniker": "D:0:0:{074FFDFB-D4A8-4F2E-8BF7-549F413D1EDF}|FlyEase\\FlyEase.csproj|c:\\users\\user\\source\\repos\\mini-project\\flyease\\flyease\\views\\shared\\_layout.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{074FFDFB-D4A8-4F2E-8BF7-549F413D1EDF}|FlyEase\\FlyEase.csproj|solutionrelative:flyease\\views\\shared\\_layout.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{074FFDFB-D4A8-4F2E-8BF7-549F413D1EDF}|FlyEase\\FlyEase.csproj|c:\\users\\user\\source\\repos\\mini-project\\flyease\\flyease\\wwwroot\\css\\packagemanagement.css||{A5401142-F49D-43DB-90B1-F57BA349E55C}",
+      "RelativeMoniker": "D:0:0:{074FFDFB-D4A8-4F2E-8BF7-549F413D1EDF}|FlyEase\\FlyEase.csproj|solutionrelative:flyease\\wwwroot\\css\\packagemanagement.css||{A5401142-F49D-43DB-90B1-F57BA349E55C}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{074FFDFB-D4A8-4F2E-8BF7-549F413D1EDF}|FlyEase\\FlyEase.csproj|c:\\users\\user\\source\\repos\\mini-project\\flyease\\flyease\\views\\packagemanagement\\packagemanagement.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{074FFDFB-D4A8-4F2E-8BF7-549F413D1EDF}|FlyEase\\FlyEase.csproj|solutionrelative:flyease\\views\\packagemanagement\\packagemanagement.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
       "AbsoluteMoniker": "D:0:0:{074FFDFB-D4A8-4F2E-8BF7-549F413D1EDF}|FlyEase\\FlyEase.csproj|c:\\users\\user\\source\\repos\\mini-project\\flyease\\flyease\\controller\\packagemanagementcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{074FFDFB-D4A8-4F2E-8BF7-549F413D1EDF}|FlyEase\\FlyEase.csproj|solutionrelative:flyease\\controller\\packagemanagementcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
@@ -19,20 +31,8 @@
       "RelativeMoniker": "D:0:0:{074FFDFB-D4A8-4F2E-8BF7-549F413D1EDF}|FlyEase\\FlyEase.csproj|solutionrelative:flyease\\model\\packagemanagementvm.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{074FFDFB-D4A8-4F2E-8BF7-549F413D1EDF}|FlyEase\\FlyEase.csproj|c:\\users\\user\\source\\repos\\mini-project\\flyease\\flyease\\views\\packagemanagement\\packagemanagement.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}",
-      "RelativeMoniker": "D:0:0:{074FFDFB-D4A8-4F2E-8BF7-549F413D1EDF}|FlyEase\\FlyEase.csproj|solutionrelative:flyease\\views\\packagemanagement\\packagemanagement.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}"
-    },
-    {
       "AbsoluteMoniker": "D:0:0:{074FFDFB-D4A8-4F2E-8BF7-549F413D1EDF}|FlyEase\\FlyEase.csproj|c:\\users\\user\\source\\repos\\mini-project\\flyease\\flyease\\controller\\indexcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{074FFDFB-D4A8-4F2E-8BF7-549F413D1EDF}|FlyEase\\FlyEase.csproj|solutionrelative:flyease\\controller\\indexcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{074FFDFB-D4A8-4F2E-8BF7-549F413D1EDF}|FlyEase\\FlyEase.csproj|c:\\users\\user\\source\\repos\\mini-project\\flyease\\flyease\\wwwroot\\css\\packagemanagement.css||{A5401142-F49D-43DB-90B1-F57BA349E55C}",
-      "RelativeMoniker": "D:0:0:{074FFDFB-D4A8-4F2E-8BF7-549F413D1EDF}|FlyEase\\FlyEase.csproj|solutionrelative:flyease\\wwwroot\\css\\packagemanagement.css||{A5401142-F49D-43DB-90B1-F57BA349E55C}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{074FFDFB-D4A8-4F2E-8BF7-549F413D1EDF}|FlyEase\\FlyEase.csproj|c:\\users\\user\\source\\repos\\mini-project\\flyease\\flyease\\views\\shared\\_layout.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}",
-      "RelativeMoniker": "D:0:0:{074FFDFB-D4A8-4F2E-8BF7-549F413D1EDF}|FlyEase\\FlyEase.csproj|solutionrelative:flyease\\views\\shared\\_layout.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{074FFDFB-D4A8-4F2E-8BF7-549F413D1EDF}|FlyEase\\FlyEase.csproj|c:\\users\\user\\source\\repos\\mini-project\\flyease\\flyease\\views\\shared\\index.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}",
@@ -109,24 +109,63 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 3,
+          "SelectedChildIndex": 0,
           "Children": [
             {
               "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "layout.css",
+              "DocumentMoniker": "C:\\Users\\User\\source\\repos\\Mini-Project\\FlyEase\\FlyEase\\wwwroot\\css\\layout.css",
+              "RelativeDocumentMoniker": "FlyEase\\wwwroot\\css\\layout.css",
+              "ToolTip": "C:\\Users\\User\\source\\repos\\Mini-Project\\FlyEase\\FlyEase\\wwwroot\\css\\layout.css*",
+              "RelativeToolTip": "FlyEase\\wwwroot\\css\\layout.css*",
+              "ViewState": "AgIAAAMAAAAAAAAAAAAAABcAAAAVAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003000|",
+              "WhenOpened": "2025-11-17T17:09:07.935Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
               "DocumentIndex": 3,
-              "Title": "PackageManagementVM.cs",
-              "DocumentMoniker": "C:\\Users\\User\\source\\repos\\Mini-Project\\FlyEase\\FlyEase\\Model\\PackageManagementVM.cs",
-              "RelativeDocumentMoniker": "FlyEase\\Model\\PackageManagementVM.cs",
-              "ToolTip": "C:\\Users\\User\\source\\repos\\Mini-Project\\FlyEase\\FlyEase\\Model\\PackageManagementVM.cs",
-              "RelativeToolTip": "FlyEase\\Model\\PackageManagementVM.cs",
-              "ViewState": "AgIAACQAAAAAAAAAAAAwwC4AAAAvAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-11-17T17:53:41.689Z",
+              "Title": "PackageManagement.cshtml",
+              "DocumentMoniker": "C:\\Users\\User\\source\\repos\\Mini-Project\\FlyEase\\FlyEase\\Views\\PackageManagement\\PackageManagement.cshtml",
+              "RelativeDocumentMoniker": "FlyEase\\Views\\PackageManagement\\PackageManagement.cshtml",
+              "ToolTip": "C:\\Users\\User\\source\\repos\\Mini-Project\\FlyEase\\FlyEase\\Views\\PackageManagement\\PackageManagement.cshtml",
+              "RelativeToolTip": "FlyEase\\Views\\PackageManagement\\PackageManagement.cshtml",
+              "ViewState": "AgIAAHsBAAAAAAAAAAAwwI0BAAA8AAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2025-11-17T17:44:36.927Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "packagemanagement.css",
+              "DocumentMoniker": "C:\\Users\\User\\source\\repos\\Mini-Project\\FlyEase\\FlyEase\\wwwroot\\css\\packagemanagement.css",
+              "RelativeDocumentMoniker": "FlyEase\\wwwroot\\css\\packagemanagement.css",
+              "ToolTip": "C:\\Users\\User\\source\\repos\\Mini-Project\\FlyEase\\FlyEase\\wwwroot\\css\\packagemanagement.css",
+              "RelativeToolTip": "FlyEase\\wwwroot\\css\\packagemanagement.css",
+              "ViewState": "AgIAAD8BAAAAAAAAAAAowFQBAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003000|",
+              "WhenOpened": "2025-11-17T17:54:47.679Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
               "DocumentIndex": 1,
+              "Title": "_Layout.cshtml",
+              "DocumentMoniker": "C:\\Users\\User\\source\\repos\\Mini-Project\\FlyEase\\FlyEase\\Views\\Shared\\_Layout.cshtml",
+              "RelativeDocumentMoniker": "FlyEase\\Views\\Shared\\_Layout.cshtml",
+              "ToolTip": "C:\\Users\\User\\source\\repos\\Mini-Project\\FlyEase\\FlyEase\\Views\\Shared\\_Layout.cshtml",
+              "RelativeToolTip": "FlyEase\\Views\\Shared\\_Layout.cshtml",
+              "ViewState": "AgIAABAAAAAAAAAAAAAwwCkAAAAHAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2025-11-17T10:43:50.717Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
               "Title": "PackageManagementController.cs",
               "DocumentMoniker": "C:\\Users\\User\\source\\repos\\Mini-Project\\FlyEase\\FlyEase\\Controller\\PackageManagementController.cs",
               "RelativeDocumentMoniker": "FlyEase\\Controller\\PackageManagementController.cs",
@@ -139,7 +178,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 2,
+              "DocumentIndex": 5,
               "Title": "FlyEaseDbContextModelSnapshot.cs",
               "DocumentMoniker": "C:\\Users\\User\\source\\repos\\Mini-Project\\FlyEase\\FlyEase\\Migrations\\FlyEaseDbContextModelSnapshot.cs",
               "RelativeDocumentMoniker": "FlyEase\\Migrations\\FlyEaseDbContextModelSnapshot.cs",
@@ -152,33 +191,20 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 0,
-              "Title": "layout.css",
-              "DocumentMoniker": "C:\\Users\\User\\source\\repos\\Mini-Project\\FlyEase\\FlyEase\\wwwroot\\css\\layout.css",
-              "RelativeDocumentMoniker": "FlyEase\\wwwroot\\css\\layout.css",
-              "ToolTip": "C:\\Users\\User\\source\\repos\\Mini-Project\\FlyEase\\FlyEase\\wwwroot\\css\\layout.css",
-              "RelativeToolTip": "FlyEase\\wwwroot\\css\\layout.css",
-              "ViewState": "AgIAAHoAAAAAAAAAAAAwwJUAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003000|",
-              "WhenOpened": "2025-11-17T17:09:07.935Z",
+              "DocumentIndex": 6,
+              "Title": "PackageManagementVM.cs",
+              "DocumentMoniker": "C:\\Users\\User\\source\\repos\\Mini-Project\\FlyEase\\FlyEase\\Model\\PackageManagementVM.cs",
+              "RelativeDocumentMoniker": "FlyEase\\Model\\PackageManagementVM.cs",
+              "ToolTip": "C:\\Users\\User\\source\\repos\\Mini-Project\\FlyEase\\FlyEase\\Model\\PackageManagementVM.cs",
+              "RelativeToolTip": "FlyEase\\Model\\PackageManagementVM.cs",
+              "ViewState": "AgIAACQAAAAAAAAAAAAwwC4AAAAvAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-17T17:53:41.689Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 4,
-              "Title": "PackageManagement.cshtml",
-              "DocumentMoniker": "C:\\Users\\User\\source\\repos\\Mini-Project\\FlyEase\\FlyEase\\Views\\PackageManagement\\PackageManagement.cshtml",
-              "RelativeDocumentMoniker": "FlyEase\\Views\\PackageManagement\\PackageManagement.cshtml",
-              "ToolTip": "C:\\Users\\User\\source\\repos\\Mini-Project\\FlyEase\\FlyEase\\Views\\PackageManagement\\PackageManagement.cshtml",
-              "RelativeToolTip": "FlyEase\\Views\\PackageManagement\\PackageManagement.cshtml",
-              "ViewState": "AgIAAIEBAAAAAAAAAAAwwJoBAAABAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
-              "WhenOpened": "2025-11-17T17:44:36.927Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 5,
+              "DocumentIndex": 7,
               "Title": "IndexController.cs",
               "DocumentMoniker": "C:\\Users\\User\\source\\repos\\Mini-Project\\FlyEase\\FlyEase\\Controller\\IndexController.cs",
               "RelativeDocumentMoniker": "FlyEase\\Controller\\IndexController.cs",
@@ -188,30 +214,6 @@
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-11-17T09:58:53.583Z",
               "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 6,
-              "Title": "packagemanagement.css",
-              "DocumentMoniker": "C:\\Users\\User\\source\\repos\\Mini-Project\\FlyEase\\FlyEase\\wwwroot\\css\\packagemanagement.css",
-              "RelativeDocumentMoniker": "FlyEase\\wwwroot\\css\\packagemanagement.css",
-              "ToolTip": "C:\\Users\\User\\source\\repos\\Mini-Project\\FlyEase\\FlyEase\\wwwroot\\css\\packagemanagement.css",
-              "RelativeToolTip": "FlyEase\\wwwroot\\css\\packagemanagement.css",
-              "ViewState": "AgIAAD8BAAAAAAAAAAAowFQBAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003000|",
-              "WhenOpened": "2025-11-17T17:54:47.679Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 7,
-              "Title": "_Layout.cshtml",
-              "DocumentMoniker": "C:\\Users\\User\\source\\repos\\Mini-Project\\FlyEase\\FlyEase\\Views\\Shared\\_Layout.cshtml",
-              "RelativeDocumentMoniker": "FlyEase\\Views\\Shared\\_Layout.cshtml",
-              "ToolTip": "C:\\Users\\User\\source\\repos\\Mini-Project\\FlyEase\\FlyEase\\Views\\Shared\\_Layout.cshtml",
-              "RelativeToolTip": "FlyEase\\Views\\Shared\\_Layout.cshtml",
-              "ViewState": "AgIAAAYAAAAAAAAAAAAAAA8AAABMAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
-              "WhenOpened": "2025-11-17T10:43:50.717Z"
             },
             {
               "$type": "Document",

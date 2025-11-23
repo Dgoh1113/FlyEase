@@ -12,19 +12,20 @@
     @RenderSection("Head", required: false)
 </head>
 <body>
+    <!-- HEADER WITH TITLE - SKY BLUE -->
     <header>
-        <nav> <h1 asp-controller="Home" asp-action="Index">FlyEase Travel </h1></nav>
+        <h1 asp-controller="Home" asp-action="Index">FlyEase Travel</h1>
         <p>Your Gateway to Amazing Adventures</p>
     </header>
 
-        <nav>
-            <a asp-controller="Home" asp-action="Index">Home</a>
-            <a asp-controller="Home" asp-action="Packages">Packages</a>
-            <a asp-controller="PackageManagement" asp-action="PackageManagement">Manage Packages</a>
-            <a asp-controller="Home" asp-action="Discounts">Discounts</a>
-            <a asp-controller="Home" asp-action="Contact">Contact</a>
-        </nav>
- 
+    <!-- NAVIGATION BAR - DARK BLUE -->
+    <nav>
+        <a asp-controller="Home" asp-action="Index">Home</a>
+        <a asp-controller="Home" asp-action="Packages">Packages</a>
+        <a asp-controller="PackageManagement" asp-action="PackageManagement">Manage Packages</a>
+        <a asp-controller="Home" asp-action="Discounts">Discounts</a>
+        <a asp-controller="Home" asp-action="Contact">Contact</a>
+    </nav>
 
     <main>
         @RenderBody()
