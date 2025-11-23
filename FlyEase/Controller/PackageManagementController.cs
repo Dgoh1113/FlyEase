@@ -1,356 +1,375 @@
-﻿using System;
-using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
-using FlyEase.Data;
-using FlyEase.ViewModels;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
+using FlyEase.Data;
+using FlyEase.Models;
+using Microsoft.AspNetCore.Hosting;
 
 namespace FlyEase.Controllers
 {
     public class PackageManagementController : Controller
     {
         private readonly FlyEaseDbContext _context;
-        private readonly IWebHostEnvironment _webHostEnvironment;
+        private readonly IWebHostEnvironment _environment;
 
-        public PackageManagementController(FlyEaseDbContext context, IWebHostEnvironment webHostEnvironment)
+        public PackageManagementController(FlyEaseDbContext context, IWebHostEnvironment environment)
         {
             _context = context;
-            _webHostEnvironment = webHostEnvironment;
+            _environment = environment;
         }
 
-        // GET: PackageManagement/PackageManagement - Main CRUD page
         public async Task<IActionResult> PackageManagement()
         {
-            var packages = await _context.Packages
-                .Include(p => p.Category)
-                .ToListAsync();
-
-            var categories = await _context.PackageCategories.ToListAsync();
-
-            var viewModel = new PackageViewModel
-            {
-                Categories = categories,
-                StartDate = DateTime.Today,
-                EndDate = DateTime.Today.AddDays(7),
-                AvailableSlots = 10,
-                Price = 0
-            };
-
-            ViewBag.Packages = packages;
+            var viewModel = await LoadViewModelAsync();
             return View(viewModel);
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(PackageViewModel viewModel)
+        public async Task<IActionResult> Create(CreatePackageRequest request)
         {
-            if (ModelState.IsValid)
+            if (!ModelState.IsValid)
             {
-                try
+                var viewModel = await LoadViewModelAsync();
+                viewModel.Message = "Please fix validation errors";
+                viewModel.IsSuccess = false;
+                return View("PackageManagement", viewModel);
+            }
+
+            try
+            {
+                // Handle category - check if new category or existing
+                int categoryId;
+
+                if (request.CategoryID.HasValue && request.CategoryID > 0)
                 {
-                    // Handle category creation/selection
-                    int categoryId = await GetOrCreateCategoryId(viewModel);
-
-                    if (categoryId == 0)
-                    {
-                        ModelState.AddModelError("CategoryID", "Please select an existing category or enter a new category name.");
-                        ModelState.AddModelError("NewCategoryName", "Please select an existing category or enter a new category name.");
-                        await LoadViewBagData();
-                        return View("PackageManagement", viewModel);
-                    }
-
-                    // Handle image upload
-                    string imageUrl = await HandleImageUpload(viewModel.ImageFile);
-
-                    // Create new package
-                    var package = new Package
-                    {
-                        PackageName = viewModel.PackageName,
-                        CategoryID = categoryId,
-                        Description = viewModel.Description,
-                        Destination = viewModel.Destination,
-                        Price = viewModel.Price,
-                        StartDate = viewModel.StartDate,
-                        EndDate = viewModel.EndDate,
-                        AvailableSlots = viewModel.AvailableSlots,
-                        ImageURL = imageUrl
-                    };
-
-                    _context.Add(package);
-                    await _context.SaveChangesAsync();
-
-                    TempData["SuccessMessage"] = "Package created successfully!";
-                    return RedirectToAction(nameof(PackageManagement));
+                    // Use existing category
+                    categoryId = request.CategoryID.Value;
                 }
-                catch (Exception ex)
+                else if (!string.IsNullOrWhiteSpace(request.NewCategoryName))
                 {
-                    TempData["ErrorMessage"] = $"Error creating package: {ex.Message}";
-                }
-            }
-            else
-            {
-                TempData["ErrorMessage"] = "Please fix the validation errors.";
-            }
+                    // Check if category already exists (case insensitive)
+                    var existingCategory = await _context.PackageCategories
+                        .FirstOrDefaultAsync(c => c.CategoryName.ToLower() == request.NewCategoryName.Trim().ToLower());
 
-            // Ensure all ViewBag data is loaded
-            await LoadViewBagData();
-            return View("PackageManagement", viewModel);
-        }
-        public async Task<IActionResult> Create()
-        {
-            await LoadViewBagData();
-            var viewModel = new PackageViewModel
-            {
-                StartDate = DateTime.Today,
-                EndDate = DateTime.Today.AddDays(7),
-                AvailableSlots = 10,
-                Price = 0
-            };
-            return View("PackageManagement", viewModel);
-        }
-
-        // GET: PackageManagement/Edit - Load package data into form
-        public async Task<IActionResult> Edit(int id)
-        {
-            var package = await _context.Packages
-                .Include(p => p.Category)
-                .FirstOrDefaultAsync(p => p.PackageID == id);
-
-            if (package == null)
-            {
-                TempData["ErrorMessage"] = "Package not found!";
-                return RedirectToAction(nameof(PackageManagement));
-            }
-
-            var viewModel = new PackageViewModel
-            {
-                PackageID = package.PackageID,
-                PackageName = package.PackageName,
-                CategoryID = package.CategoryID,
-                Description = package.Description,
-                Destination = package.Destination,
-                Price = package.Price,
-                StartDate = package.StartDate,
-                EndDate = package.EndDate,
-                AvailableSlots = package.AvailableSlots,
-                ImageURL = package.ImageURL
-            };
-
-            await LoadViewBagData();
-            ViewBag.EditingId = id;
-
-            return View("PackageManagement", viewModel);
-        }
-
-        // POST: PackageManagement/Edit - Update package
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, PackageViewModel viewModel)
-        {
-            if (id != viewModel.PackageID)
-            {
-                TempData["ErrorMessage"] = "Package ID mismatch!";
-                return RedirectToAction(nameof(PackageManagement));
-            }
-
-            if (ModelState.IsValid)
-            {
-                try
-                {
-                    // Handle category creation/selection
-                    int categoryId = await GetOrCreateCategoryId(viewModel);
-
-                    if (categoryId == 0)
+                    if (existingCategory != null)
                     {
-                        ModelState.AddModelError("NewCategoryName", "Category name is required when creating new category.");
-                        await LoadViewBagData();
-                        ViewBag.EditingId = id;
-                        return View("PackageManagement", viewModel);
-                    }
-
-                    var package = await _context.Packages.FindAsync(id);
-                    if (package == null)
-                    {
-                        TempData["ErrorMessage"] = "Package not found!";
-                        return RedirectToAction(nameof(PackageManagement));
-                    }
-
-                    // Handle image upload if new file is provided
-                    if (viewModel.ImageFile != null && viewModel.ImageFile.Length > 0)
-                    {
-                        string imageUrl = await HandleImageUpload(viewModel.ImageFile);
-                        package.ImageURL = imageUrl;
-                    }
-
-                    // Update package properties
-                    package.PackageName = viewModel.PackageName;
-                    package.CategoryID = categoryId;
-                    package.Description = viewModel.Description;
-                    package.Destination = viewModel.Destination;
-                    package.Price = viewModel.Price;
-                    package.StartDate = viewModel.StartDate;
-                    package.EndDate = viewModel.EndDate;
-                    package.AvailableSlots = viewModel.AvailableSlots;
-
-                    _context.Update(package);
-                    await _context.SaveChangesAsync();
-
-                    TempData["SuccessMessage"] = "Package updated successfully!";
-                    return RedirectToAction(nameof(PackageManagement));
-                }
-                catch (DbUpdateConcurrencyException)
-                {
-                    if (!PackageExists(viewModel.PackageID))
-                    {
-                        TempData["ErrorMessage"] = "Package not found!";
-                        return RedirectToAction(nameof(PackageManagement));
+                        // Use existing category
+                        categoryId = existingCategory.CategoryID;
                     }
                     else
                     {
-                        throw;
+                        // Create new category
+                        var newCategory = new PackageCategory
+                        {
+                            CategoryName = request.NewCategoryName.Trim()
+                        };
+                        _context.PackageCategories.Add(newCategory);
+                        await _context.SaveChangesAsync();
+                        categoryId = newCategory.CategoryID;
                     }
                 }
-                catch (Exception ex)
+                else
                 {
-                    TempData["ErrorMessage"] = $"Error updating package: {ex.Message}";
+                    var PackageManagementviewModel = await LoadViewModelAsync();
+                    PackageManagementviewModel.Message = "Please select or enter a category";
+                    PackageManagementviewModel.IsSuccess = false;
+                    return View(PackageManagementviewModel);
                 }
+
+                // Handle image upload
+                string imagePath = await HandleImageUpload(request.ImageFile);
+
+                var package = new Package
+                {
+                    PackageName = request.PackageName,
+                    CategoryID = categoryId,
+                    Description = request.Description,
+                    Destination = request.Destination,
+                    Price = request.Price,
+                    StartDate = request.StartDate,
+                    EndDate = request.EndDate,
+                    AvailableSlots = request.AvailableSlots,
+                    ImageURL = imagePath
+                };
+
+                _context.Packages.Add(package);
+                await _context.SaveChangesAsync();
+
+                // Add inclusions
+                foreach (var inclusion in request.Inclusions.Where(i => !string.IsNullOrWhiteSpace(i)))
+                {
+                    var packageInclusion = new PackageInclusion
+                    {
+                        PackageID = package.PackageID,
+                        InclusionItem = inclusion.Trim()
+                    };
+                    _context.PackageInclusions.Add(packageInclusion);
+                }
+
+                await _context.SaveChangesAsync();
+
+                var viewModel = await LoadViewModelAsync();
+                viewModel.Message = "Package created successfully!";
+                viewModel.IsSuccess = true;
+                return View("PackageManagement", viewModel);
+            }
+            catch (Exception ex)
+            {
+                var viewModel = await LoadViewModelAsync();
+                viewModel.Message = $"Error creating package: {ex.Message}";
+                viewModel.IsSuccess = false;
+                return View("PackageManagement", viewModel);
+            }
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Edit(int id)
+        {
+            var viewModel = await LoadViewModelAsync();
+            var package = await _context.Packages
+                .Include(p => p.PackageInclusions)
+                .Include(p => p.Category)
+                .FirstOrDefaultAsync(p => p.PackageID == id);
+
+            if (package != null)
+            {
+                viewModel.Package = package;
+                viewModel.EditingPackageId = id;
+                viewModel.SelectedCategoryId = package.CategoryID;
+                viewModel.Inclusions = package.PackageInclusions
+                    .Select(pi => pi.InclusionItem)
+                    .ToList();
             }
             else
             {
-                TempData["ErrorMessage"] = "Please fix the validation errors.";
+                viewModel.Message = "Package not found!";
+                viewModel.IsSuccess = false;
             }
 
-            await LoadViewBagData();
-            ViewBag.EditingId = id;
             return View("PackageManagement", viewModel);
         }
 
-        // POST: PackageManagement/Delete - Delete package
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Update(UpdatePackageRequest request)
+        {
+            if (!ModelState.IsValid)
+            {
+                var viewModel = await LoadViewModelAsync();
+                viewModel.Message = "Please fix validation errors";
+                viewModel.IsSuccess = false;
+                return View("PackageManagement", viewModel);
+            }
+
+            try
+            {
+                var existingPackage = await _context.Packages
+                    .Include(p => p.PackageInclusions)
+                    .FirstOrDefaultAsync(p => p.PackageID == request.PackageID);
+
+                if (existingPackage != null)
+                {
+                    // Handle category - same logic as Create
+                    int categoryId;
+
+                    if (request.CategoryID.HasValue && request.CategoryID > 0)
+                    {
+                        categoryId = request.CategoryID.Value;
+                    }
+                    else if (!string.IsNullOrWhiteSpace(request.NewCategoryName))
+                    {
+                        var existingCategory = await _context.PackageCategories
+                            .FirstOrDefaultAsync(c => c.CategoryName.ToLower() == request.NewCategoryName.Trim().ToLower());
+
+                        if (existingCategory != null)
+                        {
+                            categoryId = existingCategory.CategoryID;
+                        }
+                        else
+                        {
+                            var newCategory = new PackageCategory
+                            {
+                                CategoryName = request.NewCategoryName.Trim()
+                            };
+                            _context.PackageCategories.Add(newCategory);
+                            await _context.SaveChangesAsync();
+                            categoryId = newCategory.CategoryID;
+                        }
+                    }
+                    else
+                    {
+                        var PackageManagementviewModel = await LoadViewModelAsync();
+                        PackageManagementviewModel.Message = "Please select or enter a category";
+                        PackageManagementviewModel.IsSuccess = false;
+                        return View( PackageManagementviewModel);
+                    }
+
+                    // Handle image upload
+                    string imagePath = existingPackage.ImageURL; // Keep existing by default
+                    if (request.ImageFile != null && request.ImageFile.Length > 0)
+                    {
+                        // Delete old image if it exists and is not default
+                        if (!string.IsNullOrEmpty(existingPackage.ImageURL) &&
+                            !existingPackage.ImageURL.Contains("default-package.jpg"))
+                        {
+                            var oldImagePath = Path.Combine(_environment.WebRootPath, existingPackage.ImageURL.Replace("/", "\\"));
+                            if (System.IO.File.Exists(oldImagePath))
+                            {
+                                System.IO.File.Delete(oldImagePath);
+                            }
+                        }
+                        imagePath = await HandleImageUpload(request.ImageFile);
+                    }
+
+                    // Update package properties
+                    existingPackage.PackageName = request.PackageName;
+                    existingPackage.CategoryID = categoryId;
+                    existingPackage.Description = request.Description;
+                    existingPackage.Destination = request.Destination;
+                    existingPackage.Price = request.Price;
+                    existingPackage.StartDate = request.StartDate;
+                    existingPackage.EndDate = request.EndDate;
+                    existingPackage.AvailableSlots = request.AvailableSlots;
+                    existingPackage.ImageURL = imagePath;
+
+                    // Update inclusions
+                    var existingInclusions = existingPackage.PackageInclusions.ToList();
+                    _context.PackageInclusions.RemoveRange(existingInclusions);
+
+                    foreach (var inclusion in request.Inclusions.Where(i => !string.IsNullOrWhiteSpace(i)))
+                    {
+                        var packageInclusion = new PackageInclusion
+                        {
+                            PackageID = existingPackage.PackageID,
+                            InclusionItem = inclusion.Trim()
+                        };
+                        _context.PackageInclusions.Add(packageInclusion);
+                    }
+
+                    await _context.SaveChangesAsync();
+
+                    var viewModel = await LoadViewModelAsync();
+                    viewModel.Message = "Package updated successfully!";
+                    viewModel.IsSuccess = true;
+                    return View("PackageManagement", viewModel);
+                }
+                else
+                {
+                    var viewModel = await LoadViewModelAsync();
+                    viewModel.Message = "Package not found!";
+                    viewModel.IsSuccess = false;
+                    return View("PackageManagement", viewModel);
+                }
+            }
+            catch (Exception ex)
+            {
+                var viewModel = await LoadViewModelAsync();
+                viewModel.Message = $"Error updating package: {ex.Message}";
+                viewModel.IsSuccess = false;
+                return View("PackageManagement", viewModel);
+            }
+        }
+
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Delete(int id)
         {
             try
             {
-                var package = await _context.Packages.FindAsync(id);
+                var package = await _context.Packages
+                    .Include(p => p.PackageInclusions)
+                    .FirstOrDefaultAsync(p => p.PackageID == id);
+
                 if (package != null)
                 {
-                    // Delete associated image file if exists and it's not the default image
-                    if (!string.IsNullOrEmpty(package.ImageURL) && package.ImageURL != "/img/default-package.jpg")
+                    // Check if there are any bookings for this package
+                    var hasBookings = await _context.Bookings.AnyAsync(b => b.PackageID == id);
+                    if (hasBookings)
                     {
-                        DeleteImageFile(package.ImageURL);
+                        var packageManagementVM = await LoadViewModelAsync();
+                        packageManagementVM.Message = "Cannot delete package that has existing bookings!";
+                        packageManagementVM.IsSuccess = false;
+                        return View("PackageManagement", packageManagementVM);
+                    }
+
+                    // Delete associated image file if it exists and is not default
+                    if (!string.IsNullOrEmpty(package.ImageURL) &&
+                        !package.ImageURL.Contains("default-package.jpg"))
+                    {
+                        var imagePath = Path.Combine(_environment.WebRootPath, package.ImageURL.Replace("/", "\\"));
+                        if (System.IO.File.Exists(imagePath))
+                        {
+                            System.IO.File.Delete(imagePath);
+                        }
                     }
 
                     _context.Packages.Remove(package);
                     await _context.SaveChangesAsync();
-                    TempData["SuccessMessage"] = "Package deleted successfully!";
+
+                    var viewModel = await LoadViewModelAsync();
+                    viewModel.Message = "Package deleted successfully!";
+                    viewModel.IsSuccess = true;
+                    return View("PackageManagement", viewModel);
                 }
                 else
                 {
-                    TempData["ErrorMessage"] = "Package not found!";
+                    var viewModel = await LoadViewModelAsync();
+                    viewModel.Message = "Package not found!";
+                    viewModel.IsSuccess = false;
+                    return View("PackageManagement", viewModel);
                 }
             }
             catch (Exception ex)
             {
-                TempData["ErrorMessage"] = $"Error deleting package: {ex.Message}";
+                var viewModel = await LoadViewModelAsync();
+                viewModel.Message = $"Error deleting package: {ex.Message}";
+                viewModel.IsSuccess = false;
+                return View("PackageManagement", viewModel);
             }
-
-            return RedirectToAction(nameof(PackageManagement));
         }
 
-        private bool PackageExists(int id)
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Cancel()
         {
-            return _context.Packages.Any(e => e.PackageID == id);
+            var viewModel = await LoadViewModelAsync();
+            return View("PackageManagement", viewModel);
         }
 
-        private async Task LoadViewBagData()
-        {
-            var packages = await _context.Packages
-                .Include(p => p.Category)
-                .ToListAsync();
-            var categories = await _context.PackageCategories.ToListAsync();
-
-            ViewBag.Packages = packages;
-            ViewBag.Categories = categories; // This was missing in some flows
-        }
-        // Helper method to get existing category ID or create new one
-        private async Task<int> GetOrCreateCategoryId(PackageViewModel viewModel)
-        {
-            if (viewModel.CategoryID > 0)
-            {
-                var existingCategory = await _context.PackageCategories
-                    .FirstOrDefaultAsync(c => c.CategoryID == viewModel.CategoryID);
-                if (existingCategory != null)
-                {
-                    return viewModel.CategoryID;
-                }
-            }
-
-            if (!string.IsNullOrWhiteSpace(viewModel.NewCategoryName))
-            {
-                var normalizedName = viewModel.NewCategoryName.Trim().ToLower();
-                var existingCategory = await _context.PackageCategories
-                    .FirstOrDefaultAsync(c => c.CategoryName.ToLower() == normalizedName);
-
-                if (existingCategory != null)
-                {
-                    return existingCategory.CategoryID;
-                }
-                else
-                {
-                    var newCategory = new PackageCategory
-                    {
-                        CategoryName = viewModel.NewCategoryName.Trim()
-                    };
-
-                    _context.PackageCategories.Add(newCategory);
-                    await _context.SaveChangesAsync();
-
-                    return newCategory.CategoryID;
-                }
-            }
-
-            return 0;
-        }
-
-        // Handle image file upload
-        private async Task<string> HandleImageUpload(IFormFile imageFile)
+        private async Task<string> HandleImageUpload(IFormFile? imageFile)
         {
             if (imageFile == null || imageFile.Length == 0)
             {
-                return "/img/default-package.jpg"; // Default image
+                return "/img/default-package.jpg"; // Return default image path
             }
 
             // Validate file type
             var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
-            var fileExtension = Path.GetExtension(imageFile.FileName).ToLower();
-
+            var fileExtension = Path.GetExtension(imageFile.FileName).ToLowerInvariant();
             if (!allowedExtensions.Contains(fileExtension))
             {
-                throw new Exception("Invalid file type. Only JPG, JPEG, PNG, GIF, and WebP files are allowed.");
+                throw new InvalidOperationException("Invalid file type. Only JPG, JPEG, PNG, GIF, and WebP files are allowed.");
             }
 
             // Validate file size (max 5MB)
             if (imageFile.Length > 5 * 1024 * 1024)
             {
-                throw new Exception("File size too large. Maximum size is 5MB.");
+                throw new InvalidOperationException("File size too large. Maximum size is 5MB.");
             }
 
             // Create unique filename
             var fileName = Guid.NewGuid().ToString() + fileExtension;
-            var imagesFolder = Path.Combine(_webHostEnvironment.WebRootPath, "img");
+            var uploadsFolder = Path.Combine(_environment.WebRootPath, "img");
 
-            // Ensure img directory exists
-            if (!Directory.Exists(imagesFolder))
+            // Create directory if it doesn't exist
+            if (!Directory.Exists(uploadsFolder))
             {
-                Directory.CreateDirectory(imagesFolder);
+                Directory.CreateDirectory(uploadsFolder);
             }
 
-            var filePath = Path.Combine(imagesFolder, fileName);
+            var filePath = Path.Combine(uploadsFolder, fileName);
 
             // Save the file
             using (var stream = new FileStream(filePath, FileMode.Create))
@@ -358,31 +377,27 @@ namespace FlyEase.Controllers
                 await imageFile.CopyToAsync(stream);
             }
 
-            // Return the path that will be stored in database
+            // Return the relative path for database storage - this will be "/img/filename.jpg"
             return $"/img/{fileName}";
         }
 
-        // Delete image file when package is deleted
-        private void DeleteImageFile(string imageUrl)
+        private async Task<PackageManagementViewModel> LoadViewModelAsync()
         {
-            if (string.IsNullOrEmpty(imageUrl) || !imageUrl.StartsWith("/img/") || imageUrl == "/img/default-package.jpg")
-                return;
+            var packages = await _context.Packages
+                .Include(p => p.Category)
+                .Include(p => p.PackageInclusions)
+                .OrderByDescending(p => p.PackageID)
+                .ToListAsync();
 
-            try
-            {
-                var fileName = Path.GetFileName(imageUrl);
-                var filePath = Path.Combine(_webHostEnvironment.WebRootPath, "img", fileName);
+            var categories = await _context.PackageCategories
+                .OrderBy(c => c.CategoryName)
+                .ToListAsync();
 
-                if (System.IO.File.Exists(filePath))
-                {
-                    System.IO.File.Delete(filePath);
-                }
-            }
-            catch (Exception ex)
+            return new PackageManagementViewModel
             {
-                // Log the error but don't throw, as package deletion should continue
-                Console.WriteLine($"Error deleting image file: {ex.Message}");
-            }
+                Packages = packages,
+                Categories = categories
+            };
         }
     }
 }
