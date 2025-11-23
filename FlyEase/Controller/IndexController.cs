@@ -1,37 +1,31 @@
-﻿using System.Diagnostics;
-using Microsoft.AspNetCore.Mvc;
-using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
+﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using FlyEase.Data;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace FlyEaseTravel.Controllers
 {
     public class HomeController : Controller
     {
-        public IActionResult Index()
+        private readonly FlyEaseDbContext _context;
+
+        public HomeController(FlyEaseDbContext context)
         {
-            return View();
+            _context = context;
         }
 
-        public IActionResult Packages()
+        public async Task<IActionResult> Index()
         {
-            return View();
-        }
+            var packages = await _context.Packages
+                .Include(p => p.Category)
+                .Include(p => p.PackageInclusions)
+                .Where(p => p.AvailableSlots > 0 && p.StartDate > System.DateTime.Now)
+                .OrderByDescending(p => p.StartDate)
+                .Take(3)
+                .ToListAsync();
 
-        public IActionResult Discounts()
-        {
-            return View();
-        }
-
-        public IActionResult Contact()
-        {
-            return View();
+            return View(packages);
         }
     }
 }
-
-
-
-
-
-
-
-

@@ -1,84 +1,192 @@
 /* ALL YOUR CSS STYLES GO HERE */
-body {
+* {
     margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
     font-family: Arial, sans-serif;
     background-color: #f4f4f4;
 }
 
+/* HEADER SECTION - TEAL BLUE GRADIENT */
 header {
-    background-color: #0077b6;
-    color: white;
-    padding: 20px;
+    background: linear-gradient(135deg, #0066a1 0%, #00a3e0 100%);
     text-align: center;
+    padding: 20px 20px;
+    color: white;
 }
 
+    header h1 {
+        font-size: 42px;
+        font-weight: bold;
+        margin: 0 0 5px 0;
+        letter-spacing: 1px;
+        color: white;
+    }
+
+        header h1 a {
+            color: white;
+            text-decoration: none;
+        }
+
+            header h1 a:hover {
+                color: #f0f8ff;
+            }
+
+    header p {
+        font-size: 16px;
+        margin: 0;
+        font-weight: 300;
+        letter-spacing: 0.5px;
+        color: white;
+    }
+
+/* NAVIGATION BAR - DARK TEAL */
 nav {
     display: flex;
     justify-content: center;
-    gap: 20px;
-    background-color: #023e8a;
-    padding: 10px;
+    align-items: center;
+    gap: 30px;
+    padding: 15px 20px;
+    background-color: #004d7a;
+    flex-wrap: wrap;
 }
 
     nav a {
         color: white;
         text-decoration: none;
-        font-weight: bold;
+        font-size: 15px;
+        font-weight: 500;
+        padding: 8px 15px;
+        transition: all 0.3s ease;
+        border-radius: 4px;
     }
 
+        nav a:hover {
+            background-color: #00a3e0;
+            color: white;
+        }
+
+/* HERO SECTION */
 .hero {
-    background: url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e') no-repeat center/cover;
+    background: linear-gradient(rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.3)), url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e') no-repeat center/cover;
     height: 400px;
     display: flex;
     align-items: center;
     justify-content: center;
     color: white;
-    text-shadow: 2px 2px 10px black;
+    text-shadow: 2px 2px 10px rgba(0, 0, 0, 0.7);
 }
 
     .hero h1 {
         font-size: 48px;
+        font-weight: bold;
+        text-align: center;
     }
 
 /* PACKAGES - 3 CARDS PER ROW */
 .packages {
-    padding: 40px;
+    padding: 40px 20px;
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 20px;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 30px;
+    max-width: 1200px;
+    margin: 0 auto;
 }
 
 .package-card {
     background: white;
-    border-radius: 10px;
+    border-radius: 8px;
     overflow: hidden;
-    box-shadow: 0 2px 30px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
+
+    .package-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    }
 
     .package-card img {
         width: 100%;
-        height: 180px;
+        height: 200px;
         object-fit: cover;
     }
 
 .package-content {
-    padding: 15px;
+    padding: 20px;
 }
 
     .package-content h3 {
         margin: 0 0 10px 0;
+        font-size: 18px;
+        color: #333;
+    }
+
+    .package-content p {
+        margin: 5px 0;
+        line-height: 1.5;
+        color: #666;
+        font-size: 14px;
     }
 
 .price {
-    color: #0077b6;
+    color: #0066a1;
     font-weight: bold;
     font-size: 18px;
+    margin-top: 10px;
 }
 
+/* FOOTER */
 footer {
-    background-color: #03045e;
+    background-color: #003d5c;
     color: white;
     padding: 20px;
     text-align: center;
     margin-top: 40px;
+}
+
+/* INCLUSIONS ADD-ON */
+.inclusions {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid #eee;
+    font-size: 0.8em;
+}
+
+    .inclusions ul {
+        margin: 5px 0;
+        padding-left: 15px;
+    }
+
+    .inclusions li {
+        margin-bottom: 2px;
+        color: #666;
+    }
+
+.package-content small {
+    color: #999;
+    font-size: 0.85em;
+}
+
+/* RESPONSIVE */
+@media (max-width: 768px) {
+    .packages {
+        grid-template-columns: 1fr;
+    }
+
+    header h1 {
+        font-size: 32px;
+    }
+
+    nav {
+        gap: 15px;
+    }
+
+        nav a {
+            padding: 6px 12px;
+            font-size: 14px;
+        }
 }

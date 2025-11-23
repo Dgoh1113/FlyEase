@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Http;
 using FlyEase.Data;
 
 namespace FlyEase.ViewModels
@@ -15,6 +17,10 @@ namespace FlyEase.ViewModels
         [Required]
         [Display(Name = "Category")]
         public int CategoryID { get; set; }
+
+        [Display(Name = "Category Name")]
+        [StringLength(100)]
+        public string? NewCategoryName { get; set; }
 
         [StringLength(500)]
         public string? Description { get; set; }
@@ -40,8 +46,11 @@ namespace FlyEase.ViewModels
         [Display(Name = "Available Slots")]
         public int AvailableSlots { get; set; }
 
-        [Url]
-        [Display(Name = "Image URL")]
+        // For file upload
+        [Display(Name = "Package Image")]
+        public IFormFile? ImageFile { get; set; }
+
+        // For displaying existing image
         public string? ImageURL { get; set; }
 
         // For dropdown
