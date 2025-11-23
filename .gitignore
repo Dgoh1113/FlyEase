@@ -24,6 +24,8 @@ bld/
 [Bb]in/
 [Oo]bj/
 [Ll]og/
+# Ignore entire obj folder
+obj/
 
 # Visual Studio 2015 cache/options directory
 .vs/
@@ -273,4 +275,11 @@ __pycache__/
 /FlyEase/Migrations/FlyEaseDbContextModelSnapshot.cs
 /FlyEase/Migrations/FlyEaseDbContextModelSnapshot.cs
 /FlyEase/appsettings.json
+/FlyEase/appsettings.json
+/FlyEase/appsettings.json
+/FlyEase/obj/FlyEase.csproj.nuget.dgspec.json
+/FlyEase/obj/FlyEase.csproj.nuget.g.props
+/FlyEase/obj/FlyEase.csproj.nuget.g.targets
+/FlyEase/obj/project.assets.json
+/FlyEase/obj/project.nuget.cache
 /FlyEase/appsettings.json
