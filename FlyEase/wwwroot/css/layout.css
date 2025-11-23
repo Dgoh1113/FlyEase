@@ -5,28 +5,60 @@ body {
     background-color: #f4f4f4;
 }
 
+/* HEADER SECTION */
+header {
+    text-align: center;
+}
+
+    header h1 {
+        background-color: #87ceeb; /* Skyblue background */
+        color: white;
+        padding: 20px;
+        margin: 0;
+        font-size: 36px;
+    }
+
+    header p {
+        background-color: #87ceeb;
+        color: white;
+        margin: 0;
+        padding: 10px;
+        font-size: 14px;
+    }
+
 /* NAVIGATION BAR */
 nav {
     display: flex;
     justify-content: center;
+    align-items: center;
     gap: 20px;
     padding: 15px;
-    background-color: #f8f9fa;
+    background-color: #1a1a3e; /* Dark blue background for nav */
+    flex-wrap: wrap;
 }
 
-    /* Only <a> INSIDE nav becomes dark blue */
+    /* Only <a> INSIDE nav becomes white text on dark blue background */
     nav a {
-        color: darkblue;
+        color: white;
         text-decoration: none;
+        padding: 10px 15px;
+        border-radius: 5px;
+        transition: background-color 0.3s ease;
+        display: inline-block;
     }
 
         nav a:hover {
-            color: #00008B;
+            background-color: #0077b6;
+            color: white;
         }
 
-    /* Only <h1> INSIDE nav becomes sky blue */
+    /* Only <h1> INSIDE nav gets skyblue background */
     nav h1 {
-        color: skyblue !important;
+        color: white !important;
+        background-color: #87ceeb; /* Skyblue background */
+        padding: 10px 20px;
+        border-radius: 5px;
+        margin: 0;
     }
 
 /* HERO SECTION */

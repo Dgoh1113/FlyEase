@@ -52,7 +52,39 @@ namespace FlyEase.Controllers
             {
                 try
                 {
-                    // Your existing create logic...
+                    // Handle category creation/selection
+                    int categoryId = await GetOrCreateCategoryId(viewModel);
+
+                    if (categoryId == 0)
+                    {
+                        ModelState.AddModelError("CategoryID", "Please select an existing category or enter a new category name.");
+                        ModelState.AddModelError("NewCategoryName", "Please select an existing category or enter a new category name.");
+                        await LoadViewBagData();
+                        return View("PackageManagement", viewModel);
+                    }
+
+                    // Handle image upload
+                    string imageUrl = await HandleImageUpload(viewModel.ImageFile);
+
+                    // Create new package
+                    var package = new Package
+                    {
+                        PackageName = viewModel.PackageName,
+                        CategoryID = categoryId,
+                        Description = viewModel.Description,
+                        Destination = viewModel.Destination,
+                        Price = viewModel.Price,
+                        StartDate = viewModel.StartDate,
+                        EndDate = viewModel.EndDate,
+                        AvailableSlots = viewModel.AvailableSlots,
+                        ImageURL = imageUrl
+                    };
+
+                    _context.Add(package);
+                    await _context.SaveChangesAsync();
+
+                    TempData["SuccessMessage"] = "Package created successfully!";
+                    return RedirectToAction(nameof(PackageManagement));
                 }
                 catch (Exception ex)
                 {
@@ -68,7 +100,6 @@ namespace FlyEase.Controllers
             await LoadViewBagData();
             return View("PackageManagement", viewModel);
         }
-        // GET: PackageManagement/Create
         public async Task<IActionResult> Create()
         {
             await LoadViewBagData();
