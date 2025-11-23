@@ -5,27 +5,31 @@ body {
     background-color: #f4f4f4;
 }
 
-header {
-    background-color: #0077b6;
-    color: white;
-    padding: 20px;
-    text-align: center;
-}
-
+/* NAVIGATION BAR */
 nav {
     display: flex;
     justify-content: center;
     gap: 20px;
-    background-color: #023e8a;
-    padding: 10px;
+    padding: 15px;
+    background-color: #f8f9fa;
 }
 
+    /* Only <a> INSIDE nav becomes dark blue */
     nav a {
-        color: white;
+        color: darkblue;
         text-decoration: none;
-        font-weight: bold;
     }
 
+        nav a:hover {
+            color: #00008B;
+        }
+
+    /* Only <h1> INSIDE nav becomes sky blue */
+    nav h1 {
+        color: skyblue !important;
+    }
+
+/* HERO SECTION */
 .hero {
     background: url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e') no-repeat center/cover;
     height: 400px;
@@ -75,6 +79,7 @@ nav {
     font-size: 18px;
 }
 
+/* FOOTER */
 footer {
     background-color: #03045e;
     color: white;
@@ -82,8 +87,8 @@ footer {
     text-align: center;
     margin-top: 40px;
 }
-/* Add these styles to your existing layout.css */
 
+/* INCLUSIONS ADD-ON */
 .inclusions {
     margin-top: 10px;
     padding-top: 10px;

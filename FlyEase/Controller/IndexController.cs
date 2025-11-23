@@ -20,27 +20,12 @@ namespace FlyEaseTravel.Controllers
             var packages = await _context.Packages
                 .Include(p => p.Category)
                 .Include(p => p.PackageInclusions)
-                .Where(p => p.AvailableSlots > 0 && p.StartDate > DateTime.Now) // Only available future packages
+                .Where(p => p.AvailableSlots > 0 && p.StartDate > System.DateTime.Now)
                 .OrderByDescending(p => p.StartDate)
-                .Take(3) // Get only 3 packages for the homepage
+                .Take(3)
                 .ToListAsync();
 
             return View(packages);
-        }
-
-        public IActionResult Packages()
-        {
-            return View();
-        }
-
-        public IActionResult Discounts()
-        {
-            return View();
-        }
-
-        public IActionResult Contact()
-        {
-            return View();
         }
     }
 }
