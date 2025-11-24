@@ -16,10 +16,6 @@
     <Compile Include="obj\Debug\net8.0\FlyEase.AssemblyInfo.cs" />
     <Compile Include="obj\Debug\net8.0\FlyEase.GlobalUsings.g.cs" />
     <Compile Include="obj\Debug\net8.0\FlyEase.RazorAssemblyInfo.cs" />
-    <Compile Include="obj\Release\net8.0\.NETCoreApp,Version=v8.0.AssemblyAttributes.cs" />
-    <Compile Include="obj\Release\net8.0\FlyEase.AssemblyInfo.cs" />
-    <Compile Include="obj\Release\net8.0\FlyEase.GlobalUsings.g.cs" />
-    <Compile Include="obj\Release\net8.0\FlyEase.RazorAssemblyInfo.cs" />
   </ItemGroup>
 
   <ItemGroup>
@@ -39,7 +35,6 @@
     <Content Include="obj\Debug\net8.0\rjsmcshtml.dswa.cache.json" />
     <Content Include="obj\Debug\net8.0\rjsmrazor.dswa.cache.json" />
     <Content Include="obj\Debug\net8.0\rpswa.dswa.cache.json" />
-    <Content Include="obj\Debug\net8.0\scopedcss\bundle\FlyEase.styles.css" />
     <Content Include="obj\Debug\net8.0\staticwebassets.build.endpoints.json" />
     <Content Include="obj\Debug\net8.0\staticwebassets.build.json" />
     <Content Include="obj\Debug\net8.0\staticwebassets.development.json" />
@@ -182,11 +177,6 @@
     <None Include="obj\FlyEase.csproj.nuget.g.props" />
     <None Include="obj\FlyEase.csproj.nuget.g.targets" />
     <None Include="obj\project.nuget.cache" />
-    <None Include="obj\Release\net8.0\FlyEase.AssemblyInfoInputs.cache" />
-    <None Include="obj\Release\net8.0\FlyEase.assets.cache" />
-    <None Include="obj\Release\net8.0\FlyEase.csproj.AssemblyReference.cache" />
-    <None Include="obj\Release\net8.0\FlyEase.GeneratedMSBuildEditorConfig.editorconfig" />
-    <None Include="obj\Release\net8.0\FlyEase.RazorAssemblyInfo.cache" />
   </ItemGroup>
 
   <ItemGroup>
@@ -200,11 +190,7 @@
 
   <ItemGroup>
     <Folder Include="bin\Release\net8.0\" />
-    <Folder Include="obj\Debug\net8.0\scopedcss\Pages\Shared\" />
-    <Folder Include="obj\Debug\net8.0\scopedcss\projectbundle\" />
     <Folder Include="obj\Debug\net8.0\staticwebassets\" />
-    <Folder Include="obj\Release\net8.0\refint\" />
-    <Folder Include="obj\Release\net8.0\ref\" />
   </ItemGroup>
 
 </Project>
