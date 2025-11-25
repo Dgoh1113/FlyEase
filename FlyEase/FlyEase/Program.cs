@@ -1,13 +1,20 @@
 ﻿using FlyEase.Data;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
-
 var builder = WebApplication.CreateBuilder(args);
 
+// ====================================================================
+// 1. DYNAMIC PATH SETUP (No App_Data folder)
+// This sets |DataDirectory| to the project's root folder
+string path = builder.Environment.ContentRootPath;
+AppDomain.CurrentDomain.SetData("DataDirectory", path);
+// ====================================================================
+
+// Add services...
 // Add services to the container
 builder.Services.AddControllersWithViews();
 
-// Configure DbContext - ADD THIS
+// Configure DbContext
 builder.Services.AddDbContext<FlyEaseDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
