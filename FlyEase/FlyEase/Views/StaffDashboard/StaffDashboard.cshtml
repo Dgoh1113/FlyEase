@@ -1,0 +1,118 @@
+﻿@model FlyEase.Models.StaffDashboardViewModel
+@{
+    ViewData["Title"] = "System Overview";
+    // Ensure you have a layout file, e.g., _Layout.cshtml or _StaffLayout.cshtml
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container-fluid py-4">
+    <h2 class="mb-4">Staff Dashboard</h2>
+
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-white bg-primary mb-3 shadow-sm h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Total Revenue</h5>
+                    <p class="card-text display-6">$@Model.TotalRevenue.ToString("N0")</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-success mb-3 shadow-sm h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Total Bookings</h5>
+                    <p class="card-text display-6">@Model.TotalBookings</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-warning mb-3 shadow-sm h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Pending Actions</h5>
+                    <p class="card-text display-6">@Model.PendingBookings</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-info mb-3 shadow-sm h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Registered Users</h5>
+                    <p class="card-text display-6">@Model.TotalUsers</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Recent Bookings</h5>
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Ref #</th>
+                                <th>Customer</th>
+                                <th>Package</th>
+                                <th>Date</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach(var item in Model.RecentBookings)
+                            {
+                            var statusClass = item.BookingStatus == "Confirmed" ? "bg-success" :
+                            (item.BookingStatus == "Pending" ? "bg-warning" : "bg-danger");
+                            var textClass = item.BookingStatus == "Pending" ? "text-dark" : "text-white";
+
+                            <tr>
+                                <td>@item.BookingID</td>
+                                <td>@item.User.FullName</td>
+                                <td>@item.Package.PackageName</td>
+                                <td>@item.BookingDate.ToShortDateString()</td>
+                                <td>
+                                    <span class="badge @statusClass @textClass">@item.BookingStatus</span>
+                                </td>
+                                <td>
+                                    <a asp-controller="Staff" asp-action="Bookings" class="btn btn-sm btn-outline-primary">Manage</a>
+                                </td>
+                            </tr>
+                            }
+                            @if(!Model.RecentBookings.Any())
+                            {
+                            <tr><td colspan="6" class="text-center p-3">No bookings found.</td></tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4 mb-4">
+            <div class="card shadow-sm border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0">Low Availability Alert</h5>
+                </div>
+                <ul class="list-group list-group-flush">
+                    @foreach(var pack in Model.LowStockPackages)
+                    {
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>@pack.PackageName</strong><br />
+                            <small class="text-muted">@pack.Destination</small>
+                        </div>
+                        <span class="badge bg-danger rounded-pill">@pack.AvailableSlots left</span>
+                    </li>
+                    }
+                    @if(!Model.LowStockPackages.Any())
+                    {
+                    <li class="list-group-item text-center text-muted">All packages have sufficient stock.</li>
+                    }
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>

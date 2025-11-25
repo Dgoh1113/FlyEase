@@ -12,6 +12,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Content Remove="Views\StaffDashboard\StaffDashboard.cshtml" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Compile Include="obj\Debug\net8.0\.NETCoreApp,Version=v8.0.AssemblyAttributes.cs" />
     <Compile Include="obj\Debug\net8.0\FlyEase.AssemblyInfo.cs" />
     <Compile Include="obj\Debug\net8.0\FlyEase.GlobalUsings.g.cs" />
@@ -177,6 +181,7 @@
     <None Include="obj\FlyEase.csproj.nuget.g.props" />
     <None Include="obj\FlyEase.csproj.nuget.g.targets" />
     <None Include="obj\project.nuget.cache" />
+    <None Include="Views\StaffDashboard\StaffDashboard.cshtml" />
   </ItemGroup>
 
   <ItemGroup>
