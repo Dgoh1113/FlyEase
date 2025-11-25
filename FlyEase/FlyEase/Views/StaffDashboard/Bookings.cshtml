@@ -1,0 +1,65 @@
+﻿@model List<FlyEase.Data.Booking>
+@{
+    ViewData["Title"] = "Manage Bookings";
+    Layout = "~/Views/Shared/_StaffLayout.cshtml"; // <--- CHANGE THIS
+}
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2>Booking Management</h2>
+        <div>
+            <a asp-action="Bookings" asp-route-status="All" class="btn btn-outline-secondary btn-sm">All</a>
+            <a asp-action="Bookings" asp-route-status="Pending" class="btn btn-outline-warning btn-sm">Pending</a>
+            <a asp-action="Bookings" asp-route-status="Confirmed" class="btn btn-outline-success btn-sm">Confirmed</a>
+        </div>
+    </div>
+
+    <table class="table table-hover shadow-sm">
+        <thead class="table-light">
+            <tr>
+                <th>ID</th>
+                <th>User</th>
+                <th>Package</th>
+                <th>Travel Date</th>
+                <th>Amount</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model)
+            {
+                <tr>
+                    <td>#@item.BookingID</td>
+                    <td>
+                        @item.User.FullName<br />
+                        <small class="text-muted">@item.User.Email</small>
+                    </td>
+                    <td>@item.Package.PackageName</td>
+                    <td>@item.TravelDate.ToString("dd/MM/yyyy")</td>
+                    <td>RM @item.FinalAmount.ToString("N2")</td>
+                    <td>
+                        <span class="badge @(item.BookingStatus == "Confirmed" ? "bg-success" : item.BookingStatus == "Pending" ? "bg-warning" : "bg-danger")">
+                            @item.BookingStatus
+                        </span>
+                    </td>
+                    <td>
+                        @if (item.BookingStatus == "Pending")
+                        {
+                            <form asp-action="UpdateBookingStatus" method="post" class="d-inline">
+                                <input type="hidden" name="id" value="@item.BookingID" />
+                                <input type="hidden" name="newStatus" value="Confirmed" />
+                                <button type="submit" class="btn btn-success btn-sm">Approve</button>
+                            </form>
+                            <form asp-action="UpdateBookingStatus" method="post" class="d-inline">
+                                <input type="hidden" name="id" value="@item.BookingID" />
+                                <input type="hidden" name="newStatus" value="Cancelled" />
+                                <button type="submit" class="btn btn-danger btn-sm">Reject</button>
+                            </form>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

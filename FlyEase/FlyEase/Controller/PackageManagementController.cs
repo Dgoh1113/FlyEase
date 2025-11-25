@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using FlyEase.Data;
-using FlyEase.Models;
+using FlyEase.ViewModels;
 
 namespace FlyEase.Controllers
 {

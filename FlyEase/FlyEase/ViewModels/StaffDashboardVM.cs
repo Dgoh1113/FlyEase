@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using FlyEase.Data;
 
-namespace FlyEase.Models
+namespace FlyEase.ViewModels
 {
     // --- 1. Dashboard ---
     public class StaffDashboardViewModel
@@ -69,5 +69,31 @@ namespace FlyEase.Models
 
         // For deletions during Edit
         public List<string> DeleteImagePaths { get; set; } = new();
+    }
+    public class UsersManagementVM
+    {
+        // Holds the list of users for the table
+        public List<User> Users { get; set; } = new();
+
+        // Holds the data for the user currently being edited in the modal
+        public UserEditVM CurrentUser { get; set; } = new();
+    }
+
+    // The data structure for editing
+    public class UserEditVM
+    {
+        public int UserID { get; set; }
+
+        [Required]
+        public string FullName { get; set; } = null!;
+
+        [Required]
+        [EmailAddress]
+        public string Email { get; set; } = null!;
+
+        [Required]
+        public string Role { get; set; } = null!; // "User", "Staff", "Admin"
+
+        public string? Phone { get; set; }
     }
 }

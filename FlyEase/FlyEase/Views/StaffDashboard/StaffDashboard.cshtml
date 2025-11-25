@@ -1,8 +1,8 @@
-﻿@model FlyEase.Models.StaffDashboardViewModel
+﻿@using FlyEase.ViewModels
+@model StaffDashboardViewModel
 @{
-    ViewData["Title"] = "System Overview";
-    // Ensure you have a layout file, e.g., _Layout.cshtml or _StaffLayout.cshtml
-    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Manage Packages";
+    Layout = "~/Views/Shared/_StaffLayout.cshtml"; // <--- CHANGE THIS
 }
 
 <div class="container-fluid py-4">
