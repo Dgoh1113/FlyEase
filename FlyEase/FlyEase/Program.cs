@@ -46,6 +46,24 @@ builder.Services.AddDistributedMemoryCache();
 
 var app = builder.Build();
 
+// --- ADD THIS BLOCK TO SEED DATABASE ---
+// Now 'app' is declared and can be used here
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    try
+    {
+        var context = services.GetRequiredService<FlyEaseDbContext>();
+        context.Database.EnsureCreated(); // Ensures DB exists
+        DbSeeder.Seed(services);          // Runs our seeder logic
+    }
+    catch (Exception ex)
+    {
+        var logger = services.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "An error occurred seeding the DB.");
+    }
+}
+
 // Configure the HTTP request pipeline
 if (!app.Environment.IsDevelopment())
 {

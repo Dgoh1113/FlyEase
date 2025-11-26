@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace FlyEase.Controllers
 {
+    [Authorize (Roles = "Staff")]
     public class StaffDashboardController : Controller
     {
         private readonly FlyEaseDbContext _context;

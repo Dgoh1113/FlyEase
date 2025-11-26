@@ -116,16 +116,14 @@ namespace FlyEase.Controllers
 
                 if (user != null && VerifyPassword(model.Password, user.PasswordHash))
                 {
-                    // 1. Create Claims
+                    // Create Claims with Role
                     var claims = new List<Claim>
                     {
-                        new Claim(ClaimTypes.NameIdentifier, user.UserID.ToString()),
                         new Claim(ClaimTypes.Name, user.FullName),
                         new Claim(ClaimTypes.Email, user.Email),
-                        new Claim(ClaimTypes.Role, user.Role ?? "User")
+                        new Claim(ClaimTypes.Role, user.Role) // Important!
                     };
 
-                    // 2. Sign In
                     var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
                     var principal = new ClaimsPrincipal(identity);
 
@@ -134,13 +132,26 @@ namespace FlyEase.Controllers
                         principal,
                         new AuthenticationProperties { IsPersistent = model.RememberMe });
 
-                    // 3. Redirect to Profile
-                    return RedirectToAction("Profile", "Auth");
+                    // --- ROLE BASED REDIRECT LOGIC ---
+                    if (user.Role == "Admin")
+                    {
+                        // Redirect to Admin Controller
+                        return RedirectToAction("Dashboard", "Admin");
+                    }
+                    else if (user.Role == "Staff")
+                    {
+                        // Redirect to Staff Dashboard
+                        return RedirectToAction("StaffDashboard", "StaffDashboard");
+                    }
+                    else
+                    {
+                        // Regular User -> Go to Profile
+                        return RedirectToAction("Profile", "Auth");
+                    }
+                    // ---------------------------------
                 }
-
                 ModelState.AddModelError("", "Invalid email or password.");
             }
-
             return View(model);
         }
 
