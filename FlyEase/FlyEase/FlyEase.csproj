@@ -177,6 +177,7 @@
     <None Include="obj\FlyEase.csproj.nuget.g.props" />
     <None Include="obj\FlyEase.csproj.nuget.g.targets" />
     <None Include="obj\project.nuget.cache" />
+    <None Include="Views\StaffDashboard\StaffDashboard.cshtml" />
   </ItemGroup>
 
   <ItemGroup>

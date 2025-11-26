@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using FlyEase.Data;
 
-namespace FlyEase.Models
+namespace FlyEase.ViewModels
 {
     public class PackageManagementViewModel
     {

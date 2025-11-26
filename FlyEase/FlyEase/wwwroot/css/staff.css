@@ -1,0 +1,100 @@
+﻿/* Staff Panel Styles */
+body.staff-mode {
+    background-color: #f4f6f9;
+    font-family: 'Segoe UI', sans-serif;
+}
+
+.staff-wrapper {
+    display: flex;
+    min-height: 100vh;
+}
+
+/* Sidebar */
+.staff-sidebar {
+    width: 250px;
+    background-color: #343a40;
+    color: #fff;
+    flex-shrink: 0;
+}
+
+    .staff-sidebar .brand {
+        padding: 20px;
+        font-size: 1.25rem;
+        font-weight: bold;
+        background: #212529;
+        text-align: center;
+    }
+
+    .staff-sidebar nav a {
+        display: block;
+        padding: 15px 20px;
+        color: #c2c7d0;
+        text-decoration: none;
+        border-bottom: 1px solid #3d4248;
+    }
+
+        .staff-sidebar nav a:hover, .staff-sidebar nav a.active {
+            background-color: #007bff;
+            color: #fff;
+        }
+
+/* Content */
+.staff-content {
+    flex-grow: 1;
+    padding: 20px;
+}
+
+.staff-header {
+    background: #fff;
+    padding: 15px;
+    border-radius: 5px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* Stats Cards */
+.stat-card {
+    background: #fff;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    margin-bottom: 20px;
+    border-left: 5px solid #007bff;
+}
+
+    .stat-card h3 {
+        font-size: 2rem;
+        margin: 0;
+    }
+
+    .stat-card span {
+        color: #6c757d;
+    }
+
+/* Status Badges */
+.badge-pending {
+    background-color: #ffc107;
+    color: #000;
+    padding: 5px 10px;
+    border-radius: 12px;
+    font-size: 0.8em;
+}
+
+.badge-confirmed {
+    background-color: #28a745;
+    color: #fff;
+    padding: 5px 10px;
+    border-radius: 12px;
+    font-size: 0.8em;
+}
+
+.badge-cancelled {
+    background-color: #dc3545;
+    color: #fff;
+    padding: 5px 10px;
+    border-radius: 12px;
+    font-size: 0.8em;
+}

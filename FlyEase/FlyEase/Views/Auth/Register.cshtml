@@ -1,0 +1,151 @@
+﻿@model FlyEase.ViewModels.RegisterViewModel
+
+@{
+    ViewData["Title"] = "Register";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@section Head {
+    <link rel="stylesheet" href="~/css/auth.css" />
+}
+
+<div class="auth-container">
+    <div class="auth-card fade-in">
+        <div class="auth-header">
+            <h2 class="mb-0 text-white">Create Account</h2>
+            <p class="mb-0 text-white-50">Join our community</p>
+        </div>
+
+        <div class="auth-body">
+            <!-- Global Error Message -->
+            @if (!ViewData.ModelState.IsValid && ViewData.ModelState[string.Empty]?.Errors?.Count > 0)
+            {
+                <div class="alert alert-danger">
+                    @foreach (var error in ViewData.ModelState[string.Empty].Errors)
+                    {
+                        <div><i class="fas fa-exclamation-circle"></i> @error.ErrorMessage</div>
+                    }
+                </div>
+            }
+
+            <form method="post" id="registerForm" novalidate>
+                @Html.AntiForgeryToken()
+
+                <!-- Full Name -->
+                <div class="form-group">
+                    <label class="form-label">Full Name</label>
+                    <div class="input-with-icon">
+                        <i class="fas fa-user input-icon"></i>
+                        <input type="text" class="form-control" name="FullName"
+                               value="@(Model?.FullName ?? "")"
+                               placeholder="Enter your full name" required>
+                    </div>
+                    @if (ViewData.ModelState["FullName"]?.Errors?.Count > 0)
+                    {
+                        <div class="text-danger small mt-1">
+                            @ViewData.ModelState["FullName"].Errors[0].ErrorMessage
+                        </div>
+                    }
+                </div>
+
+                <div class="row">
+                    <!-- Email -->
+                    <div class="col-md-6 form-group">
+                        <label class="form-label">Email</label>
+                        <div class="input-with-icon">
+                            <i class="fas fa-envelope input-icon"></i>
+                            <input type="email" class="form-control" name="Email"
+                                   value="@(Model?.Email ?? "")"
+                                   placeholder="name@example.com" required>
+                        </div>
+                        @if (ViewData.ModelState["Email"]?.Errors?.Count > 0)
+                        {
+                            <div class="text-danger small mt-1">
+                                @ViewData.ModelState["Email"].Errors[0].ErrorMessage
+                            </div>
+                        }
+                    </div>
+
+                    <!-- Phone with Fixed +60 -->
+                    <div class="col-md-6 form-group">
+                        <label class="form-label">Phone Number</label>
+                        <div class="input-group">
+                            <!-- The fixed +60 part -->
+                            <span class="input-group-text bg-light text-muted" style="border: 2px solid #e2e8f0; border-right: 0;">+60</span>
+
+                            <!-- The user input part (only digits) -->
+                            <input type="tel" class="form-control border-start-0" name="Phone"
+                                   value="@(Model?.Phone ?? "")"
+                                   placeholder="123456789"
+                                   pattern="\d*" maxlength="11"
+                                   style="border-left: 0;" required>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Password -->
+                <div class="form-group">
+                    <label class="form-label">Password</label>
+                    <div class="input-with-icon">
+                        <i class="fas fa-lock input-icon"></i>
+                        <input type="password" id="password" class="form-control" name="Password"
+                               placeholder="Create a password" required>
+                        <button type="button" class="password-toggle" tabindex="-1">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+
+                    <!-- Strength Meter -->
+                    <div class="password-strength mt-2">
+                        <div class="strength-bar">
+                            <div class="strength-fill" id="strengthFill"></div>
+                        </div>
+                        <ul class="requirement-list">
+                            <li id="reqLength"><i class="fas fa-circle"></i> 6+ characters</li>
+                            <li id="reqUpper"><i class="fas fa-circle"></i> Uppercase Letter</li>
+                            <li id="reqLower"><i class="fas fa-circle"></i> Lowercase Letter</li>
+                            <li id="reqNumber"><i class="fas fa-circle"></i> Number</li>
+                            <li id="reqSpecial"><i class="fas fa-circle"></i> Special Char (!@("$%^&*/"))</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Confirm Password -->
+                <div class="form-group">
+                    <label class="form-label">Confirm Password</label>
+                    <div class="input-with-icon">
+                        <i class="fas fa-lock input-icon"></i>
+                        <input type="password" id="confirmPassword" class="form-control" name="ConfirmPassword"
+                               placeholder="Confirm your password" required>
+                        <button type="button" class="password-toggle" tabindex="-1">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                    <div id="passwordMatch"></div>
+                </div>
+
+                <!-- Terms -->
+                <div class="form-group mt-3">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="agreeTerms" name="AgreeToTerms" value="true" required>
+                        <label class="form-check-label" for="agreeTerms">
+                            I agree to the <a href="#" class="auth-link">Terms</a> and <a href="#" class="auth-link">Privacy Policy</a>
+                        </label>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-primary">
+                    <i class="fas fa-user-plus"></i> Create Account
+                </button>
+            </form>
+
+            <div class="auth-footer">
+                <p>Already have an account? <a href="@Url.Action("Login", "Auth")" class="auth-link">Sign in</a></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/auth.js"></script>
+}

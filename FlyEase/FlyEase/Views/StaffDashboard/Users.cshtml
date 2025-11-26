@@ -1,0 +1,82 @@
+﻿@model FlyEase.ViewModels.UsersPageVM
+@{
+    ViewData["Title"] = "Users"; Layout = "~/Views/Shared/_StaffLayout.cshtml";
+}
+
+<div class="container mt-4">
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success">@TempData["Success"]</div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger">@TempData["Error"]</div>
+    }
+
+    <h2>User Management</h2>
+
+    <div class="card shadow-sm mt-3">
+        <div class="card-body p-0">
+            <table class="table table-hover mb-0 align-middle">
+                <thead class="table-light"><tr><th>ID</th><th>Name</th><th>Email / Phone</th><th>Role</th><th>Actions</th></tr></thead>
+                <tbody>
+                    @foreach (var u in Model.Users)
+                    {
+                        <tr>
+                            <td>@u.UserID</td>
+                            <td>@u.FullName</td>
+                            <td>@u.Email<br /><small class="text-muted">@u.Phone</small></td>
+                            <td><span class="badge bg-secondary">@u.Role</span></td>
+                            <td>
+                                <button class="btn btn-sm btn-primary" onclick="openUserModal(@u.UserID, '@u.FullName', '@u.Email', '@u.Phone', '@u.Role')">Edit</button>
+                                <form asp-action="DeleteUser" asp-route-id="@u.UserID" method="post" class="d-inline" onsubmit="return confirm('Delete this user?');">
+                                    <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- USER MODAL -->
+<div class="modal fade" id="userModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">Edit User</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form asp-action="SaveUser" method="post">
+                <div class="modal-body">
+                    <input type="hidden" id="u_id" asp-for="CurrentUser.UserID" />
+                    <div class="mb-3"><label>Name</label><input id="u_name" asp-for="CurrentUser.FullName" class="form-control" required /></div>
+                    <div class="mb-3"><label>Email</label><input id="u_email" asp-for="CurrentUser.Email" class="form-control" required /></div>
+                    <div class="mb-3"><label>Phone</label><input id="u_phone" asp-for="CurrentUser.Phone" class="form-control" /></div>
+                    <div class="mb-3">
+                        <label>Role</label>
+                        <select id="u_role" asp-for="CurrentUser.Role" class="form-select">
+                            <option value="User">User</option>
+                            <option value="Staff">Staff</option>
+                            <option value="Admin">Admin</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer"><button type="submit" class="btn btn-primary">Save Changes</button></div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    function openUserModal(id, name, email, phone, role) {
+        document.getElementById('u_id').value = id;
+        document.getElementById('u_name').value = name;
+        document.getElementById('u_email').value = email;
+        document.getElementById('u_phone').value = phone;
+        document.getElementById('u_role').value = role;
+        new bootstrap.Modal(document.getElementById('userModal')).show();
+    }
+</script>

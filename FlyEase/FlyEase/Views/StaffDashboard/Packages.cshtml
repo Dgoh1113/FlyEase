@@ -1,0 +1,199 @@
+﻿@model FlyEase.ViewModels.PackagesPageVM
+@{
+    ViewData["Title"] = "Packages"; Layout = "~/Views/Shared/_StaffLayout.cshtml";
+}
+
+<!-- CSS for Image Thumbnails -->
+<style>
+    .img-preview-wrapper {
+        position: relative;
+        display: inline-block;
+        margin: 5px;
+    }
+
+        .img-preview-wrapper img {
+            width: 80px;
+            height: 80px;
+            object-fit: cover;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+
+    .btn-remove-img {
+        position: absolute;
+        top: -5px;
+        right: -5px;
+        background: red;
+        color: white;
+        border-radius: 50%;
+        border: none;
+        width: 20px;
+        height: 20px;
+        font-size: 12px;
+        line-height: 1;
+        cursor: pointer;
+    }
+</style>
+
+<div class="container mt-4">
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success">@TempData["Success"]</div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger">@TempData["Error"]</div>
+    }
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2>Packages</h2>
+        <!-- 0 for ID implies Create New -->
+        <button class="btn btn-primary" onclick="openPkgModal(0)">+ New Package</button>
+    </div>
+
+    <div class="table-responsive card shadow-sm">
+        <table class="table align-middle table-hover mb-0">
+            <thead class="table-light"><tr><th>Image</th><th>Name</th><th>Price</th><th>Slots</th><th>Actions</th></tr></thead>
+            <tbody>
+                @foreach (var p in Model.Packages)
+                {
+                    var firstImg = p.ImageURL?.Split(';').FirstOrDefault() ?? "/img/default-package.jpg";
+                    <tr>
+                        <td><img src="@firstImg" width="50" height="50" class="rounded"></td>
+                        <td><strong>@p.PackageName</strong><br /><small>@p.Destination</small></td>
+                        <td>RM @p.Price.ToString("N0")</td>
+                        <td>@p.AvailableSlots</td>
+                        <td>
+                            <!-- Pass all data including ImageURL string -->
+                            <button class="btn btn-sm btn-primary"
+                                    onclick="openPkgModal(@p.PackageID, '@p.PackageName', '@p.Destination', @p.Price, @p.AvailableSlots, '@p.StartDate.ToString("yyyy-MM-dd")', '@p.EndDate.ToString("yyyy-MM-dd")', @p.CategoryID, '@p.Description', '@p.ImageURL')">
+                                Edit
+                            </button>
+                            <form asp-controller="StaffDashboard" asp-action="DeletePackage" asp-route-id="@p.PackageID" method="post" class="d-inline" onsubmit="return confirm('Delete package?');">
+                                <input type="hidden" name="id" value="@p.PackageID" />
+                                <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- PACKAGE MODAL -->
+<div class="modal fade" id="pkgModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="pkgTitle">Manage Package</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form asp-controller="StaffDashboard" asp-action="SavePackage" method="post" enctype="multipart/form-data">
+                @Html.AntiForgeryToken()
+                <div class="modal-body">
+                    <input type="hidden" id="p_id" asp-for="CurrentPackage.PackageID" />
+
+                    <!-- Container to hold hidden inputs for deleted images -->
+                    <div id="deletedImagesContainer"></div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3"><label>Name</label><input id="p_name" asp-for="CurrentPackage.PackageName" class="form-control" required /></div>
+                        <div class="col-md-6 mb-3"><label>Destination</label><input id="p_dest" asp-for="CurrentPackage.Destination" class="form-control" required /></div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3"><label>Price (RM)</label><input type="number" id="p_price" asp-for="CurrentPackage.Price" class="form-control" required /></div>
+                        <div class="col-md-6 mb-3"><label>Slots</label><input type="number" id="p_slots" asp-for="CurrentPackage.AvailableSlots" class="form-control" required /></div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3"><label>Start Date</label><input type="date" id="p_start" asp-for="CurrentPackage.StartDate" class="form-control" required /></div>
+                        <div class="col-md-6 mb-3"><label>End Date</label><input type="date" id="p_end" asp-for="CurrentPackage.EndDate" class="form-control" required /></div>
+                    </div>
+                    <div class="mb-3">
+                        <label>Category</label>
+                        <select id="p_cat" asp-for="CurrentPackage.CategoryID" class="form-select" asp-items="@(new SelectList(Model.Categories, "CategoryID", "CategoryName"))"></select>
+                    </div>
+                    <div class="mb-3"><label>Description</label><textarea id="p_desc" asp-for="CurrentPackage.Description" class="form-control" rows="2"></textarea></div>
+
+                    <!-- Image Management -->
+                    <div class="mb-3">
+                        <label class="fw-bold">Current Images</label>
+                        <div id="currentImagesPreview" class="border p-2 rounded bg-light mb-2">
+                            <small class="text-muted">No images available.</small>
+                        </div>
+
+                        <label class="small text-muted">Add New Images (Ctrl+Click to select multiple)</label>
+                        <input type="file" asp-for="CurrentPackage.ImageFiles" class="form-control" multiple accept="image/*" />
+                    </div>
+                </div>
+                <div class="modal-footer"><button type="submit" class="btn btn-primary">Save Package</button></div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    function openPkgModal(id, name, dest, price, slots, start, end, cat, desc, imageUrls) {
+        // 1. Reset Title & Form Fields
+        document.getElementById('pkgTitle').innerText = id === 0 ? "Create Package" : "Edit Package";
+        document.getElementById('p_id').value = id === 0 ? "" : id;
+        document.getElementById('p_name').value = name || "";
+        document.getElementById('p_dest').value = dest || "";
+        document.getElementById('p_price').value = price || 0;
+        document.getElementById('p_slots').value = slots || 1;
+        document.getElementById('p_start').value = start || new Date().toISOString().split('T')[0];
+        document.getElementById('p_end').value = end || new Date().toISOString().split('T')[0];
+        if(cat) document.getElementById('p_cat').value = cat;
+        document.getElementById('p_desc').value = desc || "";
+
+        // 2. Clear Containers
+        const deletedContainer = document.getElementById('deletedImagesContainer');
+        const previewContainer = document.getElementById('currentImagesPreview');
+        deletedContainer.innerHTML = '';
+        previewContainer.innerHTML = '';
+
+        // 3. Populate Existing Images
+        if (imageUrls && imageUrls.trim() !== "") {
+            const images = imageUrls.split(';');
+            images.forEach(url => {
+                if(url.trim() === "") return;
+
+                // Create Wrapper
+                const wrapper = document.createElement('div');
+                wrapper.className = 'img-preview-wrapper';
+
+                // Image
+                const img = document.createElement('img');
+                img.src = url;
+
+                // Delete Button
+                const btn = document.createElement('button');
+                btn.className = 'btn-remove-img';
+                btn.innerHTML = '×';
+                btn.type = 'button'; // IMPORTANT: Prevent submit
+
+                // Handle Click
+                btn.onclick = function() {
+                    // Hide visual
+                    wrapper.remove();
+
+                    // Add hidden input for deletion
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = 'CurrentPackage.DeleteImagePaths'; // Binds to List<string> in ViewModel
+                    input.value = url;
+                    deletedContainer.appendChild(input);
+                };
+
+                wrapper.appendChild(img);
+                wrapper.appendChild(btn);
+                previewContainer.appendChild(wrapper);
+            });
+        } else {
+            previewContainer.innerHTML = '<small class="text-muted">No images.</small>';
+        }
+
+        // 4. Show Modal
+        new bootstrap.Modal(document.getElementById('pkgModal')).show();
+    }
+</script>

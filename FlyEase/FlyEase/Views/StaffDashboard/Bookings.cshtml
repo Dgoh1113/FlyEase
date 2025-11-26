@@ -1,0 +1,76 @@
+﻿@model FlyEase.ViewModels.BookingsPageVM
+@{
+    ViewData["Title"] = "Bookings"; Layout = "~/Views/Shared/_StaffLayout.cshtml";
+}
+
+<div class="container mt-4">
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success">@TempData["Success"]</div>
+    }
+
+    <div class="d-flex justify-content-between mb-3">
+        <h2>Bookings</h2>
+        <div>
+            <a asp-action="Bookings" asp-route-status="Pending" class="btn btn-outline-warning btn-sm">Pending</a>
+            <a asp-action="Bookings" asp-route-status="All" class="btn btn-outline-secondary btn-sm">All</a>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <table class="table table-hover mb-0 align-middle">
+            <thead class="table-light"><tr><th>ID</th><th>User</th><th>Package</th><th>Date</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody>
+                @foreach (var b in Model.Bookings)
+                {
+                    <tr>
+                        <td>#@b.BookingID</td>
+                        <td>@b.User.FullName</td>
+                        <td>@b.Package.PackageName</td>
+                        <td>@b.TravelDate.ToString("dd/MM/yyyy")</td>
+                        <td><span class="badge @(b.BookingStatus == "Confirmed" ? "bg-success" : b.BookingStatus == "Pending" ? "bg-warning" : "bg-danger")">@b.BookingStatus</span></td>
+                        <td>
+                            <button class="btn btn-sm btn-primary" onclick="openBookModal(@b.BookingID, '@b.BookingStatus', '@b.TravelDate.ToString("yyyy-MM-dd")')">Edit</button>
+                            <form asp-action="DeleteBooking" asp-route-id="@b.BookingID" method="post" class="d-inline" onsubmit="return confirm('Delete booking?');">
+                                <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- BOOKING MODAL -->
+<div class="modal fade" id="bookModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white"><h5 class="modal-title">Edit Booking</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
+            <form asp-action="SaveBooking" method="post">
+                <div class="modal-body">
+                    <input type="hidden" id="b_id" asp-for="CurrentBooking.BookingID" />
+                    <div class="mb-3">
+                        <label>Status</label>
+                        <select id="b_status" asp-for="CurrentBooking.Status" class="form-select">
+                            <option value="Pending">Pending</option>
+                            <option value="Confirmed">Confirmed</option>
+                            <option value="Cancelled">Cancelled</option>
+                        </select>
+                    </div>
+                    <div class="mb-3"><label>Travel Date</label><input type="date" id="b_date" asp-for="CurrentBooking.TravelDate" class="form-control" /></div>
+                </div>
+                <div class="modal-footer"><button type="submit" class="btn btn-primary">Update</button></div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    function openBookModal(id, status, date) {
+        document.getElementById('b_id').value = id;
+        document.getElementById('b_status').value = status;
+        document.getElementById('b_date').value = date;
+        new bootstrap.Modal(document.getElementById('bookModal')).show();
+    }
+</script>
