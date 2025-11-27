@@ -1,4 +1,5 @@
 ﻿using FlyEase.Data;
+using FlyEase.Services;
 using FlyEase.ViewModels;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -14,11 +15,13 @@ namespace FlyEase.Controllers
     {
         private readonly FlyEaseDbContext _context;
         private readonly ILogger<AuthController> _logger;
+        private readonly EmailService _emailService;
 
-        public AuthController(FlyEaseDbContext context, ILogger<AuthController> logger)
+        public AuthController(FlyEaseDbContext context, ILogger<AuthController> logger, EmailService emailService)
         {
             _context = context;
             _logger = logger;
+            _emailService = emailService;
         }
 
         // ==========================================
@@ -341,7 +344,114 @@ namespace FlyEase.Controllers
             await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
             await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal);
         }
+        [HttpGet]
+        [AllowAnonymous]
+        public IActionResult ForgotPassword()
+        {
+            return View();
+        }
 
+        [HttpPost]
+        [AllowAnonymous]
+        [ValidateAntiForgeryToken]
+        public IActionResult ForgotPassword(ForgotPasswordViewModel model)
+        {
+            if (ModelState.IsValid)
+            {
+                var user = _context.Users.FirstOrDefault(u => u.Email == model.Email);
+
+                // Always show success message even if email not found (Security practice)
+                if (user == null)
+                {
+                    return View("ForgotPasswordConfirmation");
+                }
+
+                // 1. Generate Token
+                string token = Guid.NewGuid().ToString();
+                user.ResetToken = token;
+                user.ResetTokenExpiry = DateTime.UtcNow.AddMinutes(30); // Valid for 30 mins
+                _context.SaveChanges();
+
+                // 2. Generate Link
+                // Generates: https://localhost:port/Auth/ResetPassword?token=xyz&email=abc@com
+                var resetLink = Url.Action("ResetPassword", "Auth",
+                    new { token = token, email = user.Email }, Request.Scheme);
+
+                // 3. Send Email
+                string subject = "Reset Your Password - FlyEase";
+                string body = $@"
+                    <h2>Password Reset Request</h2>
+                    <p>Click the link below to reset your password:</p>
+                    <a href='{resetLink}' style='background:#667eea;color:white;padding:10px 20px;text-decoration:none;border-radius:5px;'>Reset Password</a>
+                    <p>Or copy this link: {resetLink}</p>
+                    <p>This link expires in 30 minutes.</p>";
+
+                try
+                {
+                    _emailService.SendEmail(user.Email, subject, body);
+                    return View("ForgotPasswordConfirmation");
+                }
+                catch
+                {
+                    ModelState.AddModelError("", "Error sending email. Check SMTP configuration.");
+                }
+            }
+            return View(model);
+        }
+
+        public IActionResult ForgotPasswordConfirmation()
+        {
+            return View();
+        }
+
+        // ==========================================
+        // RESET PASSWORD (Step 2)
+        // ==========================================
+        [HttpGet]
+        [AllowAnonymous]
+        public IActionResult ResetPassword(string token, string email)
+        {
+            if (token == null || email == null)
+            {
+                TempData["ErrorMessage"] = "Invalid password reset token.";
+                return RedirectToAction("Login");
+            }
+
+            var model = new ResetPasswordViewModel { Token = token, Email = email };
+            return View(model);
+        }
+
+        [HttpPost]
+        [AllowAnonymous]
+        [ValidateAntiForgeryToken]
+        public IActionResult ResetPassword(ResetPasswordViewModel model)
+        {
+            if (ModelState.IsValid)
+            {
+                var user = _context.Users.FirstOrDefault(u => u.Email == model.Email);
+
+                // Validate Token and Expiry
+                if (user != null &&
+                    user.ResetToken == model.Token &&
+                    user.ResetTokenExpiry > DateTime.UtcNow)
+                {
+                    // Update Password
+                    user.PasswordHash = HashPassword(model.NewPassword);
+
+                    // Clear Token
+                    user.ResetToken = null;
+                    user.ResetTokenExpiry = null;
+
+                    _context.SaveChanges();
+
+                    TempData["SuccessMessage"] = "Password reset successful! Please login.";
+                    return RedirectToAction("Login");
+                }
+
+                TempData["ErrorMessage"] = "Invalid token or token expired.";
+            }
+            return View(model);
+        }
         // Helper Methods
         private bool IsValidEmailDomain(string email)
         {

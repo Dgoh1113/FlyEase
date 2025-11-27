@@ -1,4 +1,5 @@
 ﻿using FlyEase.Data;
+using FlyEase.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
 var builder = WebApplication.CreateBuilder(args);
@@ -13,6 +14,7 @@ AppDomain.CurrentDomain.SetData("DataDirectory", path);
 // Add services...
 // Add services to the container
 builder.Services.AddControllersWithViews();
+builder.Services.AddScoped<EmailService>();
 
 // Configure DbContext
 builder.Services.AddDbContext<FlyEaseDbContext>(options =>
