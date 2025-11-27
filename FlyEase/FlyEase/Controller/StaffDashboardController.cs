@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using FlyEase.Data;
 using FlyEase.ViewModels;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http; // Required for IFormFile
 
 namespace FlyEase.Controllers
 {
