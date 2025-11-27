@@ -1,0 +1,95 @@
+﻿<!-- [file name]: Views/Discount/Discounts.cshtml -->
+@model List<FlyEase.Data.DiscountType>
+@{
+    ViewData["Title"] = "Available Discounts";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <h2 class="mb-4">🎉 Special Discounts & Offers</h2>
+            <p class="lead">Take advantage of our exclusive discounts for your next adventure!</p>
+        </div>
+    </div>
+
+    @if (!Model.Any())
+    {
+        <div class="alert alert-warning">
+            <h4>No discounts available at the moment</h4>
+            <p>Check back later for special offers and promotions.</p>
+        </div>
+    }
+    else
+    {
+        <div class="row">
+            @foreach (var discount in Model)
+            {
+                <div class="col-md-6 col-lg-4 mb-4">
+                    <div class="card discount-card h-100 shadow-sm">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <h5 class="card-title text-primary">@discount.DiscountName</h5>
+                                <span class="badge bg-success fs-6">
+                                    @if (discount.DiscountRate.HasValue)
+                                    {
+                                        @discount.DiscountRate.Value
+                            
+                                        <text>% OFF</text>
+                                    }
+                                    else if (discount.DiscountAmount.HasValue)
+                                    {
+                                        <text>RM @discount.DiscountAmount.Value OFF</text>
+                                    }
+                                </span>
+                            </div>
+
+                            <p class="card-text">
+                                @GetDiscountDescription(discount.DiscountName)
+                            </p>
+
+                            <div class="mt-auto">
+                                <a href="@Url.Action("Details", "Discount", new { id = discount.DiscountTypeID })"
+                                   class="btn btn-outline-primary btn-sm">
+                                    <i class="fas fa-info-circle me-1"></i> View Details
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@functions {
+    string GetDiscountDescription(string discountName)
+    {
+        return discountName switch
+        {
+            "Early Bird" => "Book 30 days in advance and save on your travel package. Perfect for planners!",
+            "Bulk Discount" => "Traveling with 5+ people? Get special group rates for your entire party.",
+            "Senior Citizen" => "Special rates for travelers aged 60 and above. Enjoy your golden years!",
+            "Junior Price" => "Children aged 0-12 travel at discounted rates. Family-friendly adventures await!",
+            _ => "Great savings on your next travel package!"
+        };
+    }
+}
+
+<style>
+    .discount-card {
+        transition: transform 0.2s ease-in-out;
+        border: none;
+        border-radius: 15px;
+    }
+
+        .discount-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1) !important;
+        }
+
+    .badge {
+        font-size: 0.9em;
+        padding: 0.5em 0.8em;
+    }
+</style>
