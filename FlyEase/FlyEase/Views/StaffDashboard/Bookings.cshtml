@@ -1,5 +1,4 @@
-﻿using Microsoft.AspNetCore.Http; // Required for IFormFile
-
+﻿
 @model FlyEase.ViewModels.PackagesPageVM
 @{
     ViewData["Title"] = "Packages Management";
@@ -54,16 +53,16 @@
                         <td>
                             <button class="btn btn-sm btn-primary"
                                     onclick="openPackageModal(
-                                            @p.PackageID,
-                                            '@p.PackageName',
-                                            '@p.Destination',
-                                            '@p.CategoryID',
-                                            @p.Price,
-                                            '@p.StartDate.ToString("yyyy-MM-dd")',
-                                            '@p.EndDate.ToString("yyyy-MM-dd")',
-                                            @p.AvailableSlots,
-                                            '@(p.Description?.Replace("'", "\\'") ?? "")'
-                                        )">
+                                                @p.PackageID,
+                                                '@p.PackageName',
+                                                '@p.Destination',
+                                                '@p.CategoryID',
+                                                @p.Price,
+                                                '@p.StartDate.ToString("yyyy-MM-dd")',
+                                                '@p.EndDate.ToString("yyyy-MM-dd")',
+                                                @p.AvailableSlots,
+                                                '@(p.Description?.Replace("'", "\\'") ?? "")'
+                                            )">
                                 Edit
                             </button>
 
