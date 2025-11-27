@@ -7,11 +7,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="Migrations\20251116184003_DbContext.cs" />
-    <Compile Remove="Migrations\20251116184003_DbContext.Designer.cs" />
-  </ItemGroup>
-
-  <ItemGroup>
     <Compile Include="obj\Debug\net8.0\.NETCoreApp,Version=v8.0.AssemblyAttributes.cs" />
     <Compile Include="obj\Debug\net8.0\FlyEase.AssemblyInfo.cs" />
     <Compile Include="obj\Debug\net8.0\FlyEase.GlobalUsings.g.cs" />

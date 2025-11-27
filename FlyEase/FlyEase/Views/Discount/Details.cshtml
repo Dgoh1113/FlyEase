@@ -1,0 +1,99 @@
+﻿<!-- [file name]: Views/Discount/Details.cshtml -->
+@model FlyEase.Data.DiscountType
+@{
+    ViewData["Title"] = "Discount Details";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-tag me-2"></i>@Model.DiscountName
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-4">
+                        <div class="col-12 text-center">
+                            <div class="display-4 text-success fw-bold">
+                                @if (Model.DiscountRate.HasValue)
+                                {
+                                    @Model.DiscountRate.Value
+                                
+                                    <text>% OFF</text>
+                                }
+                                else if (Model.DiscountAmount.HasValue)
+                                {
+                                    <text>RM @Model.DiscountAmount.Value OFF</text>
+                                }
+                            </div>
+                            <p class="text-muted">Special Discount</p>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <h5>About This Offer</h5>
+                        <p class="text-muted">
+                            @GetDetailedDescription(Model.DiscountName)
+                        </p>
+                    </div>
+
+                    <div class="mb-4">
+                        <h5>How to Redeem</h5>
+                        <ul class="list-unstyled">
+                            <li><i class="fas fa-check text-success me-2"></i>@GetRedemptionSteps(Model.DiscountName)</li>
+                            <li><i class="fas fa-check text-success me-2"></i>Discount applied automatically at checkout</li>
+                            <li><i class="fas fa-check text-success me-2"></i>Subject to availability</li>
+                        </ul>
+                    </div>
+
+                    <div class="alert alert-info">
+                        <h6><i class="fas fa-info-circle me-2"></i>Terms & Conditions</h6>
+                        <small class="mb-0">
+                            This discount is automatically applied when eligibility criteria are met.
+                            Cannot be combined with other offers unless specified.
+                            FlyEase Travel reserves the right to modify or withdraw this offer at any time.
+                        </small>
+                    </div>
+
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="@Url.Action("Discounts", "Discount")" class="btn btn-outline-secondary me-md-2">
+                            <i class="fas fa-arrow-left me-1"></i> Back to All Discounts
+                        </a>
+                        <a href="@Url.Action("Index", "Home")" class="btn btn-primary">
+                            <i class="fas fa-search me-1"></i> Browse Packages
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@functions {
+    string GetDetailedDescription(string discountName)
+    {
+        return discountName switch
+        {
+            "Early Bird" => "Plan ahead and save! Book your travel package at least 30 days before your departure date to automatically qualify for our Early Bird discount. This offer rewards travelers who plan their adventures in advance.",
+            "Bulk Discount" => "Traveling with family or friends? Our Bulk Discount offers significant savings when you book for 5 or more people. Perfect for family reunions, group trips, or corporate retreats.",
+            "Senior Citizen" => "We value our senior travelers! If you're 60 years or older, you're eligible for our Senior Citizen discount. Enjoy your well-deserved vacation with special rates tailored for you.",
+            "Junior Price" => "Making family travel affordable! Children between 0-12 years old qualify for our Junior Price discount. Create unforgettable family memories without breaking the bank.",
+            _ => "Take advantage of this special offer for great savings on your next travel package. Terms and conditions apply."
+        };
+    }
+
+    string GetRedemptionSteps(string discountName)
+    {
+        return discountName switch
+        {
+            "Early Bird" => "Book your package at least 30 days before travel date",
+            "Bulk Discount" => "Select 5 or more travelers when booking",
+            "Senior Citizen" => "Traveler must be 60 years or older",
+            "Junior Price" => "Child must be between 0-12 years old",
+            _ => "Meet the eligibility criteria during booking"
+        };
+    }
+}

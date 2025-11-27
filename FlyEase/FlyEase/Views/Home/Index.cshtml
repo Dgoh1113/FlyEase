@@ -1,0 +1,120 @@
+﻿<!-- [file name]: Views/Home/Index.cshtml -->
+@model IEnumerable<FlyEase.Data.Package>
+@{
+    ViewData["Title"] = "Home";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="hero">
+    <!-- No text - just the background image as per your CSS -->
+</div>
+
+<section class="packages">
+    @foreach (var package in Model)
+    {
+        <div class="package-card">
+            <img src="@(package.ImageURL ?? "/img/default-package.jpg")" alt="@package.PackageName" />
+            <div class="package-content">
+                <h3>@package.PackageName</h3>
+                <p class="price">RM @package.Price.ToString("N0")</p>
+                <p>@package.Description</p>
+                <p><small>Destination: @package.Destination</small></p>
+                <p><small>Duration: @((package.EndDate - package.StartDate).Days) Days @((package.EndDate - package.StartDate).Days - 1) Nights</small></p>
+                <p><small>Available: @package.AvailableSlots slots</small></p>
+
+                @if (package.PackageInclusions.Any())
+                {
+                    <div class="inclusions">
+                        <strong>Includes:</strong>
+                        <ul>
+                            @foreach (var inclusion in package.PackageInclusions.Take(2))
+                            {
+                                <li>@inclusion.InclusionItem</li>
+                            }
+                            @if (package.PackageInclusions.Count > 2)
+                            {
+                                <li>+@(package.PackageInclusions.Count - 2) more inclusions</li>
+                            }
+                        </ul>
+                    </div>
+                }
+
+                <!-- ADD BOOK NOW BUTTON HERE -->
+                <div class="mt-3">
+                    <a asp-controller="Payment" asp-action="CustomerInfo"
+                       asp-route-packageId="@package.PackageID"
+                       asp-route-people="1"
+                       class="btn btn-primary w-100">
+                        <i class="fas fa-calendar-check me-1"></i>Book Now
+                    </a>
+                </div>
+            </div>
+        </div>
+    }
+</section>
+
+<style>
+    .packages {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 2rem;
+        padding: 2rem;
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    .package-card {
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+        transition: transform 0.3s ease;
+    }
+
+        .package-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .package-card img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+        }
+
+    .package-content {
+        padding: 1.5rem;
+    }
+
+        .package-content h3 {
+            margin: 0 0 0.5rem 0;
+            color: #333;
+        }
+
+    .price {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: #007bff;
+        margin: 0.5rem 0;
+    }
+
+    .inclusions {
+        margin: 1rem 0;
+    }
+
+        .inclusions ul {
+            list-style: none;
+            padding: 0;
+            margin: 0.5rem 0;
+        }
+
+        .inclusions li {
+            padding: 0.2rem 0;
+            font-size: 0.9rem;
+        }
+
+            .inclusions li:before {
+                content: "✓ ";
+                color: #28a745;
+                font-weight: bold;
+            }
+</style>

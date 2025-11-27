@@ -1,6 +1,7 @@
-﻿@model FlyEase.ViewModels.BookingsPageVM
+﻿@model FlyEase.ViewModels.PackagesPageVM
 @{
-    ViewData["Title"] = "Bookings"; Layout = "~/Views/Shared/_StaffLayout.cshtml";
+    ViewData["Title"] = "Packages Management";
+    Layout = "~/Views/Shared/_StaffLayout.cshtml";
 }
 
 <div class="container mt-4">
@@ -8,30 +9,63 @@
     {
         <div class="alert alert-success">@TempData["Success"]</div>
     }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger">@TempData["Error"]</div>
+    }
 
     <div class="d-flex justify-content-between mb-3">
-        <h2>Bookings</h2>
-        <div>
-            <a asp-action="Bookings" asp-route-status="Pending" class="btn btn-outline-warning btn-sm">Pending</a>
-            <a asp-action="Bookings" asp-route-status="All" class="btn btn-outline-secondary btn-sm">All</a>
-        </div>
+        <h2>Packages</h2>
+        <button class="btn btn-primary" onclick="openPackageModal(0, '', '', '', 0, '', '', '', '')">
+            + New Package
+        </button>
     </div>
 
     <div class="card shadow-sm">
         <table class="table table-hover mb-0 align-middle">
-            <thead class="table-light"><tr><th>ID</th><th>User</th><th>Package</th><th>Date</th><th>Status</th><th>Actions</th></tr></thead>
+            <thead class="table-light">
+                <tr>
+                    <th>ID</th>
+                    <th>Image</th>
+                    <th>Name</th>
+                    <th>Destination</th>
+                    <th>Price</th>
+                    <th>Slots</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
             <tbody>
-                @foreach (var b in Model.Bookings)
+                @foreach (var p in Model.Packages)
                 {
+                    // Get first image for display
+                    var firstImg = p.ImageURL?.Split(';').FirstOrDefault() ?? "/img/default-package.jpg";
+
                     <tr>
-                        <td>#@b.BookingID</td>
-                        <td>@b.User.FullName</td>
-                        <td>@b.Package.PackageName</td>
-                        <td>@b.TravelDate.ToString("dd/MM/yyyy")</td>
-                        <td><span class="badge @(b.BookingStatus == "Confirmed" ? "bg-success" : b.BookingStatus == "Pending" ? "bg-warning" : "bg-danger")">@b.BookingStatus</span></td>
+                        <td>#@p.PackageID</td>
                         <td>
-                            <button class="btn btn-sm btn-primary" onclick="openBookModal(@b.BookingID, '@b.BookingStatus', '@b.TravelDate.ToString("yyyy-MM-dd")')">Edit</button>
-                            <form asp-action="DeleteBooking" asp-route-id="@b.BookingID" method="post" class="d-inline" onsubmit="return confirm('Delete booking?');">
+                            <img src="@firstImg" style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px;" />
+                        </td>
+                        <td>@p.PackageName</td>
+                        <td>@p.Destination</td>
+                        <td>$@p.Price.ToString("N2")</td>
+                        <td>@p.AvailableSlots</td>
+                        <td>
+                            <button class="btn btn-sm btn-primary"
+                                    onclick="openPackageModal(
+                                            @p.PackageID,
+                                            '@p.PackageName',
+                                            '@p.Destination',
+                                            '@p.CategoryID',
+                                            @p.Price,
+                                            '@p.StartDate.ToString("yyyy-MM-dd")',
+                                            '@p.EndDate.ToString("yyyy-MM-dd")',
+                                            @p.AvailableSlots,
+                                            '@(p.Description?.Replace("'", "\\'") ?? "")'
+                                        )">
+                                Edit
+                            </button>
+
+                            <form asp-action="DeletePackage" asp-route-id="@p.PackageID" method="post" class="d-inline" onsubmit="return confirm('Delete package?');">
                                 <button type="submit" class="btn btn-sm btn-danger">Delete</button>
                             </form>
                         </td>
@@ -42,35 +76,101 @@
     </div>
 </div>
 
-<!-- BOOKING MODAL -->
-<div class="modal fade" id="bookModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
+<div class="modal fade" id="packageModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
-            <div class="modal-header bg-primary text-white"><h5 class="modal-title">Edit Booking</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
-            <form asp-action="SaveBooking" method="post">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="modalTitle">Manage Package</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+
+            <form asp-action="SavePackage" method="post" enctype="multipart/form-data">
                 <div class="modal-body">
-                    <input type="hidden" id="b_id" asp-for="CurrentBooking.BookingID" />
-                    <div class="mb-3">
-                        <label>Status</label>
-                        <select id="b_status" asp-for="CurrentBooking.Status" class="form-select">
-                            <option value="Pending">Pending</option>
-                            <option value="Confirmed">Confirmed</option>
-                            <option value="Cancelled">Cancelled</option>
-                        </select>
+
+                    <input type="hidden" id="p_id" asp-for="CurrentPackage.PackageID" />
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label>Package Name</label>
+                            <input id="p_name" asp-for="CurrentPackage.PackageName" class="form-control" required />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label>Destination</label>
+                            <input id="p_dest" asp-for="CurrentPackage.Destination" class="form-control" required />
+                        </div>
                     </div>
-                    <div class="mb-3"><label>Travel Date</label><input type="date" id="b_date" asp-for="CurrentBooking.TravelDate" class="form-control" /></div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label>Category</label>
+                            <select id="p_cat" asp-for="CurrentPackage.CategoryID" class="form-select">
+                                <option value="">-- Select Category --</option>
+                                @foreach (var cat in Model.Categories)
+                                {
+                                    <option value="@cat.CategoryID">@cat.CategoryName</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label>Price</label>
+                            <input type="number" step="0.01" id="p_price" asp-for="CurrentPackage.Price" class="form-control" required />
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label>Start Date</label>
+                            <input type="date" id="p_start" asp-for="CurrentPackage.StartDate" class="form-control" required />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label>End Date</label>
+                            <input type="date" id="p_end" asp-for="CurrentPackage.EndDate" class="form-control" required />
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label>Available Slots</label>
+                        <input type="number" id="p_slots" asp-for="CurrentPackage.AvailableSlots" class="form-control" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label>Description</label>
+                        <textarea id="p_desc" asp-for="CurrentPackage.Description" class="form-control" rows="3"></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label>Upload Images (Optional)</label>
+                        <input type="file" asp-for="CurrentPackage.ImageFiles" class="form-control" multiple accept="image/*" />
+                        <small class="text-muted">Uploading new images will add to existing ones.</small>
+                    </div>
+
                 </div>
-                <div class="modal-footer"><button type="submit" class="btn btn-primary">Update</button></div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-primary">Save Package</button>
+                </div>
             </form>
         </div>
     </div>
 </div>
 
 <script>
-    function openBookModal(id, status, date) {
-        document.getElementById('b_id').value = id;
-        document.getElementById('b_status').value = status;
-        document.getElementById('b_date').value = date;
-        new bootstrap.Modal(document.getElementById('bookModal')).show();
+    function openPackageModal(id, name, dest, catId, price, start, end, slots, desc) {
+        // 1. Populate the inputs with data passed from the button
+        document.getElementById('p_id').value = id;
+        document.getElementById('p_name').value = name;
+        document.getElementById('p_dest').value = dest;
+        document.getElementById('p_cat').value = catId;
+        document.getElementById('p_price').value = price;
+        document.getElementById('p_start').value = start;
+        document.getElementById('p_end').value = end;
+        document.getElementById('p_slots').value = slots;
+        document.getElementById('p_desc').value = desc;
+
+        // 2. Change Modal Title based on action
+        var title = (id === 0) ? "Create New Package" : "Edit Package";
+        document.getElementById('modalTitle').innerText = title;
+
+        // 3. Show Modal
+        new bootstrap.Modal(document.getElementById('packageModal')).show();
     }
 </script>

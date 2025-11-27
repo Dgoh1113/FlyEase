@@ -46,6 +46,100 @@ builder.Services.AddDistributedMemoryCache();
 
 var app = builder.Build();
 
+// [Add this in Program.cs after var app = builder.Build();]
+using (var scope = app.Services.CreateScope())
+{
+    var context = scope.ServiceProvider.GetRequiredService<FlyEaseDbContext>();
+    context.Database.EnsureCreated();
+
+    // Check if we need to seed data
+    if (!context.Packages.Any())
+    {
+        Console.WriteLine("Seeding database with sample data...");
+
+        // Add sample categories
+        var beachCategory = new PackageCategory { CategoryName = "Beach Vacation" };
+        var mountainCategory = new PackageCategory { CategoryName = "Mountain Adventure" };
+        var cityCategory = new PackageCategory { CategoryName = "City Tour" };
+
+        context.PackageCategories.AddRange(beachCategory, mountainCategory, cityCategory);
+        await context.SaveChangesAsync();
+
+        // Add sample packages
+        var packages = new List<Package>
+        {
+            new Package
+            {
+                PackageName = "Langkawi Island Paradise",
+                CategoryID = beachCategory.CategoryID,
+                Description = "Beautiful beach resort with crystal clear waters",
+                Destination = "Langkawi",
+                Price = 1200.00m,
+                StartDate = DateTime.Now.AddDays(7),
+                EndDate = DateTime.Now.AddDays(14),
+                AvailableSlots = 20,
+                ImageURL = "/img/default-package.jpg"
+            },
+            new Package
+            {
+                PackageName = "Cameron Highlands Retreat",
+                CategoryID = mountainCategory.CategoryID,
+                Description = "Cool mountain escape with tea plantations",
+                Destination = "Cameron Highlands",
+                Price = 800.00m,
+                StartDate = DateTime.Now.AddDays(14),
+                EndDate = DateTime.Now.AddDays(21),
+                AvailableSlots = 15,
+                ImageURL = "/img/default-package.jpg"
+            },
+            new Package
+            {
+                PackageName = "Kuala Lumpur City Tour",
+                CategoryID = cityCategory.CategoryID,
+                Description = "Explore the vibrant capital city",
+                Destination = "Kuala Lumpur",
+                Price = 500.00m,
+                StartDate = DateTime.Now.AddDays(5),
+                EndDate = DateTime.Now.AddDays(8),
+                AvailableSlots = 25,
+                ImageURL = "/img/default-package.jpg"
+            }
+        };
+
+        context.Packages.AddRange(packages);
+        await context.SaveChangesAsync();
+
+        // Add sample inclusions
+        var inclusions = new List<PackageInclusion>
+        {
+            new PackageInclusion { PackageID = packages[0].PackageID, InclusionItem = "5-star accommodation" },
+            new PackageInclusion { PackageID = packages[0].PackageID, InclusionItem = "Breakfast included" },
+            new PackageInclusion { PackageID = packages[0].PackageID, InclusionItem = "Airport transfers" },
+
+            new PackageInclusion { PackageID = packages[1].PackageID, InclusionItem = "Mountain resort stay" },
+            new PackageInclusion { PackageID = packages[1].PackageID, InclusionItem = "Tea plantation tour" },
+
+            new PackageInclusion { PackageID = packages[2].PackageID, InclusionItem = "City hotel accommodation" },
+            new PackageInclusion { PackageID = packages[2].PackageID, InclusionItem = "Guided city tour" }
+        };
+
+        context.PackageInclusions.AddRange(inclusions);
+
+        // Add sample discounts
+        var discounts = new List<DiscountType>
+        {
+            new DiscountType { DiscountName = "Early Bird", DiscountRate = 10 },
+            new DiscountType { DiscountName = "Bulk Discount", DiscountRate = 15 },
+            new DiscountType { DiscountName = "Senior Citizen", DiscountRate = 20 },
+            new DiscountType { DiscountName = "Junior Price", DiscountRate = 50 }
+        };
+
+        context.DiscountTypes.AddRange(discounts);
+        await context.SaveChangesAsync();
+
+        Console.WriteLine("Database seeded successfully!");
+    }
+}
 // Configure the HTTP request pipeline
 if (!app.Environment.IsDevelopment())
 {
