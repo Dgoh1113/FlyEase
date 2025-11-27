@@ -1,0 +1,117 @@
+﻿<!-- [file name]: Views/Payment/Confirmation.cshtml -->
+@model FlyEase.ViewModels.BookingViewModel
+@{
+    ViewData["Title"] = "Confirmation - Review Your Booking";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <!-- Progress Bar -->
+            <partial name="_BookingProgress" />
+
+            <div class="card shadow-sm">
+                <div class="card-header bg-success text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-check-circle me-2"></i>Booking Confirmation
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <!-- Success Alert -->
+                    <div class="alert alert-success">
+                        <h5 class="alert-heading">Ready to Complete Your Booking!</h5>
+                        <p class="mb-0">Please review all details below before confirming your payment.</p>
+                    </div>
+
+                    <!-- Booking Summary -->
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-muted mb-3">Travel Details</h6>
+                            <p><strong>Package:</strong> @Model.PackageName</p>
+                            <p><strong>Travel Date:</strong> @Model.TravelDate.ToString("dd MMM yyyy")</p>
+                            <p><strong>Number of People:</strong> @Model.NumberOfPeople</p>
+                            <p><strong>Traveler:</strong> @Model.FullName</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-muted mb-3">Contact Information</h6>
+                            <p><strong>Email:</strong> @Model.Email</p>
+                            <p><strong>Phone:</strong> @Model.Phone</p>
+                            @if (!string.IsNullOrEmpty(Model.SpecialRequests))
+                            {
+                                <p><strong>Special Requests:</strong> @Model.SpecialRequests</p>
+                            }
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+
+                    <!-- Payment Summary -->
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-muted mb-3">Payment Details</h6>
+                            <p><strong>Payment Method:</strong> @Model.PaymentMethod</p>
+                            <p><strong>Card Ending:</strong> **** @Model.CardNumber[^4..]</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-muted mb-3">Price Summary</h6>
+                            <div class="d-flex justify-content-between">
+                                <span>Base Price:</span>
+                                <span>RM @Model.BasePrice.ToString("N2")</span>
+                            </div>
+                            <div class="d-flex justify-content-between text-success">
+                                <span>Discounts:</span>
+                                <span>-RM @Model.DiscountAmount.ToString("N2")</span>
+                            </div>
+                            <hr>
+                            <div class="d-flex justify-content-between fw-bold fs-5">
+                                <span>Total Amount:</span>
+                                <span class="text-primary">RM @Model.FinalAmount.ToString("N2")</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Terms Acceptance -->
+                    <div class="alert alert-warning mt-4">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="acceptTerms" required>
+                            <label class="form-check-label" for="acceptTerms">
+                                I confirm that all information provided is accurate and I agree to the
+                                <a href="#" class="text-decoration-none">Terms & Conditions</a> and
+                                <a href="#" class="text-decoration-none">Cancellation Policy</a>.
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="d-flex justify-content-between mt-4">
+                        <a asp-action="PaymentDetails" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-1"></i>Back to Payment
+                        </a>
+
+                        <form asp-action="ProcessBooking" method="post" id="confirmForm">
+                            <button type="submit" class="btn btn-success btn-lg" id="confirmButton" disabled>
+                                <i class="fas fa-lock me-2"></i>
+                                Confirm & Pay RM @Model.FinalAmount.ToString("N2")
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.getElementById('acceptTerms').addEventListener('change', function() {
+            document.getElementById('confirmButton').disabled = !this.checked;
+        });
+
+        document.getElementById('confirmForm').addEventListener('submit', function(e) {
+            const confirmButton = document.getElementById('confirmButton');
+            confirmButton.disabled = true;
+            confirmButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
+        });
+    </script>
+}

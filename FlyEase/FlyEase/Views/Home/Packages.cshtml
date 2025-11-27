@@ -1,0 +1,114 @@
+﻿<!-- [file name]: Views/Home/Packages.cshtml -->
+@model IEnumerable<FlyEase.Data.Package>
+@{
+    ViewData["Title"] = "All Travel Packages";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1>Explore Our Travel Packages</h1>
+            <p class="lead">Discover amazing adventures and create unforgettable memories</p>
+        </div>
+    </div>
+
+    @if (!Model.Any())
+    {
+        <div class="alert alert-info text-center">
+            <h4>No packages available at the moment</h4>
+            <p>Please check back later for new travel packages.</p>
+        </div>
+    }
+    else
+    {
+        <div class="row">
+            @foreach (var package in Model)
+            {
+                <div class="col-md-6 col-lg-4 mb-4">
+                    <div class="card h-100 shadow-sm package-card">
+                        <img src="@(package.ImageURL ?? "/img/default-package.jpg")"
+                             class="card-img-top" alt="@package.PackageName"
+                             style="height: 200px; object-fit: cover;">
+
+                        <div class="card-body d-flex flex-column">
+                            <h5 class="card-title">@package.PackageName</h5>
+                            <p class="card-text text-muted">@package.Description</p>
+
+                            <div class="package-details mb-3">
+                                <p class="mb-1">
+                                    <i class="fas fa-map-marker-alt text-primary me-2"></i>
+                                    @package.Destination
+                                </p>
+                                <p class="mb-1">
+                                    <i class="fas fa-calendar text-primary me-2"></i>
+                                    @((package.EndDate - package.StartDate).Days) Days
+                                </p>
+                                <p class="mb-2">
+                                    <i class="fas fa-users text-primary me-2"></i>
+                                    @package.AvailableSlots slots available
+                                </p>
+                            </div>
+
+                            @if (package.PackageInclusions.Any())
+                            {
+                                <div class="inclusions mb-3">
+                                    <strong class="small">Includes:</strong>
+                                    <ul class="list-unstyled mb-0">
+                                        @foreach (var inclusion in package.PackageInclusions.Take(2))
+                                        {
+                                            <li class="small">✓ @inclusion.InclusionItem</li>
+                                        }
+                                        @if (package.PackageInclusions.Count > 2)
+                                        {
+                                            <li class="small text-muted">+@(package.PackageInclusions.Count - 2) more</li>
+                                        }
+                                    </ul>
+                                </div>
+                            }
+
+                            <div class="mt-auto">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h4 class="text-primary mb-0">RM @package.Price.ToString("N0")</h4>
+                                    <span class="badge bg-success">Available</span>
+                                </div>
+
+                                <!-- BOOK NOW BUTTON -->
+                                <a asp-controller="Payment" asp-action="CustomerInfo"
+                                   asp-route-packageId="@package.PackageID"
+                                   asp-route-people="1"
+                                   class="btn btn-primary w-100">
+                                    <i class="fas fa-calendar-check me-1"></i>Book Now
+                                </a>
+
+                                <a asp-controller="Home" asp-action="PackageDetails"
+                                   asp-route-id="@package.PackageID"
+                                   class="btn btn-outline-secondary w-100 mt-2">
+                                    <i class="fas fa-info-circle me-1"></i>View Details
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+<style>
+    .package-card {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        border: none;
+        border-radius: 15px;
+    }
+
+        .package-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+
+    .inclusions li {
+        padding: 2px 0;
+        color: #666;
+    }
+</style>
