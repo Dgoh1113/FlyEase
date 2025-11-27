@@ -39,5 +39,6 @@ namespace FlyEase.ViewModels
 
         // The Single Object for the Create/Edit Form
         public Package CurrentPackage { get; set; } = new Package();
+
     }
 }
