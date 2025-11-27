@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace FlyEase.Data
 {
@@ -153,6 +154,13 @@ namespace FlyEase.Data
         public DateTime EndDate { get; set; }
         public int AvailableSlots { get; set; }
         public string? ImageURL { get; set; }
+
+        // === ADD THESE PROPERTIES ===
+        [NotMapped]
+        public List<IFormFile>? ImageFiles { get; set; } // Catches the actual files from the View
+
+        [NotMapped]
+        public List<string>? DeleteImagePaths { get; set; } // Catches the list of images to remove
 
         public PackageCategory Category { get; set; } = null!;
         public ICollection<PackageInclusion> PackageInclusions { get; set; } = new List<PackageInclusion>();

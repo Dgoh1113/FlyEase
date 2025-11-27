@@ -160,11 +160,58 @@ namespace FlyEase.Controllers
         {
             var input = model.CurrentPackage;
 
-            // 1. CREATE NEW
+            // 1. Handle File Uploads
+            // We will build a list of valid image paths
+            var imagePaths = new List<string>();
+
+            // If editing, keep existing images (unless they are in the delete list)
+            if (input.PackageID > 0)
+            {
+                var existingPkg = await _context.Packages.AsNoTracking().FirstOrDefaultAsync(p => p.PackageID == input.PackageID);
+                if (existingPkg != null && !string.IsNullOrEmpty(existingPkg.ImageURL))
+                {
+                    var currentImages = existingPkg.ImageURL.Split(';').ToList();
+
+                    // Remove images marked for deletion
+                    if (input.DeleteImagePaths != null && input.DeleteImagePaths.Any())
+                    {
+                        // Optional: You can also physically delete the file from wwwroot here if you want
+                        currentImages = currentImages.Except(input.DeleteImagePaths).ToList();
+                    }
+                    imagePaths.AddRange(currentImages);
+                }
+            }
+
+            // 2. Process New Files
+            if (input.ImageFiles != null && input.ImageFiles.Count > 0)
+            {
+                string uploadsFolder = Path.Combine(_environment.WebRootPath, "img");
+                // Ensure directory exists
+                if (!Directory.Exists(uploadsFolder)) Directory.CreateDirectory(uploadsFolder);
+
+                foreach (var file in input.ImageFiles)
+                {
+                    // Create unique filename
+                    string uniqueFileName = Guid.NewGuid().ToString() + Path.GetExtension(file.FileName);
+                    string filePath = Path.Combine(uploadsFolder, uniqueFileName);
+
+                    // Save file to server disk
+                    using (var fileStream = new FileStream(filePath, FileMode.Create))
+                    {
+                        await file.CopyToAsync(fileStream);
+                    }
+
+                    // Add relative path to our list
+                    imagePaths.Add("/img/" + uniqueFileName);
+                }
+            }
+
+            // Join all paths back into a single string for the DB
+            input.ImageURL = imagePaths.Count > 0 ? string.Join(";", imagePaths) : null;
+
+            // 1. CREATE NEW && Save to database
             if (input.PackageID == 0)
             {
-                if (string.IsNullOrEmpty(input.ImageURL)) input.ImageURL = "https://placehold.co/600x400"; // Default
-
                 _context.Packages.Add(input);
                 TempData["Success"] = "Package created successfully!";
             }
