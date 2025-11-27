@@ -172,12 +172,6 @@ namespace FlyEase.Controllers
                 {
                     var currentImages = existingPkg.ImageURL.Split(';').ToList();
 
-                    // Remove images marked for deletion
-                    if (input.DeleteImagePaths != null && input.DeleteImagePaths.Any())
-                    {
-                        // Optional: You can also physically delete the file from wwwroot here if you want
-                        currentImages = currentImages.Except(input.DeleteImagePaths).ToList();
-                    }
                     imagePaths.AddRange(currentImages);
                 }
             }

@@ -159,9 +159,6 @@ namespace FlyEase.Data
         [NotMapped]
         public List<IFormFile>? ImageFiles { get; set; } // Catches the actual files from the View
 
-        [NotMapped]
-        public List<string>? DeleteImagePaths { get; set; } // Catches the list of images to remove
-
         public PackageCategory Category { get; set; } = null!;
         public ICollection<PackageInclusion> PackageInclusions { get; set; } = new List<PackageInclusion>();
         public ICollection<Booking> Bookings { get; set; } = new List<Booking>();
