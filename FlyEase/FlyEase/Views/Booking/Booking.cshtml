@@ -1,4 +1,6 @@
-﻿@{
+﻿@model FlyEase.ViewModels.BookingVM;
+
+@{
     ViewData["Title"] = " - Booking Management";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
@@ -6,4 +8,61 @@
 <link rel="stylesheet" href="~/css/booking.css" />  
 }
 
-hello world
+<div class="container mt-4 mb-5">
+    <nav aria-label="breadcrumb" class="mb-3">
+            <h1 class="PackageTitle">@Model.PackageName</h1>
+    </nav>
+
+    <div class="row">
+        <div class="col-12 mb-4">
+            <div class="row g-2" style="height: 400px;">
+                <div class="@(Model.GalleryImages.Any() ? "col-md-8" : "col-12") h-100">
+                    <img src="@Model.MainImage" class="w-100 h-100 object-fit-cover rounded" onclick="openGalleryModal(0)">
+                </div>
+                @if (Model.GalleryImages.Any())
+                {
+                    <div class="col-md-4 h-100">
+                        <div class="row g-2 h-100">
+                            @for (int i = 0; i < Model.GalleryImages.Count; i++)
+                            {
+                                <div class="col-6 h-50">
+                                    <img src="@Model.GalleryImages[i]" class="w-100 h-100 object-fit-cover rounded" onclick="openGalleryModal(@(i + 1))">
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <div class="col-lg-8">
+            <p class="text-muted"><i class="bi bi-geo-alt-fill text-danger"></i> @Model.Destination</p>
+            <div class="mt-4">
+                <h5>Description</h5>
+                <p>@Model.Description</p>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card shadow border-0 p-4 sticky-top" style="top: 20px;">
+                <h3 class="text-primary fw-bold">RM @Model.Price.ToString("N0")</h3>
+
+                <form asp-controller="Payment" asp-action="CustomerInfo" method="get" class="mt-3">
+                    <input type="hidden" name="packageId" value="@Model.PackageID" />
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Guests</label>
+                        <input type="number" name="people" class="form-control" value="1" min="1" max="10">
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100 py-2 fw-bold"
+                            @(Model.AvailableSlots == 0 ? "disabled" : "")>
+                        @(Model.AvailableSlots > 0 ? "Book Now" : "Sold Out")
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="~/js/booking.js"></script>

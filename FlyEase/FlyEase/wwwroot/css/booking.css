@@ -1,1 +1,59 @@
-﻿
+﻿.PackageTitle{
+    color: black;
+}
+
+/* Gallery Layout */
+.gallery-container {
+    height: 400px;
+    overflow: hidden;
+}
+
+.gallery-item {
+    cursor: pointer;
+    overflow: hidden;
+    transition: opacity 0.2s;
+}
+
+    .gallery-item:hover {
+        opacity: 0.9;
+    }
+
+.object-fit-cover {
+    object-fit: cover;
+}
+
+/* See All Overlay */
+.gallery-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+    font-size: 1.2rem;
+    border-bottom-right-radius: 0.375rem; /* Matches Bootstrap rounded */
+}
+
+/* Alert Colors */
+.alert-soft-success {
+    background-color: #d1e7dd;
+    color: #0f5132;
+    border: none;
+}
+
+.alert-soft-danger {
+    background-color: #f8d7da;
+    color: #842029;
+    border: none;
+}
+
+/* Modal Navigation High visibility */
+.carousel-control-prev-icon,
+.carousel-control-next-icon {
+    background-size: 50% 50%;
+}
