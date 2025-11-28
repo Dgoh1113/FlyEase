@@ -1,0 +1,52 @@
+﻿<!-- [file name]: Views/Home/DebugPayment.cshtml -->
+@{
+    ViewData["Title"] = "Payment Debug";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container mt-4">
+    <h2>Payment Flow Debug</h2>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5>Test Links:</h5>
+            <a href="/Payment/CustomerInfo?packageId=1&people=2" class="btn btn-primary me-2">
+                Test CustomerInfo
+            </a>
+            <a href="/Payment/PaymentDetails" class="btn btn-warning me-2">
+                Test PaymentDetails
+            </a>
+            <a href="/Payment/Confirmation" class="btn btn-success me-2">
+                Test Confirmation
+            </a>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <h5>Direct Form Test:</h5>
+            <form action="/Payment/CustomerInfo" method="post">
+                <input type="hidden" name="PackageID" value="1" />
+                <input type="hidden" name="PackageName" value="Test Package" />
+                <input type="hidden" name="PackagePrice" value="1000" />
+
+                <div class="mb-3">
+                    <label>Full Name:</label>
+                    <input type="text" name="FullName" value="John Doe" class="form-control" />
+                </div>
+
+                <div class="mb-3">
+                    <label>Email:</label>
+                    <input type="email" name="Email" value="john@test.com" class="form-control" />
+                </div>
+
+                <div class="mb-3">
+                    <label>Phone:</label>
+                    <input type="text" name="Phone" value="0123456789" class="form-control" />
+                </div>
+
+                <button type="submit" class="btn btn-primary">Test Submit</button>
+            </form>
+        </div>
+    </div>
+</div>

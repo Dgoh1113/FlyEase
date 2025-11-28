@@ -57,5 +57,11 @@ namespace FlyEase.Controllers
         {
             return RedirectToAction("Discounts", "Discount");
         }
+
+        // In HomeController.cs
+        public IActionResult DebugPayment()
+        {
+            return View();
+        }
     }
 }

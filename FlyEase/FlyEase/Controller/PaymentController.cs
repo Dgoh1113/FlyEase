@@ -1,270 +1,149 @@
 ﻿// [file name]: PaymentController.cs
-
-
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using FlyEase.Data;
 using FlyEase.ViewModels;
 using System;
-using System.Linq;
-using System.Threading.Tasks;
-using System.Security.Claims;
 
 namespace FlyEase.Controllers
 {
     public class PaymentController : Controller
     {
-        private readonly FlyEaseDbContext _context;
-
-        public PaymentController(FlyEaseDbContext context)
-        {
-            _context = context;
-        }
-
-        // STEP 1: Customer Information
+        // STEP 1: Customer Information (GET)
         [HttpGet]
-        public async Task<IActionResult> CustomerInfo(int packageId, int? people = 1)
+        public IActionResult CustomerInfo(int packageId = 1, int people = 1)
         {
-            var package = await _context.Packages.FindAsync(packageId);
-            if (package == null)
-            {
-                return NotFound();
-            }
-
             var vm = new BookingViewModel
             {
                 PackageID = packageId,
-                PackageName = package.PackageName,
-                PackagePrice = package.Price,
-                NumberOfPeople = people ?? 1,
+                PackageName = "Langkawi Island Paradise",
+                PackagePrice = 1200.00m,
+                NumberOfPeople = people,
                 TravelDate = DateTime.Now.AddDays(14),
-                BasePrice = package.Price * (people ?? 1)
+                BasePrice = 1200.00m * people,
+                CurrentStep = 1
             };
 
-            // Calculate initial discounts
             CalculateDiscounts(vm);
-
-            // Store in session for multi-step process
-            HttpContext.Session.SetObject("BookingData", vm);
-
             return View(vm);
         }
 
+        // STEP 1: Customer Information (POST)
         [HttpPost]
         [ValidateAntiForgeryToken]
         public IActionResult CustomerInfo(BookingViewModel model)
         {
-            if (ModelState.IsValid)
+            model.CurrentStep = 1;
+            CalculateDiscounts(model);
+
+            if (!ModelState.IsValid)
             {
-                // Update session data
-                var bookingData = HttpContext.Session.GetObject<BookingViewModel>("BookingData") ?? model;
-                bookingData.FullName = model.FullName;
-                bookingData.Email = model.Email;
-                bookingData.Phone = model.Phone;
-                bookingData.SpecialRequests = model.SpecialRequests;
-
-                HttpContext.Session.SetObject("BookingData", bookingData);
-
-                return RedirectToAction("PaymentDetails");
+                return View(model);
             }
 
-            // Reload package data if validation fails
-            var package = _context.Packages.Find(model.PackageID);
-            if (package != null)
+            HttpContext.Session.SetString("BookingData", System.Text.Json.JsonSerializer.Serialize(model));
+            return RedirectToAction("PaymentDetails");
+        }
+
+        // STEP 2: Payment Details (GET)
+        [HttpGet]
+        public IActionResult PaymentDetails()
+        {
+            var bookingData = HttpContext.Session.GetString("BookingData");
+            if (string.IsNullOrEmpty(bookingData))
             {
-                model.PackageName = package.PackageName;
-                model.PackagePrice = package.Price;
+                return RedirectToAction("CustomerInfo");
             }
+
+            var model = System.Text.Json.JsonSerializer.Deserialize<BookingViewModel>(bookingData);
+            model.CurrentStep = 2;
+            CalculateDiscounts(model);
 
             return View(model);
         }
 
-        // STEP 2: Payment Details
-        [HttpGet]
-        public IActionResult PaymentDetails()
-        {
-            var bookingData = HttpContext.Session.GetObject<BookingViewModel>("BookingData");
-            if (bookingData == null)
-            {
-                return RedirectToAction("Index", "Home");
-            }
-
-            return View(bookingData);
-        }
-
+        // STEP 2: Payment Details (POST)
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> PaymentDetails(BookingViewModel model)
+        public IActionResult PaymentDetails(BookingViewModel model)
         {
-            var bookingData = HttpContext.Session.GetObject<BookingViewModel>("BookingData");
-            if (bookingData == null)
+            var bookingData = HttpContext.Session.GetString("BookingData");
+            if (string.IsNullOrEmpty(bookingData))
             {
-                return RedirectToAction("Index", "Home");
+                return RedirectToAction("CustomerInfo");
             }
 
-            if (ModelState.IsValid)
+            var baseModel = System.Text.Json.JsonSerializer.Deserialize<BookingViewModel>(bookingData);
+
+            // Update with payment details
+            baseModel.PaymentMethod = model.PaymentMethod;
+            baseModel.CardNumber = model.CardNumber;
+            baseModel.CardHolderName = model.CardHolderName;
+            baseModel.ExpiryDate = model.ExpiryDate;
+            baseModel.CVV = model.CVV;
+            baseModel.CurrentStep = 2;
+
+            if (!ModelState.IsValid)
             {
-                // Update payment details in session
-                bookingData.PaymentMethod = model.PaymentMethod;
-                bookingData.CardNumber = model.CardNumber;
-                bookingData.CardHolderName = model.CardHolderName;
-                bookingData.ExpiryDate = model.ExpiryDate;
-                bookingData.CVV = model.CVV;
-
-                HttpContext.Session.SetObject("BookingData", bookingData);
-
-                return RedirectToAction("Confirmation");
+                CalculateDiscounts(baseModel);
+                return View(baseModel);
             }
 
-            return View(bookingData);
+            HttpContext.Session.SetString("BookingData", System.Text.Json.JsonSerializer.Serialize(baseModel));
+            return RedirectToAction("Confirmation");
         }
 
-        // STEP 3: Confirmation
+        // STEP 3: Confirmation (GET)
         [HttpGet]
         public IActionResult Confirmation()
         {
-            var bookingData = HttpContext.Session.GetObject<BookingViewModel>("BookingData");
-            if (bookingData == null)
+            var bookingData = HttpContext.Session.GetString("BookingData");
+            if (string.IsNullOrEmpty(bookingData))
             {
-                return RedirectToAction("Index", "Home");
+                return RedirectToAction("CustomerInfo");
             }
 
-            return View(bookingData);
+            var model = System.Text.Json.JsonSerializer.Deserialize<BookingViewModel>(bookingData);
+            model.CurrentStep = 3;
+            CalculateDiscounts(model);
+
+            return View(model);
         }
 
+        // STEP 3: Process Booking (POST)
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> ProcessBooking()
+        public IActionResult ProcessBooking()
         {
-            var bookingData = HttpContext.Session.GetObject<BookingViewModel>("BookingData");
-            if (bookingData == null)
-            {
-                return RedirectToAction("Index", "Home");
-            }
-
-            try
-            {
-                var userId = GetCurrentUserId();
-                if (userId == null)
-                {
-                    // For demo, create a temporary user or redirect to login
-                    userId = 1; // Demo user ID
-                }
-
-                // Create booking
-                var booking = new Booking
-                {
-                    UserID = userId.Value,
-                    PackageID = bookingData.PackageID,
-                    BookingDate = DateTime.Now,
-                    TravelDate = bookingData.TravelDate,
-                    NumberOfPeople = bookingData.NumberOfPeople,
-                    TotalBeforeDiscount = bookingData.BasePrice,
-                    TotalDiscountAmount = bookingData.DiscountAmount,
-                    FinalAmount = bookingData.FinalAmount,
-                    BookingStatus = "Confirmed"
-                };
-
-                _context.Bookings.Add(booking);
-                await _context.SaveChangesAsync();
-
-                // Create payment
-                var payment = new Payment
-                {
-                    BookingID = booking.BookingID,
-                    PaymentMethod = bookingData.PaymentMethod,
-                    AmountPaid = bookingData.FinalAmount,
-                    IsDeposit = false,
-                    PaymentDate = DateTime.Now,
-                    PaymentStatus = "Completed"
-                };
-
-                _context.Payments.Add(payment);
-
-                // Update package availability
-                var package = await _context.Packages.FindAsync(bookingData.PackageID);
-                if (package != null)
-                {
-                    package.AvailableSlots -= bookingData.NumberOfPeople;
-                }
-
-                await _context.SaveChangesAsync();
-
-                // Clear session
-                HttpContext.Session.Remove("BookingData");
-
-                return RedirectToAction("Success", new
-                {
-                    bookingId = booking.BookingID,
-                    paymentId = payment.PaymentID
-                });
-            }
-            catch (Exception ex)
-            {
-                TempData["Error"] = $"Error processing booking: {ex.Message}";
-                return View("Confirmation", bookingData);
-            }
+            // Clear session after successful booking
+            HttpContext.Session.Remove("BookingData");
+            return RedirectToAction("Success");
         }
 
         // STEP 4: Success Page
         [HttpGet]
-        public async Task<IActionResult> Success(int bookingId, int paymentId)
+        public IActionResult Success()
         {
-            var payment = await _context.Payments
-                .Include(p => p.Booking)
-                    .ThenInclude(b => b.Package)
-                .Include(p => p.Booking)
-                    .ThenInclude(b => b.User)
-                .FirstOrDefaultAsync(p => p.PaymentID == paymentId && p.BookingID == bookingId);
-
-            if (payment == null)
-            {
-                return NotFound();
-            }
-
-            return View(payment);
+            return View();
         }
 
-        // Helper Methods
         private void CalculateDiscounts(BookingViewModel model)
         {
             decimal discount = 0;
+            decimal basePrice = model.PackagePrice * model.NumberOfPeople;
 
             // Early Bird Discount (30 days in advance)
             if ((model.TravelDate - DateTime.Now).TotalDays >= 30)
             {
-                discount += model.BasePrice * 0.10m; // 10% discount
+                discount += basePrice * 0.10m;
             }
 
             // Bulk Discount (5+ people)
             if (model.NumberOfPeople >= 5)
             {
-                discount += model.BasePrice * 0.15m; // 15% discount
+                discount += basePrice * 0.15m;
             }
 
             model.DiscountAmount = discount;
-            model.FinalAmount = model.BasePrice - discount;
-        }
-
-        private int? GetCurrentUserId()
-        {
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            return userIdClaim != null ? int.Parse(userIdClaim) : null;
-        }
-    }
-
-    // Session extension methods
-    public static class SessionExtensions
-    {
-        public static void SetObject(this ISession session, string key, object value)
-        {
-            session.SetString(key, System.Text.Json.JsonSerializer.Serialize(value));
-        }
-
-        public static T GetObject<T>(this ISession session, string key)
-        {
-            var value = session.GetString(key);
-            return value == null ? default(T) : System.Text.Json.JsonSerializer.Deserialize<T>(value);
+            model.FinalAmount = basePrice - discount;
         }
     }
 }
