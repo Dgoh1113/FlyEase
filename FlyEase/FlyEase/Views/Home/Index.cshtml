@@ -21,10 +21,8 @@
                 <div class="package-content">
                     <h3>@package.PackageName</h3>
                     <p class="price">RM @package.Price.ToString("N0")</p>
-                    <p>@package.Description</p>
                     <p><small>Destination: @package.Destination</small></p>
                     <p><small>Duration: @((package.EndDate - package.StartDate).Days) Days @((package.EndDate - package.StartDate).Days - 1) Nights</small></p>
-                    <p><small>Available: @package.AvailableSlots slots</small></p>
 
                     @if (package.PackageInclusions.Any())
                     {
