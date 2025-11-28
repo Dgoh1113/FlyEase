@@ -128,8 +128,6 @@ namespace FlyEase.Data
         public string Role { get; set; } = null!;
         public string? Address { get; set; }
         public DateTime CreatedDate { get; set; }
-        public string? ResetToken { get; set; }
-        public DateTime? ResetTokenExpiry { get; set; }
         public ICollection<Booking> Bookings { get; set; } = new List<Booking>();
         public ICollection<Feedback> Feedbacks { get; set; } = new List<Feedback>();
 
@@ -236,6 +234,6 @@ namespace FlyEase.Data
 
 
 
- 
 
-    } 
+
+}

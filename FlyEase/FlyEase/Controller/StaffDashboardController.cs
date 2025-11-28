@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Authorization;
 namespace FlyEase.Controllers
 {
     [Route("StaffDashboard")]
-    [Authorize(Roles = "Staff")] // Uncomment to secure
+    [Authorize(Roles = "Admin")] // Uncomment to secure
     public class StaffDashboardController : Controller
     {
         private readonly FlyEaseDbContext _context;

@@ -4,10 +4,8 @@ namespace FlyEase.ViewModels
 {
     public class ForgotPasswordViewModel
     {
-        [Required]
-        [EmailAddress]
-        public string Email { get; set; } = null!;
+        [Required(ErrorMessage = "Email is required")]
+        [EmailAddress(ErrorMessage = "Please enter a valid email address")]
+        public string Email { get; set; } = string.Empty;
     }
-
-  
 }

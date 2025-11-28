@@ -14,12 +14,13 @@ AppDomain.CurrentDomain.SetData("DataDirectory", path);
 // Add services...
 // Add services to the container
 builder.Services.AddControllersWithViews();
-builder.Services.AddScoped<EmailService>();
 
 // Configure DbContext
 builder.Services.AddDbContext<FlyEaseDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
+builder.Services.AddScoped<IEmailService, EmailService>();
 // Add session support
 builder.Services.AddSession(options =>
 {
@@ -48,16 +49,14 @@ builder.Services.AddDistributedMemoryCache();
 
 var app = builder.Build();
 
-// --- ADD THIS BLOCK TO SEED DATABASE ---
-// Now 'app' is declared and can be used here
+// --- SEED DATABASE ---
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
     try
     {
-        var context = services.GetRequiredService<FlyEaseDbContext>();
-        context.Database.EnsureCreated(); // Ensures DB exists
-        DbSeeder.Seed(services);          // Runs our seeder logic
+        // Call the seeder here
+        DbSeeder.Seed(services);
     }
     catch (Exception ex)
     {
