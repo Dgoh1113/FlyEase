@@ -41,17 +41,6 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
 // Add Authorization
 builder.Services.AddAuthorization();
 
-// In Program.cs, add this after builder.Services.AddAuthorization();
-
-// Add Session
-builder.Services.AddSession(options =>
-{
-    options.IdleTimeout = TimeSpan.FromMinutes(30);
-    options.Cookie.HttpOnly = true;
-    options.Cookie.IsEssential = true;
-});
-
-// Then after app.UseAuthorization(), add:
 // Add distributed memory cache (required for session)
 builder.Services.AddDistributedMemoryCache();
 
@@ -163,7 +152,6 @@ app.UseStaticFiles();
 app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
-app.UseSession();
 
 // Add session middleware
 app.UseSession();
