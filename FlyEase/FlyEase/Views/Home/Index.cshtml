@@ -13,32 +13,36 @@
 <section class="packages">
     @foreach (var package in Model)
     {
+        
         <div class="package-card">
-            <img src="@(package.ImageURL ?? "/img/default-package.jpg")" alt="@package.PackageName" />
-            <div class="package-content">
-                <h3>@package.PackageName</h3>
-                <p class="price">RM @package.Price.ToString("N0")</p>
-                <p>@package.Description</p>
-                <p><small>Destination: @package.Destination</small></p>
-                <p><small>Duration: @((package.EndDate - package.StartDate).Days) Days @((package.EndDate - package.StartDate).Days - 1) Nights</small></p>
-                <p><small>Available: @package.AvailableSlots slots</small></p>
+            <a asp-controller="Booking" asp-action="Booking">
+                <img src="@(package.ImageURL ?? "/img/default-package.jpg")" alt="@package.PackageName" />
+                </a>
+                <div class="package-content">
+                    <h3>@package.PackageName</h3>
+                    <p class="price">RM @package.Price.ToString("N0")</p>
+                    <p>@package.Description</p>
+                    <p><small>Destination: @package.Destination</small></p>
+                    <p><small>Duration: @((package.EndDate - package.StartDate).Days) Days @((package.EndDate - package.StartDate).Days - 1) Nights</small></p>
+                    <p><small>Available: @package.AvailableSlots slots</small></p>
 
-                @if (package.PackageInclusions.Any())
-                {
-                    <div class="inclusions">
-                        <strong>Includes:</strong>
-                        <ul>
-                            @foreach (var inclusion in package.PackageInclusions.Take(2))
-                            {
-                                <li>@inclusion.InclusionItem</li>
-                            }
-                            @if (package.PackageInclusions.Count > 2)
-                            {
-                                <li>+@(package.PackageInclusions.Count - 2) more inclusions</li>
-                            }
-                        </ul>
-                    </div>
-                }
+                    @if (package.PackageInclusions.Any())
+                    {
+                        <div class="inclusions">
+                            <strong>Includes:</strong>
+                            <ul>
+                                @foreach (var inclusion in package.PackageInclusions.Take(2))
+                                {
+                                    <li>@inclusion.InclusionItem</li>
+                                }
+                                @if (package.PackageInclusions.Count > 2)
+                                {
+                                    <li>+@(package.PackageInclusions.Count - 2) more inclusions</li>
+                                }
+                            </ul>
+                        </div>
+                    }
+                    
 
                 <!-- ADD BOOK NOW BUTTON HERE -->
                 <div class="mt-3">
@@ -52,6 +56,7 @@
             </div>
         </div>
     }
+    
 </section>
 
 <style>
