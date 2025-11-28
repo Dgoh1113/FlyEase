@@ -79,7 +79,7 @@
         <div class="package-card">
             <a asp-controller="Booking" asp-action="Booking" asp-route-id="@package.PackageID" class="text-decoration-none">
             <img src="@firstImage" alt="@package.PackageName" />
-            </a>
+            
             <span class="category-badge">@package.Category?.CategoryName</span>
 
             <div class="package-content">
@@ -115,6 +115,7 @@
                     </div>
                 }
             </div>
+            </a>
         </div>
     }
 </section>

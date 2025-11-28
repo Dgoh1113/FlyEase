@@ -1,5 +1,33 @@
-﻿.PackageTitle{
-    color: black;
+﻿/* === INTERACTIVE CURSORS === */
+
+/* 1. The Dropdown Menu ("Options") */
+#optionDropdown {
+    cursor: pointer;
+}
+
+/* 2. All Buttons */
+.btn {
+    cursor: pointer;
+}
+
+/* 3. Gallery Images */
+.gallery-item img {
+    cursor: pointer;
+    transition: opacity 0.2s ease-in-out;
+}
+
+    .gallery-item img:hover {
+        opacity: 0.9;
+    }
+
+/* === LAYOUT UTILS === */
+.object-fit-cover {
+    object-fit: cover;
+}
+
+/* Bootstrap Validation Overrides (Optional visual tweak) */
+.form-select.is-invalid {
+    background-position: right calc(0.375em + 0.1875rem) center;
 }
 
 /* Gallery Layout */

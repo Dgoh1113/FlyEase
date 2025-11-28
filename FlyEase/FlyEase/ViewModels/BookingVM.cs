@@ -26,5 +26,10 @@ namespace FlyEase.ViewModels
 
         // Lists
         public List<string> Inclusions { get; set; } = new List<string>();
+
+
+        // === NEW FIELD ===
+        [Display(Name = "Selected Option")]
+        public string? SelectedOption { get; set; }
     }
 }
