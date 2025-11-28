@@ -68,6 +68,31 @@ namespace FlyEase.Controllers
             }
             return RedirectToAction(nameof(Users));
         }
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> UpdateBookingStatus(BookingsPageVM model)
+        {
+            // 1. Find the booking in the database
+            var bookingToUpdate = await _context.Bookings.FindAsync(model.CurrentBooking.BookingID);
+
+            if (bookingToUpdate == null)
+            {
+                TempData["Error"] = "Booking not found.";
+                return RedirectToAction("Bookings");
+            }
+
+            // 2. Update the status
+            bookingToUpdate.BookingStatus = model.CurrentBooking.BookingStatus;
+
+            // 3. (Optional) Logic: If Cancelled, should we free up slots?
+            // If you want to handle slot logic, you would do it here.
+
+            // 4. Save to DB
+            await _context.SaveChangesAsync();
+
+            TempData["Success"] = "Booking updated successfully!";
+            return RedirectToAction("Bookings");
+        }
 
         [HttpPost("DeleteUser")]
         public async Task<IActionResult> DeleteUser(int id)
