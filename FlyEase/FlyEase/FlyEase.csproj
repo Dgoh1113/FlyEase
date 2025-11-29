@@ -7,6 +7,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Views\NewFolder2\**" />
+    <Content Remove="Views\NewFolder2\**" />
+    <EmbeddedResource Remove="Views\NewFolder2\**" />
+    <None Remove="Views\NewFolder2\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Compile Include="obj\Debug\net8.0\.NETCoreApp,Version=v8.0.AssemblyAttributes.cs" />
     <Compile Include="obj\Debug\net8.0\FlyEase.AssemblyInfo.cs" />
     <Compile Include="obj\Debug\net8.0\FlyEase.GlobalUsings.g.cs" />
@@ -187,6 +194,7 @@
   <ItemGroup>
     <Folder Include="bin\Release\net8.0\" />
     <Folder Include="obj\Debug\net8.0\staticwebassets\" />
+    <Folder Include="Views\NewFolder\" />
   </ItemGroup>
 
 </Project>

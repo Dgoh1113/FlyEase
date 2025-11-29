@@ -7,7 +7,6 @@
 }
 
 @section Head {
-    <!-- Load separated CSS -->
     <link rel="stylesheet" href="~/css/auth.css" />
     <link rel="stylesheet" href="~/css/profile.css" />
 }
@@ -15,7 +14,6 @@
 <div class="dashboard-container">
     <div class="container">
 
-        <!-- Success/Error Messages -->
         @if (TempData["SuccessMessage"] != null)
         {
             <div class="alert alert-success alert-dismissible fade show mb-4">
@@ -26,13 +24,12 @@
         @if (TempData["ErrorMessage"] != null)
         {
             <div class="alert alert-danger alert-dismissible fade show mb-4">
-                <i class=\"fas fa-exclamation-circle me-2\"></i> @TempData["ErrorMessage"]
+                <i class="fas fa-exclamation-circle me-2"></i> @TempData["ErrorMessage"]
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
         }
 
         <div class="row g-4">
-            <!-- SIDEBAR -->
             <div class="col-lg-3 col-md-4">
                 <div class="dashboard-card p-0">
                     <div class="sidebar-header">
@@ -67,18 +64,16 @@
                 </div>
             </div>
 
-            <!-- MAIN CONTENT -->
             <div class="col-lg-9 col-md-8">
                 <div class="dashboard-card">
 
-                    <!-- 1. BOOKINGS -->
                     <div id="bookings-tab" class="tab-pane active">
                         <h3 class="mb-4">My Bookings</h3>
                         @if (Model.MyBookings.Any())
                         {
                             <div class="table-responsive">
                                 <table class="table table-hover align-middle">
-                                    <thead class="table-light"><tr><th>ID</th><th>Package</th><th>Date</th><th>Amount</th><th>Status</th></tr></thead>
+                                    <thead class="table-light"><tr><th>ID</th><th>Package</th><th>Date</th><th>Amount</th><th>Status</th><th>Action</th></tr></thead>
                                     <tbody>
                                         @foreach (var b in Model.MyBookings)
                                         {
@@ -88,6 +83,14 @@
                                                 <td>@b.BookingDate.ToString("dd MMM yyyy")</td>
                                                 <td>RM @b.TotalAmount.ToString("N2")</td>
                                                 <td><span class="badge bg-primary">@b.Status</span></td>
+                                                <td>
+                                                    @if (b.Status == "Completed" || b.Status == "Confirmed")
+                                                    {
+                                                        <a asp-controller="Feedback" asp-action="Create" asp-route-bookingId="@b.BookingID" class="btn btn-sm btn-outline-warning">
+                                                            ★ Rate
+                                                        </a>
+                                                    }
+                                                </td>
                                             </tr>
                                         }
                                     </tbody>
@@ -96,12 +99,10 @@
                         }
                         else
                         {
-
                             <div class="text-center py-5 text-muted">No bookings found.</div>
                         }
                     </div>
 
-                    <!-- 2. REVIEWS -->
                     <div id="reviews-tab" class="tab-pane">
                         <h3 class="mb-4">My Reviews</h3>
                         @if (Model.MyReviews.Any())
@@ -111,21 +112,23 @@
                                 <div class="card mb-3 border-0 shadow-sm bg-light">
                                     <div class="card-body">
                                         <h6 class="fw-bold">@r.PackageTitle <span class="float-end text-muted small fw-normal">@r.CreatedDate.ToShortDateString()</span></h6>
-                                        <div class="text-warning mb-2">@for(int i=0; i<5; i++){
-                                        <i class="@(i < r.Rating ? "fas" : "far") fa-star"></i>
-                                    }
-    </div>
-                                    <p class="mb-0 text-secondary small">"@r.Comment"</p>
+                                        <div class="text-warning mb-2">
+                                            @for (int i = 0; i < 5; i++)
+                                            {
+                                                <i class="@(i < r.Rating ? "fas" : "far") fa-star"></i>
+                                            }
+                                        </div>
+                                        <p class="mb-0 text-secondary small">"@r.Comment"</p>
+                                    </div>
                                 </div>
-                            </div>
+                            }
                         }
-                                                } else
+                        else
                         {
                             <div class="text-center py-5 text-muted">No reviews yet.</div>
                         }
                     </div>
 
-                    <!-- 3. PAYMENTS -->
                     <div id="payments-tab" class="tab-pane">
                         <h3 class="mb-4">Payment History</h3>
                         @if (Model.PaymentHistory.Any())
@@ -147,12 +150,10 @@
                         }
                         else
                         {
-
                             <div class="text-center py-5 text-muted">No payments found.</div>
                         }
                     </div>
 
-                    <!-- 4. EDIT PROFILE (Restored Left Icons) -->
                     <div id="details-tab" class="tab-pane">
                         <h3 class="mb-4">Edit Profile</h3>
                         <form asp-action="UpdateProfile" method="post">
@@ -171,7 +172,6 @@
                                 <label class="form-label text-muted small fw-bold">PHONE</label>
                                 <div class="input-with-icon">
                                     <i class="fas fa-phone input-icon"></i>
-                                    <!-- Phone regex validation handles the format -->
                                     <input asp-for="Phone" class="form-control" placeholder="e.g. 123456789" />
                                     <small class="text-muted position-absolute end-0 top-50 translate-middle-y pe-3">+60 prefix added automatically</small>
                                 </div>
@@ -190,13 +190,11 @@
                         </form>
                     </div>
 
-                    <!-- 5. SECURITY (Left Icon + Right Eye Icon) -->
                     <div id="security-tab" class="tab-pane">
                         <h3 class="mb-4">Change Password</h3>
                         <form asp-action="ChangePassword" method="post">
                             @Html.AntiForgeryToken()
 
-                            <!-- Current Password -->
                             <div class="mb-3">
                                 <label class="form-label small fw-bold text-muted">Current Password</label>
                                 <div class="input-with-icon">
@@ -206,7 +204,6 @@
                                 </div>
                             </div>
 
-                            <!-- New Password -->
                             <div class="mb-3">
                                 <label class="form-label small fw-bold text-muted">New Password</label>
                                 <div class="input-with-icon">
@@ -216,7 +213,6 @@
                                 </div>
                             </div>
 
-                            <!-- Confirm Password -->
                             <div class="mb-3">
                                 <label class="form-label small fw-bold text-muted">Confirm Password</label>
                                 <div class="input-with-icon">
@@ -238,7 +234,6 @@
             </div>
         </div>
 
-        <!-- TRAVELERS FAVORITES -->
         @if (Model.FavoritePackages.Any())
         {
             <div class="mt-5 pt-4 border-top">
@@ -265,7 +260,5 @@
 </div>
 
 @section Scripts {
-
     <script src="~/js/profile.js"></script>
- 
 }
