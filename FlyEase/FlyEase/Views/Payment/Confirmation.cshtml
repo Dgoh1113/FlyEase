@@ -51,7 +51,7 @@
                         <div class="col-md-6">
                             <h6 class="text-muted mb-3">Payment Details</h6>
                             <p><strong>Payment Method:</strong> @Model.PaymentMethod</p>
-                            <p><strong>Card Ending:</strong> **** @Model.CardNumber[^4..]</p>
+                            <p><strong>Card Ending:</strong> **** @(string.IsNullOrEmpty(Model.CardNumber) ? "----" : Model.CardNumber.Substring(Math.Max(0, Model.CardNumber.Length - 4)))</p>
                         </div>
                         <div class="col-md-6">
                             <h6 class="text-muted mb-3">Price Summary</h6>
