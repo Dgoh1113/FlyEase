@@ -27,7 +27,7 @@
             {
                 <div class="col-md-6 col-lg-4 mb-4">
                     <div class="card h-100 shadow-sm package-card">
-                        <img src="@(package.ImageURL ?? "/img/default-package.jpg")"
+                        <img src="@(package.ImageURL?.Split(';').FirstOrDefault() ?? "/img/default-package.jpg")"
                              class="card-img-top" alt="@package.PackageName"
                              style="height: 200px; object-fit: cover;">
 
@@ -81,7 +81,7 @@
                                     <i class="fas fa-calendar-check me-1"></i>Book Now
                                 </a>
 
-                                <a asp-controller="Home" asp-action="PackageDetails"
+                                <a asp-controller="Booking" asp-action="Booking"
                                    asp-route-id="@package.PackageID"
                                    class="btn btn-outline-secondary w-100 mt-2">
                                     <i class="fas fa-info-circle me-1"></i>View Details
