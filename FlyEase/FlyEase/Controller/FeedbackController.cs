@@ -1,12 +1,15 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using FlyEase.Data;
+﻿using FlyEase.Data;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using System;
+using System.Linq;
 using System.Security.Claims;
+using System.Threading.Tasks;
 
 namespace FlyEase.Controllers
 {
-    [Authorize] // Only logged-in users can access
+    [Authorize] // 1. Global Rule: Must be logged in to do ANYTHING here
     public class FeedbackController : Controller
     {
         private readonly FlyEaseDbContext _context;
@@ -16,14 +19,12 @@ namespace FlyEase.Controllers
             _context = context;
         }
 
-        // GET: Show the "Write a Review" form
+        // GET: Create Review
         [HttpGet]
         public async Task<IActionResult> Create(int bookingId)
         {
-            // 1. Get the current logged-in User ID
             var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
 
-            // 2. Validate: Did this user actually make this booking?
             var booking = await _context.Bookings
                 .Include(b => b.Package)
                 .FirstOrDefaultAsync(b => b.BookingID == bookingId && b.UserID == userId);
@@ -33,7 +34,6 @@ namespace FlyEase.Controllers
                 return NotFound("Booking not found or you don't have permission.");
             }
 
-            // 3. Check: Has the user already reviewed this booking?
             var existingFeedback = await _context.Feedbacks
                 .FirstOrDefaultAsync(f => f.BookingID == bookingId);
 
@@ -43,36 +43,31 @@ namespace FlyEase.Controllers
                 return RedirectToAction("Profile", "Auth");
             }
 
-            // 4. Send the Booking object to the view so we can show the Package Name
             return View(booking);
         }
 
-        // POST: Save the data to Database
+        // POST: Submit Review
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(int bookingId, int rating, string comment)
         {
-            // 1. Basic Validation
             if (rating < 1 || rating > 5)
             {
                 TempData["Error"] = "Please select a star rating between 1 and 5.";
                 return RedirectToAction("Create", new { bookingId });
             }
 
-            // 2. Get User ID again for security
             var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
 
-            // 3. Create the Feedback Object
             var feedback = new Feedback
             {
                 BookingID = bookingId,
-                UserID = userId, // Note: Ensure you didn't delete UserID from the Model yet, or remove this line if you did.
+                UserID = userId,
                 Rating = rating,
                 Comment = comment,
                 CreatedDate = DateTime.Now
             };
 
-            // 4. Save to Database
             _context.Feedbacks.Add(feedback);
             await _context.SaveChangesAsync();
 
@@ -81,19 +76,51 @@ namespace FlyEase.Controllers
         }
 
         // ==========================================
-        // ADMIN / STAFF VIEW (For your Requirement 6.3)
+        // ADMIN / STAFF VIEW (List of all feedback)
         // ==========================================
-        [Authorize(Roles = "Admin,Staff")] // Restrict to staff only
+        [Authorize(Roles = "Admin,Staff")] // 2. SECURITY: Only Admin/Staff can see this
         public async Task<IActionResult> Index()
         {
             var feedbacks = await _context.Feedbacks
-                .Include(f => f.Booking)
-                .ThenInclude(b => b.Package) // Link to Package so we know what they are rating
-                .Include(f => f.User)        // Link to User so we know who wrote it
+                .Include(f => f.Booking).ThenInclude(b => b.Package)
+                .Include(f => f.User)
                 .OrderByDescending(f => f.CreatedDate)
                 .ToListAsync();
 
             return View(feedbacks);
         }
+
+        // ==========================================
+        // ANALYTICS DASHBOARD 
+        // ==========================================
+        [Authorize(Roles = "Admin,Staff")] // 3. SECURITY: Only Admin/Staff can see this
+        public async Task<IActionResult> Analytics()
+        {
+            var data = await _context.Feedbacks
+                .Include(f => f.Booking).ThenInclude(b => b.Package)
+                .GroupBy(f => f.Booking.Package.PackageName)
+                .Select(g => new FeedbackAnalyticsVM
+                {
+                    PackageName = g.Key,
+                    AverageRating = g.Average(f => (double)f.Rating),
+                    TotalReviews = g.Count(),
+                    OneStarCount = g.Count(f => f.Rating == 1),
+                    FiveStarCount = g.Count(f => f.Rating == 5)
+                })
+                .OrderByDescending(x => x.AverageRating)
+                .ThenByDescending(x => x.TotalReviews)
+                .ToListAsync();
+
+            return View(data);
+        }
+    }
+
+    public class FeedbackAnalyticsVM
+    {
+        public string PackageName { get; set; }
+        public double AverageRating { get; set; }
+        public int TotalReviews { get; set; }
+        public int OneStarCount { get; set; }
+        public int FiveStarCount { get; set; }
     }
 }
