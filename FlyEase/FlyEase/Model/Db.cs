@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Http; // Fixes 'IFormFile' error
 
 namespace FlyEase.Data
 {
@@ -155,6 +156,9 @@ namespace FlyEase.Data
         public DateTime EndDate { get; set; }
         public int AvailableSlots { get; set; }
         public string? ImageURL { get; set; }
+
+        [NotMapped]
+        public double AverageRating { get; set; }
 
         // === ADD THESE PROPERTIES ===
         [NotMapped]
