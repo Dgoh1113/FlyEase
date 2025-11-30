@@ -26,9 +26,7 @@
                         <p class="mb-0"><strong>Selected People:</strong> @Model.NumberOfPeople</p>
                     </div>
 
-                    <form asp-action="CustomerInfo" method="post" id="bookingForm">
-                        @Html.AntiForgeryToken()
-
+                    <form asp-action="PaymentDetails" method="post">
                         <input type="hidden" asp-for="PackageID" />
                         <input type="hidden" asp-for="PackageName" />
                         <input type="hidden" asp-for="PackagePrice" />

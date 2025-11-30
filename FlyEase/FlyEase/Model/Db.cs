@@ -1,7 +1,8 @@
-﻿using Microsoft.EntityFrameworkCore;
-using System;
+﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Microsoft.EntityFrameworkCore;
 
 namespace FlyEase.Data
 {
@@ -236,9 +237,78 @@ namespace FlyEase.Data
         public Booking Booking { get; set; } = null!;
         public User User { get; set; } = null!;
     }
+    public class StaffBookingsViewModel
+    {
+        // For Filter/Search Inputs
+        public string? SearchTerm { get; set; } // Search by Name or Booking ID
+        public string? StatusFilter { get; set; } // e.g., "Confirmed", "Pending", "Cancelled"
+        public DateTime? DateFrom { get; set; }
+        public DateTime? DateTo { get; set; }
+
+        // KPI Cards (Stats at the top of the dashboard)
+        public int TotalBookingsCount { get; set; }
+        public int PendingBookingsCount { get; set; }
+
+        [DataType(DataType.Currency)]
+        public decimal TotalRevenueGenerated { get; set; }
+
+        // The List of Data
+        public List<BookingItemVM> Bookings { get; set; } = new List<BookingItemVM>();
+    }
+
+    // 2. The Individual Row Data (Data Transfer Object)
+    public class BookingItemVM
+    {
+        public int BookingID { get; set; }
+
+        // Customer Info (Flattened from User entity)
+        [Display(Name = "Customer Name")]
+        public string CustomerName { get; set; } = string.Empty;
+
+        [Display(Name = "Email")]
+        public string CustomerEmail { get; set; } = string.Empty;
+
+        // Package Info (Flattened from Package entity)
+        [Display(Name = "Package")]
+        public string PackageName { get; set; } = string.Empty;
+
+        // Booking Specifics
+        [Display(Name = "Travel Date")]
+        [DataType(DataType.Date)]
+        public DateTime TravelDate { get; set; }
+
+        [Display(Name = "Pax")]
+        public int NumberOfPeople { get; set; }
+
+        [Display(Name = "Booked On")]
+        [DataType(DataType.Date)]
+        public DateTime BookingDate { get; set; }
+
+        // Financials
+        [DataType(DataType.Currency)]
+        public decimal FinalAmount { get; set; } // The total cost
+
+        [DataType(DataType.Currency)]
+        public decimal AmountPaid { get; set; } // Sum of all successful payments
+
+        // Logic to check if they owe money
+        public decimal BalanceDue => FinalAmount - AmountPaid;
+
+        public string PaymentStatus
+        {
+            get
+            {
+                if (FinalAmount <= 0) return "Free";
+                if (BalanceDue <= 0) return "Paid in Full";
+                if (AmountPaid > 0) return "Partial";
+                return "Unpaid";
+            }
+        }
+        public string BookingStatus { get; set; } = string.Empty;
+    }
 
 
 
- 
 
-    } 
+
+} 

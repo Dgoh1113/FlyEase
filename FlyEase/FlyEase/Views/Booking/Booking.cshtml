@@ -1,9 +1,135 @@
-﻿@{
-    ViewData["Title"] = " - Booking Management";
+﻿@model FlyEase.ViewModels.BookingVM
+@{
+    ViewData["Title"] = Model.PackageName;
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
+
 @section Head {
-<link rel="stylesheet" href="~/css/booking.css" />  
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="~/css/booking.css" />
 }
 
-hello world
+<div class="container mt-4 mb-5">
+
+    <div class="row">
+        <div class="col-12 mb-4">
+            <div class="row g-2" style="height: 400px;">
+                <div class="@(Model.GalleryImages.Any() ? "col-md-8" : "col-12") h-100">
+                    <img src="@Model.MainImage" class="w-100 h-100 object-fit-cover rounded" onclick="openGalleryModal(0)" style="cursor: pointer;">
+                </div>
+                @if (Model.GalleryImages.Any())
+                {
+                    <div class="col-md-4 h-100">
+                        <div class="row g-2 h-100">
+                            @for (int i = 0; i < Model.GalleryImages.Count; i++)
+                            {
+                                <div class="col-6 h-50">
+                                    <img src="@Model.GalleryImages[i]" class="w-100 h-100 object-fit-cover rounded" onclick="openGalleryModal(@(i + 1))" style="cursor: pointer;">
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <div class="col-lg-8">
+            <h1 class="fw-bold">@Model.PackageName</h1>
+
+            <div class="mt-4 mb-4">
+                <h3>Travel Date</h3>
+                <p>@Model.StartDate.ToString("dd MMM yyyy") - @Model.EndDate.ToString("dd MMM yyyy")</p>
+            </div>
+
+            <div class="mt-4 mb-4">
+                <h3>Destination</h3>
+                <p class ="text-muted"><i class="bi bi-geo-alt-fill text-danger"></i> @Model.Destination</p>
+            </div>
+
+            <div class="mt-4 mb-4">
+                <h3>Description</h3>
+                <p>@Model.Description</p>
+            </div>
+
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card shadow border-0 p-4 sticky-top" style="top: 20px;">
+                <h3 class="text-primary fw-bold">RM @Model.Price.ToString("N0")</h3>
+
+                <form asp-controller="Payment" asp-action="CustomerInfo" method="get" class="mt-3" id="bookingForm">
+                    <input type="hidden" name="packageId" value="@Model.PackageID" />
+
+                    <input type="hidden" id="hasOptionsFlag" value="@(Model.Inclusions.Any() ? "true" : "false")" />
+
+                    @if (Model.Inclusions.Any())
+                    {
+                        <div class="mb-3">
+                            <p class="fw-bold"> Select Option <span class="text-danger">*</span></p>
+                            <select name="selectedOption" id="optionDropdown" class="form-select form-select-lg shadow-sm" aria-label="Select Package Option">
+                                <option value="" selected disabled>-- Select an option --</option>
+                                @foreach (var inc in Model.Inclusions)
+                                {
+                                    <option value="@inc">@inc</option>
+                                }
+                            </select>
+                        </div>
+                    }
+                    else
+                    {
+                        <input type="hidden" name="selectedOption" value="" />
+                    }
+
+                    <div class="mb-3">
+                        <p class="fw-bold">Guests</p>
+                        <div class="input-group">
+                            <button type="button" class="btn btn-outline-secondary" onclick="updatePax(-1)">-</button>
+                            <input type="number" name="people" id="paxInput" class="form-control text-center" value="1" min="1" max="10" readonly />
+                            <button type="button" class="btn btn-outline-secondary" onclick="updatePax(1)">+</button>
+                        </div>
+                    </div>
+
+                    <button type="button" onclick="validateAndSubmit()" class="btn btn-primary w-100 py-3 fw-bold fs-5 shadow-sm"
+                            @(Model.AvailableSlots == 0 ? "disabled" : "")>
+                        @(Model.AvailableSlots > 0 ? "Book Now" : "Sold Out")
+                    </button>
+                </form>
+
+                <div class="text-center mt-3">
+                    <small class="text-muted"><i class="bi bi-shield-check"></i> Best Price Guarantee</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="galleryModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content bg-transparent border-0 shadow-none">
+            <div class="modal-body p-0 position-relative">
+                <button type="button" class="btn-close btn-close-white position-absolute top-0 end-0 m-3" data-bs-dismiss="modal" aria-label="Close" style="z-index: 1055;"></button>
+                <div id="carouselGallery" class="carousel slide" data-bs-ride="false">
+                    <div class="carousel-inner">
+                        @for (int i = 0; i < Model.AllImages.Count; i++)
+                        {
+                            <div class="carousel-item @(i == 0 ? "active" : "")">
+                                <img src="@Model.AllImages[i]" class="d-block w-100 rounded" style="max-height: 85vh; object-fit: contain;">
+                            </div>
+                        }
+                    </div>
+                    @if (Model.AllImages.Count > 1)
+                    {
+                        <button class="carousel-control-prev" type="button" data-bs-target="#carouselGallery" data-bs-slide="prev">
+                            <span class="carousel-control-prev-icon bg-dark rounded-circle p-3" aria-hidden="true"></span>
+                        </button>
+                        <button class="carousel-control-next" type="button" data-bs-target="#carouselGallery" data-bs-slide="next">
+                            <span class="carousel-control-next-icon bg-dark rounded-circle p-3" aria-hidden="true"></span>
+                        </button>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="~/js/booking.js"></script>
