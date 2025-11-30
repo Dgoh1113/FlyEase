@@ -1,47 +1,71 @@
-﻿// --- 1. VALIDATION LOGIC ---
+﻿console.log("booking.js loaded");
+// --- 1. GALLERY CAROUSEL LOGIC ---
+document.addEventListener("DOMContentLoaded", function () {
+    var carousel = document.getElementById('carouselGallery');
+    var counter = document.getElementById('carousel-counter');
+
+    // Update counter when slide changes
+    if (carousel && counter) {
+        carousel.addEventListener('slide.bs.carousel', function (e) {
+            // e.to is 0-indexed, so we add 1
+            var currentIndex = e.to + 1;
+            var total = counter.innerText.split('/')[1]; // Keep total from existing text
+            counter.innerText = currentIndex + " /" + total;
+        });
+    }
+});
+
+function openGalleryModal(index) {
+    var myModal = new bootstrap.Modal(document.getElementById('galleryModal'));
+    var carouselEl = document.getElementById('carouselGallery');
+    var carousel = bootstrap.Carousel.getOrCreateInstance(carouselEl);
+
+    // Jump to specific slide
+    carousel.to(index);
+
+    // Update Counter Immediately
+    var counter = document.getElementById('carousel-counter');
+    if (counter) {
+        var total = counter.innerText.split('/')[1];
+        counter.innerText = (index + 1) + " /" + total;
+    }
+
+    myModal.show();
+}
+
+// --- 2. FORM VALIDATION ---
 function validateAndSubmit() {
-    // Check our hidden flag
     var hasOptions = document.getElementById('hasOptionsFlag').value === "true";
 
-    // IF options exist, we MUST check the dropdown
     if (hasOptions) {
         var dropdown = document.getElementById('optionDropdown');
-        var selectedVal = dropdown.value; // Will be "" if default disabled option is selected
+        var selectedVal = dropdown.value;
 
         if (!selectedVal) {
-            // 1. Highlight Dropdown Red
             dropdown.classList.add('is-invalid');
             dropdown.focus();
 
-            // 2. Fire SweetAlert
             Swal.fire({
                 title: 'Selection Required',
-                text: "Please select a package option from the dropdown menu to proceed.",
+                text: "Please select a package option from the dropdown menu.",
                 icon: 'warning',
                 confirmButtonColor: '#0d6efd',
                 confirmButtonText: 'OK'
             });
-
-            return; // STOP: Do not submit form
+            return;
         } else {
-            // If valid, remove red highlight
             dropdown.classList.remove('is-invalid');
         }
     }
-
-    // If we reach here, everything is valid
     document.getElementById('bookingForm').submit();
 }
 
-// --- 2. REMOVE ERROR ON CHANGE ---
-// Automatically remove red border when user selects something
+// Auto-remove invalid class on change
 document.addEventListener("DOMContentLoaded", function () {
     var dropdown = document.getElementById('optionDropdown');
     if (dropdown) {
         dropdown.addEventListener('change', function () {
-            if (this.value) {
-                this.classList.remove('is-invalid');
-            }
+            if (this.value) this.classList.remove('is-invalid');
         });
     }
 });
@@ -54,13 +78,4 @@ function updatePax(change) {
         var newVal = currentVal + change;
         if (newVal >= 1 && newVal <= 10) input.value = newVal;
     }
-}
-
-// --- 4. GALLERY LOGIC ---
-function openGalleryModal(index) {
-    var myModal = new bootstrap.Modal(document.getElementById('galleryModal'));
-    var carouselEl = document.getElementById('carouselGallery');
-    var carousel = bootstrap.Carousel.getOrCreateInstance(carouselEl);
-    carousel.to(index);
-    myModal.show();
 }
