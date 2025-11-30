@@ -48,15 +48,16 @@
     <div class="row">
         <div class="col-lg-8">
             <h1 class="fw-bold">@Model.PackageName</h1>
+            
 
             <div class="mt-4 mb-4">
                 <h3>Travel Date</h3>
-                <p>@Model.StartDate.ToString("dd MMM yyyy") - @Model.EndDate.ToString("dd MMM yyyy")</p>
+                <p><i class="fa-regular fa-calendar"></i> @Model.StartDate.ToString("dd MMM yyyy") - @Model.EndDate.ToString("dd MMM yyyy")</p>
             </div>
 
             <div class="mt-4 mb-4">
                 <h3>Destination</h3>
-                <p class ="text-muted"><i class="bi bi-geo-alt-fill text-danger"></i> @Model.Destination</p>
+                <p><i class="fa-solid fa-location-dot"></i> @Model.Destination</p>
             </div>
 
             <div class="mt-4 mb-4">
@@ -74,6 +75,8 @@
                     <input type="hidden" name="packageId" value="@Model.PackageID" />
 
                     <input type="hidden" id="hasOptionsFlag" value="@(Model.Inclusions.Any() ? "true" : "false")" />
+
+                    <p><i class="fas fa-users me-2"></i>@Model.AvailableSlots slots available</p>
 
                     @if (Model.Inclusions.Any())
                     {
