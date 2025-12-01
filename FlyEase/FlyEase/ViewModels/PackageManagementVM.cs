@@ -7,7 +7,6 @@ namespace FlyEase.ViewModels
     {
         public Package Package { get; set; } = new Package();
 
-        // Helper to split the single DB string into a list of paths for the View
         public List<string> ImageList => string.IsNullOrEmpty(Package.ImageURL)
             ? new List<string>()
             : Package.ImageURL.Split(';', StringSplitOptions.RemoveEmptyEntries).ToList();
@@ -15,6 +14,10 @@ namespace FlyEase.ViewModels
         public List<Package> Packages { get; set; } = new List<Package>();
         public List<PackageCategory> Categories { get; set; } = new List<PackageCategory>();
         public List<string> Inclusions { get; set; } = new List<string>();
+
+        // === NEW: Itinerary List for the View ===
+        public List<PackageItinerary> Itinerary { get; set; } = new List<PackageItinerary>();
+
         public int? EditingPackageId { get; set; }
         public string Message { get; set; } = string.Empty;
         public bool IsSuccess { get; set; }
@@ -34,18 +37,25 @@ namespace FlyEase.ViewModels
         [Required] public DateTime EndDate { get; set; }
         [Required][Range(1, int.MaxValue)] public int AvailableSlots { get; set; }
 
-        // IMPORTANT: Must be a List to accept multiple files
         public List<IFormFile> ImageFiles { get; set; } = new List<IFormFile>();
-
         public List<string> Inclusions { get; set; } = new List<string>();
+
+        // === NEW: Itinerary Request Data ===
+        public List<ItineraryItemRequest> Itinerary { get; set; } = new List<ItineraryItemRequest>();
+    }
+
+    // === NEW CLASS ===
+    public class ItineraryItemRequest
+    {
+        public int DayNumber { get; set; }
+        public string Title { get; set; } = "";
+        public string ActivityDescription { get; set; } = "";
     }
 
     public class UpdatePackageRequest : CreatePackageRequest
     {
         [Required]
         public int PackageID { get; set; }
-
-        // Stores the paths (e.g., "/img/pic1.jpg") of images the user clicked "X" on
         public List<string> DeleteImagePaths { get; set; } = new List<string>();
     }
 }

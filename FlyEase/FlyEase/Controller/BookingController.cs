@@ -1,8 +1,6 @@
 ﻿using FlyEase.Data;
-using FlyEase.Migrations;
 using FlyEase.ViewModels;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -14,22 +12,24 @@ namespace FlyEase.Controllers
     public class BookingController : Controller
     {
         private readonly FlyEaseDbContext _db;
-        public BookingController(FlyEaseDbContext db) {
+        public BookingController(FlyEaseDbContext db)
+        {
             _db = db;
         }
 
         public async Task<IActionResult> Booking(int id)
         {
-            // 1. Safety Check: If ID is missing, go back to Home
+            // 1. Safety Check
             if (id <= 0) return RedirectToAction("Index", "Home");
 
-            // 2. Fetch Data from Database
+            // 2. Fetch Data (Added .Include for Itinerary)
             var package = await _db.Packages
                 .Include(p => p.Category)
                 .Include(p => p.PackageInclusions)
+                .Include(p => p.Itinerary) // <--- CRITICAL UPDATE
                 .FirstOrDefaultAsync(p => p.PackageID == id);
 
-            // 3. Safety Check: If package not found in DB
+            // 3. Safety Check
             if (package == null) return NotFound();
 
             // 4. Process Images
@@ -49,6 +49,9 @@ namespace FlyEase.Controllers
                 CategoryName = package.Category?.CategoryName ?? "General",
                 Inclusions = package.PackageInclusions.Select(pi => pi.InclusionItem).ToList(),
 
+                // Map Itinerary (Ordered by Day)
+                Itinerary = package.Itinerary.OrderBy(i => i.DayNumber).ToList(),
+
                 // Image Logic
                 AllImages = images,
                 MainImage = images.FirstOrDefault() ?? "/img/default-package.jpg",
@@ -60,4 +63,3 @@ namespace FlyEase.Controllers
         }
     }
 }
-
