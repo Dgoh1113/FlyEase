@@ -1,4 +1,38 @@
-﻿
+﻿/* ... Existing Styles ... */
+
+/* === SELECTION CARDS === */
+.selection-card label {
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+}
+
+    .selection-card label:hover {
+        background-color: #f8f9fa;
+        border-color: #dee2e6 !important;
+    }
+
+/* Radio: When Checked */
+.btn-check:checked + label {
+    border-color: #0d6efd !important;
+    background-color: #f0f8ff; /* Light Blue tint */
+    color: #0d6efd !important;
+}
+
+/* Checkbox Icons */
+.check-icon-checked {
+    font-size: 1.2rem;
+}
+
+.check-icon-unchecked {
+    font-size: 1.2rem;
+}
+
+/* Validation Error Highlight */
+.border-danger {
+    border: 1px solid #dc3545 !important;
+}
+
+
 .btn-close {
     font-size: 2rem;
     z-index: 1060;

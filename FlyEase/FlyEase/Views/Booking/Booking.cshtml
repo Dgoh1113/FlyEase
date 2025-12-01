@@ -1,4 +1,4 @@
-﻿@model FlyEase.ViewModels.BookingVM
+﻿@model FlyEase.ViewModels.PackageDetailsVM
 @{
     ViewData["Title"] = Model.PackageName;
     Layout = "~/Views/Shared/_Layout.cshtml";
@@ -74,26 +74,53 @@
                 <form asp-controller="Payment" asp-action="CustomerInfo" method="get" class="mt-3" id="bookingForm">
                     <input type="hidden" name="packageId" value="@Model.PackageID" />
 
-                    <input type="hidden" id="hasOptionsFlag" value="@(Model.Inclusions.Any() ? "true" : "false")" />
+                    <input type="hidden" name="selectedOption" id="finalSelectedOption" />
+
+                    <input type="hidden" id="hasAccommodationFlag" value="@(Model.AccommodationList.Any() ? "true" : "false")" />
 
                     <p><i class="fas fa-users me-2"></i>@Model.AvailableSlots slots available</p>
 
-                    @if (Model.Inclusions.Any())
+                    @if (Model.AccommodationList.Any())
                     {
-                        <div class="mb-3">
-                            <p class="fw-bold"> Select Option <span class="text-danger">*</span></p>
-                            <select name="selectedOption" id="optionDropdown" class="form-select form-select-lg shadow-sm" aria-label="Select Package Option">
-                                <option value="" selected disabled>-- Select an option --</option>
-                                @foreach (var inc in Model.Inclusions)
+                        <div class="mb-4">
+                            <label class="form-label fw-bold small text-uppercase text-muted">Accommodation</label>
+                            <div class="d-flex flex-column gap-2" id="accommodationContainer">
+                                @for (int i = 0; i < Model.AccommodationList.Count; i++)
                                 {
-                                    <option value="@inc">@inc</option>
+                                    var acc = Model.AccommodationList[i];
+                                    <div class="selection-card">
+                                        <input type="radio" class="btn-check option-trigger" name="accSelection"
+                                               id="acc_@i" value="@acc" autocomplete="off"
+                                               @(i == 0 ? "checked" : "")> <label class="btn btn-outline-light w-100 text-start p-3 d-flex align-items-center justify-content-between text-dark border" for="acc_@i">
+                                            <span class="fw-medium">@acc</span>
+                                            <i class="bi bi-check-circle-fill text-primary check-icon"></i>
+                                        </label>
+                                    </div>
                                 }
-                            </select>
+                            </div>
                         </div>
                     }
-                    else
+
+                    @if (Model.AddOnList.Any())
                     {
-                        <input type="hidden" name="selectedOption" value="" />
+                        <div class="mb-4">
+                            <label class="form-label fw-bold small text-uppercase text-muted">Add-on Services</label>
+                            <div class="d-flex flex-column gap-2">
+                                @for (int i = 0; i < Model.AddOnList.Count; i++)
+                                {
+                                    var add = Model.AddOnList[i];
+                                    <div class="selection-card">
+                                        <input type="checkbox" class="btn-check option-trigger" name="addOnSelection"
+                                               id="add_@i" value="@add" autocomplete="off">
+                                        <label class="btn btn-outline-light w-100 text-start p-3 d-flex align-items-center justify-content-between text-dark border" for="add_@i">
+                                            <span class="fw-medium">@add</span>
+                                            <i class="bi bi-plus-circle text-muted check-icon-unchecked"></i>
+                                            <i class="bi bi-check-circle-fill text-success check-icon-checked d-none"></i>
+                                        </label>
+                                    </div>
+                                }
+                            </div>
+                        </div>
                     }
 
                     <div class="mb-3">

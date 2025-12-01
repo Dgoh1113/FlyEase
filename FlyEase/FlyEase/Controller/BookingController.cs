@@ -36,7 +36,7 @@ namespace FlyEase.Controllers
             var images = package.ImageURL?.Split(';', StringSplitOptions.RemoveEmptyEntries).ToList() ?? new List<string>();
 
             // 5. Build ViewModel
-            var viewModel = new BookingVM
+            var viewModel = new PackageDetailsVM
             {
                 PackageID = package.PackageID,
                 PackageName = package.PackageName,

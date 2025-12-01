@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace FlyEase.ViewModels
 {
-    public class BookingVM
+    public class PackageDetailsVM
     {
         // Package Info
         public int PackageID { get; set; }
@@ -26,6 +26,9 @@ namespace FlyEase.ViewModels
 
         // Lists
         public List<string> Inclusions { get; set; } = new List<string>();
+        // === MODIFIED: Categorized Options === // Keep for fallback
+        public List<string> AccommodationList { get; set; } = new List<string>();
+        public List<string> AddOnList { get; set; } = new List<string>();
 
 
         // === NEW FIELD ===
