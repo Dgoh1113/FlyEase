@@ -9,8 +9,6 @@ namespace FlyEase.Controllers
     {
         private readonly FlyEaseDbContext _context;
         private readonly IWebHostEnvironment _environment;
-
-        // 100 MB Limit
         private const long MAX_UPLOAD_BYTES = 104857600;
 
         public PackageManagementController(FlyEaseDbContext context, IWebHostEnvironment environment)
@@ -43,21 +41,16 @@ namespace FlyEase.Controllers
                 int categoryId = await GetOrCreateCategoryId(request.CategoryID, request.NewCategoryName);
                 if (categoryId == 0) return View("PackageManagement", await LoadViewModelAsync());
 
-                // 1. Process Images
                 var imagePaths = new List<string>();
                 if (request.ImageFiles != null && request.ImageFiles.Count > 0)
                 {
-                    foreach (var file in request.ImageFiles)
-                    {
-                        imagePaths.Add(await HandleImageUpload(file));
-                    }
+                    foreach (var file in request.ImageFiles) imagePaths.Add(await HandleImageUpload(file));
                 }
                 else
                 {
                     imagePaths.Add("/img/default-package.jpg");
                 }
 
-                // 2. Save Package
                 var package = new Package
                 {
                     PackageName = request.PackageName,
@@ -68,13 +61,16 @@ namespace FlyEase.Controllers
                     StartDate = request.StartDate,
                     EndDate = request.EndDate,
                     AvailableSlots = request.AvailableSlots,
-                    ImageURL = string.Join(";", imagePaths)
+                    ImageURL = string.Join(";", imagePaths),
+
+                    // === SAVE LOCATION ===
+                    Latitude = request.Latitude,
+                    Longitude = request.Longitude
                 };
 
                 _context.Packages.Add(package);
                 await _context.SaveChangesAsync();
 
-                // 3. Save Inclusions
                 if (request.Inclusions != null)
                 {
                     foreach (var inc in request.Inclusions.Where(i => !string.IsNullOrWhiteSpace(i)))
@@ -83,12 +79,10 @@ namespace FlyEase.Controllers
                     }
                 }
 
-                // 4. === SAVE ITINERARY ===
                 if (request.Itinerary != null && request.Itinerary.Any())
                 {
                     foreach (var item in request.Itinerary)
                     {
-                        // Only add if Title is present
                         if (!string.IsNullOrWhiteSpace(item.Title))
                         {
                             _context.PackageItineraries.Add(new PackageItinerary
@@ -126,7 +120,7 @@ namespace FlyEase.Controllers
             var package = await _context.Packages
                 .Include(p => p.PackageInclusions)
                 .Include(p => p.Category)
-                .Include(p => p.Itinerary) // <--- Fetch Itinerary
+                .Include(p => p.Itinerary)
                 .FirstOrDefaultAsync(p => p.PackageID == id);
 
             if (package != null)
@@ -135,8 +129,6 @@ namespace FlyEase.Controllers
                 viewModel.EditingPackageId = id;
                 viewModel.SelectedCategoryId = package.CategoryID;
                 viewModel.Inclusions = package.PackageInclusions.Select(pi => pi.InclusionItem).ToList();
-
-                // Map Itinerary to View Model
                 viewModel.Itinerary = package.Itinerary.OrderBy(i => i.DayNumber).ToList();
             }
             return View("PackageManagement", viewModel);
@@ -160,14 +152,13 @@ namespace FlyEase.Controllers
             {
                 var existingPackage = await _context.Packages
                     .Include(p => p.PackageInclusions)
-                    .Include(p => p.Itinerary) // <--- Fetch Itinerary
+                    .Include(p => p.Itinerary)
                     .FirstOrDefaultAsync(p => p.PackageID == request.PackageID);
 
                 if (existingPackage == null) return NotFound();
 
                 int categoryId = await GetOrCreateCategoryId(request.CategoryID, request.NewCategoryName);
 
-                // === IMAGE HANDLING ===
                 var currentImages = string.IsNullOrEmpty(existingPackage.ImageURL)
                     ? new List<string>()
                     : existingPackage.ImageURL.Split(';', StringSplitOptions.RemoveEmptyEntries).ToList();
@@ -192,7 +183,6 @@ namespace FlyEase.Controllers
 
                 if (currentImages.Count == 0) currentImages.Add("/img/default-package.jpg");
                 existingPackage.ImageURL = string.Join(";", currentImages.Distinct());
-                // =======================
 
                 existingPackage.PackageName = request.PackageName;
                 existingPackage.CategoryID = categoryId;
@@ -203,7 +193,10 @@ namespace FlyEase.Controllers
                 existingPackage.EndDate = request.EndDate;
                 existingPackage.AvailableSlots = request.AvailableSlots;
 
-                // Update Inclusions
+                // === UPDATE LOCATION ===
+                existingPackage.Latitude = request.Latitude;
+                existingPackage.Longitude = request.Longitude;
+
                 _context.PackageInclusions.RemoveRange(existingPackage.PackageInclusions);
                 if (request.Inclusions != null)
                 {
@@ -213,14 +206,8 @@ namespace FlyEase.Controllers
                     }
                 }
 
-                // === UPDATE ITINERARY ===
-                // 1. Clear old itinerary
-                if (existingPackage.Itinerary.Any())
-                {
-                    _context.PackageItineraries.RemoveRange(existingPackage.Itinerary);
-                }
+                if (existingPackage.Itinerary.Any()) _context.PackageItineraries.RemoveRange(existingPackage.Itinerary);
 
-                // 2. Add new itinerary
                 if (request.Itinerary != null && request.Itinerary.Any())
                 {
                     foreach (var item in request.Itinerary)
@@ -283,7 +270,6 @@ namespace FlyEase.Controllers
             return RedirectToAction("PackageManagement");
         }
 
-        // --- Helpers ---
         private async Task<int> GetOrCreateCategoryId(int? categoryId, string? newCategoryName)
         {
             if (categoryId.HasValue && categoryId > 0) return categoryId.Value;

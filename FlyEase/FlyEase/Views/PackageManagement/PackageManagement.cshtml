@@ -6,7 +6,10 @@
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
+<!-- 1. LEAFLET CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <link rel="stylesheet" href="~/css/packagemanagement.css" />
+
 <style>
     /* Gallery Styling */
     .image-gallery {
@@ -77,6 +80,15 @@
                 border-radius: 4px;
                 pointer-events: none;
             }
+
+    /* Map Container */
+    #adminMap {
+        height: 300px;
+        width: 100%;
+        border-radius: 8px;
+        border: 1px solid #ccc;
+        margin-top: 10px;
+    }
 </style>
 
 <div class="management-hero">
@@ -150,6 +162,21 @@
                             <input class="form-control" name="Price" type="number" step="0.01" value="@Model.Package.Price" required />
                         </div>
                     </div>
+
+                    <!-- === LOCATION MAP === -->
+                    <div class="form-group border p-3 bg-light rounded">
+                        <label class="form-label fw-bold">Location (Search & Pin)</label>
+                        <div class="input-group mb-2">
+                            <input type="text" id="locSearch" class="form-control" placeholder="Search place (e.g. Tokyo, KLCC)...">
+                            <button type="button" class="btn btn-secondary" onclick="searchLocation()">Search</button>
+                        </div>
+                        <div id="adminMap"></div>
+                        <small class="text-muted">Drag the marker to pinpoint the exact location.</small>
+                        <!-- Hidden Inputs for Lat/Long -->
+                        <input type="hidden" id="p_lat" name="Latitude" value="@Model.Package.Latitude" />
+                        <input type="hidden" id="p_long" name="Longitude" value="@Model.Package.Longitude" />
+                    </div>
+                    <!-- ===================== -->
 
                     <div class="form-row">
                         <div class="form-group">
@@ -243,12 +270,10 @@
                                                 <input type="number" class="form-control form-control-sm day-input" name="Itinerary[@i].DayNumber" value="@day.DayNumber" readonly />
                                             </div>
                                             <div class="col-md-10">
-                                                <!-- Added title-input class and required -->
                                                 <input type="text" class="form-control form-control-sm title-input" name="Itinerary[@i].Title" value="@day.Title" placeholder="Title (e.g. Arrival)" required />
                                             </div>
                                         </div>
                                         <div class="mt-2">
-                                            <!-- Added desc-input class and required -->
                                             <textarea class="form-control form-control-sm desc-input" name="Itinerary[@i].ActivityDescription" rows="2" placeholder="Description of activities..." required>@day.ActivityDescription</textarea>
                                         </div>
                                     </div>
@@ -317,13 +342,71 @@
     </div>
 </div>
 
+<!-- 2. LEAFLET JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
 @section Scripts {
     <script>
-        // --- 1. ITINERARY LOGIC ---
-        // Keeps track of the next index to use for the form name binding Itinerary[i]
+        // --- MAP LOGIC ---
+        let map, marker;
+
+        function initMap() {
+            // Get current Lat/Long from hidden inputs or default to KL
+            let lat = parseFloat(document.getElementById('p_lat').value) || 3.1390;
+            let lng = parseFloat(document.getElementById('p_long').value) || 101.6869;
+
+            // Prevent 0,0 issue (defaulting to null coordinates)
+            if(lat === 0 && lng === 0) { lat = 3.1390; lng = 101.6869; }
+
+            map = L.map('adminMap').setView([lat, lng], 13);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap'
+            }).addTo(map);
+
+            // Add Draggable Marker
+            marker = L.marker([lat, lng], {draggable: true}).addTo(map);
+
+            // Listener: Update hidden inputs when dragged
+            marker.on('dragend', function(e) {
+                var position = marker.getLatLng();
+                document.getElementById('p_lat').value = position.lat;
+                document.getElementById('p_long').value = position.lng;
+            });
+        }
+
+        async function searchLocation() {
+            const query = document.getElementById('locSearch').value;
+            if(!query) return;
+
+            try {
+                const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`);
+                const data = await res.json();
+                if(data && data.length > 0) {
+                    const lat = data[0].lat;
+                    const lon = data[0].lon;
+
+                    // Move Map
+                    map.setView([lat, lon], 13);
+                    marker.setLatLng([lat, lon]);
+
+                    // Update Hidden Inputs
+                    document.getElementById('p_lat').value = lat;
+                    document.getElementById('p_long').value = lon;
+                } else {
+                    alert("Location not found.");
+                }
+            } catch(e) { console.error(e); }
+        }
+
+        // Initialize map on load
+        document.addEventListener("DOMContentLoaded", function() {
+            initMap();
+        });
+
+        // --- ITINERARY LOGIC ---
         let itineraryIndex = @(Model.Itinerary?.Count ?? 0);
 
-        // Helper to create a single row
         function createItineraryRowHTML(index, dayNumber, title = "", desc = "") {
             return `
                 <div class="card mb-2 p-3 bg-light border itinerary-row">
@@ -336,18 +419,15 @@
                             <input type="number" class="form-control form-control-sm day-input" name="Itinerary[${index}].DayNumber" value="${dayNumber}" readonly />
                         </div>
                         <div class="col-md-10">
-                            <!-- Added title-input and required -->
                             <input type="text" class="form-control form-control-sm title-input" name="Itinerary[${index}].Title" value="${title}" placeholder="Title (e.g. Arrival)" required />
                         </div>
                     </div>
                     <div class="mt-2">
-                        <!-- Added desc-input and required -->
                         <textarea class="form-control form-control-sm desc-input" name="Itinerary[${index}].ActivityDescription" rows="2" placeholder="Description..." required>${desc}</textarea>
                     </div>
                 </div>`;
         }
 
-        // Adds one row manually
         function addItineraryRow(dayNum = null, title = "", desc = "") {
             const container = document.getElementById('itinerary-container');
             const currentRows = container.getElementsByClassName('itinerary-row').length;
@@ -355,8 +435,6 @@
 
             const div = document.createElement('div');
             div.innerHTML = createItineraryRowHTML(itineraryIndex, displayDay, title, desc);
-
-            // Append the actual div element, not the string container
             container.appendChild(div.firstElementChild);
             itineraryIndex++;
         }
@@ -366,118 +444,58 @@
             reorderDays();
         }
 
-        // Renumbers days and FIXES indices for MVC binding
         function reorderDays() {
             const rows = document.querySelectorAll('.itinerary-row');
             rows.forEach((row, index) => {
                 const newDay = index + 1;
-
-                // 1. Update Visual Label
                 row.querySelector('.day-label').innerText = newDay;
-
-                // 2. Update the readonly Day Number Input
                 row.querySelector('.day-input').value = newDay;
-
-                // 3. Update the 'name' attributes so MVC binds Itinerary[0], Itinerary[1] correctly
-                // Regex looks for Itinerary[<any number>] and replaces with Itinerary[<current index>]
                 const inputs = row.querySelectorAll('input, textarea');
                 inputs.forEach(input => {
-                    if (input.name) {
-                        input.name = input.name.replace(/Itinerary\[\d+\]/, `Itinerary[${index}]`);
-                    }
+                    if (input.name) input.name = input.name.replace(/Itinerary\[\d+\]/, `Itinerary[${index}]`);
                 });
             });
-            // Update global index so next added row continues correctly
             itineraryIndex = rows.length;
         }
 
-        // === AUTO SYNC DATE LOGIC ===
         function syncItineraryDays() {
             const startStr = document.getElementById('startDate').value;
             const endStr = document.getElementById('endDate').value;
-
             if (!startStr || !endStr) return;
 
             const start = new Date(startStr);
             const end = new Date(endStr);
             const diffTime = end - start;
+            if (diffTime < 0) return;
 
-            // Calculate total duration in days (inclusive)
-            if (diffTime < 0) return; // Invalid date range, do nothing
             const totalDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-
             const container = document.getElementById('itinerary-container');
             let currentRows = container.getElementsByClassName('itinerary-row').length;
 
             if (totalDays > currentRows) {
-                // Add missing days
-                for (let i = currentRows + 1; i <= totalDays; i++) {
-                    addItineraryRow(i);
-                }
+                for (let i = currentRows + 1; i <= totalDays; i++) addItineraryRow(i);
             } else if (totalDays < currentRows) {
-                // Remove extra days from the bottom
                 const rows = container.getElementsByClassName('itinerary-row');
-                // Loop backwards to remove from end
-                for (let i = currentRows - 1; i >= totalDays; i--) {
-                    rows[i].remove();
-                }
-                // Ensure indices are clean after removal
+                for (let i = currentRows - 1; i >= totalDays; i--) rows[i].remove();
                 reorderDays();
             }
         }
 
-        // === VALIDATION FUNCTION ===
+        // --- VALIDATION ---
         function validateForm() {
             const rows = document.querySelectorAll('.itinerary-row');
             let isValid = true;
             const errorMsg = document.getElementById('itineraryError');
 
-            // 1. Basic Date & Price Validation (Manual checks)
-            const startDateInput = document.getElementById('startDate');
-            const endDateInput = document.getElementById('endDate');
-            const priceInput = document.querySelector('input[name="Price"]');
-            const slotsInput = document.querySelector('input[name="AvailableSlots"]');
+            const startVal = document.getElementById('startDate').value;
+            const endVal = document.getElementById('endDate').value;
+            if(startVal && endVal && rows.length === 0) isValid = false;
 
-            if (startDateInput.value && endDateInput.value) {
-                const startDate = new Date(startDateInput.value);
-                const endDate = new Date(endDateInput.value);
-                if (endDate <= startDate) {
-                    alert('End date must be after start date.');
-                    return false;
-                }
-            }
-
-            if (priceInput.value && parseFloat(priceInput.value) <= 0) {
-                alert('Price must be greater than 0.');
-                return false;
-            }
-
-            if (slotsInput.value && parseInt(slotsInput.value) <= 0) {
-                alert('Available slots must be greater than 0.');
-                return false;
-            }
-
-            const categorySelect = document.getElementById('categorySelect');
-            const newCategoryInput = document.getElementById('newCategoryInput');
-            if (categorySelect.value === '' && (!newCategoryInput.value || newCategoryInput.value.trim() === '')) {
-                alert('Please select an existing category or enter a new category name.');
-                return false;
-            }
-
-            // 2. Itinerary Validation
-            // If dates are selected, ensure at least one day exists
-            if(startDateInput.value && endDateInput.value && rows.length === 0) {
-                 isValid = false;
-            }
-
-            // Loop through all itinerary rows to check empty fields
             rows.forEach(row => {
                 const title = row.querySelector('.title-input').value.trim();
                 const desc = row.querySelector('.desc-input').value.trim();
-
                 if (!title || !desc) {
                     isValid = false;
-                    // Highlight empty fields
                     if(!title) row.querySelector('.title-input').classList.add('is-invalid');
                     if(!desc) row.querySelector('.desc-input').classList.add('is-invalid');
                 } else {
@@ -489,14 +507,13 @@
             if (!isValid) {
                 errorMsg.classList.remove('d-none');
                 errorMsg.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                return false; // Prevent submission
-            } else {
-                errorMsg.classList.add('d-none');
-                return true; // Allow submission
+                return false;
             }
+            errorMsg.classList.add('d-none');
+            return true;
         }
 
-        // --- 2. EXISTING LOGIC (Images, Inclusions) ---
+        // --- EXISTING IMAGE/INCLUSION LOGIC ---
         let inclusionIndex = @Model.Inclusions.Count;
         const dt = new DataTransfer();
 

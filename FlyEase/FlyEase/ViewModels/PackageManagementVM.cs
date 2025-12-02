@@ -15,7 +15,7 @@ namespace FlyEase.ViewModels
         public List<PackageCategory> Categories { get; set; } = new List<PackageCategory>();
         public List<string> Inclusions { get; set; } = new List<string>();
 
-        // === NEW: Itinerary List for the View ===
+        // Itinerary List for View
         public List<PackageItinerary> Itinerary { get; set; } = new List<PackageItinerary>();
 
         public int? EditingPackageId { get; set; }
@@ -37,14 +37,16 @@ namespace FlyEase.ViewModels
         [Required] public DateTime EndDate { get; set; }
         [Required][Range(1, int.MaxValue)] public int AvailableSlots { get; set; }
 
+        // === NEW: LOCATION FIELDS ===
+        public double Latitude { get; set; }
+        public double Longitude { get; set; }
+        // ============================
+
         public List<IFormFile> ImageFiles { get; set; } = new List<IFormFile>();
         public List<string> Inclusions { get; set; } = new List<string>();
-
-        // === NEW: Itinerary Request Data ===
         public List<ItineraryItemRequest> Itinerary { get; set; } = new List<ItineraryItemRequest>();
     }
 
-    // === NEW CLASS ===
     public class ItineraryItemRequest
     {
         public int DayNumber { get; set; }
