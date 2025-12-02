@@ -1,7 +1,4 @@
-﻿// [file name]: PaymentController.cs
-
-
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using FlyEase.Data;
 using FlyEase.ViewModels;
@@ -225,6 +222,57 @@ namespace FlyEase.Controllers
 
             return View(payment);
         }
+
+        // =========================================================
+        // === TEMPORARY DEVELOPER BYPASS (FOR TESTING REVIEWS) ===
+        // =========================================================
+        [HttpGet]
+        public async Task<IActionResult> DevQuickBook(int packageId)
+        {
+            // 1. Get Logged In User (Must be logged in!)
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (userIdClaim == null) return Content("Error: You must be logged in to use the bypass.");
+            int userId = int.Parse(userIdClaim);
+
+            // 2. Get Package Details
+            var package = await _context.Packages.FindAsync(packageId);
+            if (package == null) return Content("Error: Package not found.");
+
+            // 3. Create a Mock Booking
+            var booking = new Booking
+            {
+                UserID = userId,
+                PackageID = packageId,
+                BookingDate = DateTime.Now,
+                TravelDate = DateTime.Now.AddDays(7), // Default to next week
+                NumberOfPeople = 1,
+                TotalBeforeDiscount = package.Price,
+                TotalDiscountAmount = 0,
+                FinalAmount = package.Price,
+                BookingStatus = "Confirmed" // Auto-confirm so it shows in dashboard
+            };
+
+            _context.Bookings.Add(booking);
+            await _context.SaveChangesAsync();
+
+            // 4. Create a Mock Payment
+            var payment = new Payment
+            {
+                BookingID = booking.BookingID,
+                PaymentMethod = "DevBypass",
+                AmountPaid = package.Price,
+                IsDeposit = false,
+                PaymentDate = DateTime.Now,
+                PaymentStatus = "Completed"
+            };
+
+            _context.Payments.Add(payment);
+            await _context.SaveChangesAsync();
+
+            // 5. Redirect to Success Page
+            return RedirectToAction("Success", new { bookingId = booking.BookingID, paymentId = payment.PaymentID });
+        }
+        // =========================================================
 
         // Helper Methods
         private void CalculateDiscounts(BookingViewModel model)

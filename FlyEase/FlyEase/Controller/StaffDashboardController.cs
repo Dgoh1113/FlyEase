@@ -4,6 +4,7 @@ using FlyEase.Data;
 using FlyEase.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
+using FlyEase.Services; // Needed to find EmailService
 
 namespace FlyEase.Controllers
 {
@@ -135,6 +136,56 @@ namespace FlyEase.Controllers
             }
             return RedirectToAction(nameof(Bookings));
         }
+
+        [HttpPost("UpdateBookingStatus")] // This matches the form in Bookings.cshtml
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> UpdateBookingStatus(BookingsPageVM model)
+        {
+            var input = model.CurrentBooking;
+
+            // 1. Fetch Booking WITH User and Package data 
+            // (We use .Include because we need the Email and Package Name for the message)
+            var booking = await _context.Bookings
+                .Include(b => b.User)
+                .Include(b => b.Package)
+                .FirstOrDefaultAsync(b => b.BookingID == input.BookingID);
+
+            if (booking != null)
+            {
+                // 2. Update Status
+                booking.BookingStatus = input.BookingStatus;
+                await _context.SaveChangesAsync();
+
+                // 3. TRIGGER: Is it "Completed"? -> Send Email
+                if (booking.BookingStatus == "Completed")
+                {
+                    var emailService = new EmailService();
+
+                    // Fire and forget (we don't want the page to freeze if email is slow)
+                    try
+                    {
+                        await emailService.SendReviewInvitation(
+                            booking.User.Email,
+                            booking.User.FullName,
+                            booking.BookingID,
+                            booking.Package.PackageName
+                        );
+                        TempData["Success"] = "Booking marked Completed & Review Email Sent!";
+                    }
+                    catch
+                    {
+                        TempData["Warning"] = "Booking saved, but Email failed to send. Check credentials.";
+                    }
+                }
+                else
+                {
+                    TempData["Success"] = "Booking status updated successfully.";
+                }
+            }
+
+            return RedirectToAction("Bookings");
+        }
+
 
         [HttpPost("DeleteBooking")]
         public async Task<IActionResult> DeleteBooking(int id)
