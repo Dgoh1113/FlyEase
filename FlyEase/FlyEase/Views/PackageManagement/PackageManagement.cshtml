@@ -586,13 +586,13 @@
 
             @if (Model.EditingPackageId.HasValue)
             {
-                    <text>
-                    const s = document.querySelector('input[name="StartDate"]');
-                    const e = document.querySelector('input[name="EndDate"]');
-                    if (s && s.value === '') s.value = '@Model.Package.StartDate.ToString("yyyy-MM-dd")';
-                    if (e && e.value === '') e.value = '@Model.Package.EndDate.ToString("yyyy-MM-dd")';
-                    </text>
+                        <text>
+                        const s = document.querySelector('input[name="StartDate"]');
+                        const e = document.querySelector('input[name="EndDate"]');
+                        if (s && s.value === '') s.value = '@Model.Package.StartDate.ToString("yyyy-MM-dd")';
+                        if (e && e.value === '') e.value = '@Model.Package.EndDate.ToString("yyyy-MM-dd")';
+                        </text>
             }
         });
     </script>
-}
+}   
