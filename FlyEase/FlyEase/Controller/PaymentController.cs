@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Stripe;
 using System.Security.Claims;
-using Microsoft.AspNetCore.Http; // For ISession
+using Microsoft.AspNetCore.Http;
 
 namespace FlyEase.Controllers
 {
@@ -18,8 +18,7 @@ namespace FlyEase.Controllers
             _context = context;
             _configuration = configuration;
 
-
-            // SET REAL STRIPE TEST KEY
+            // SET REAL STRIPE KEY
             StripeConfiguration.ApiKey = _configuration["Stripe:SecretKey"];
         }
 
@@ -53,7 +52,6 @@ namespace FlyEase.Controllers
 
             CalculateDiscounts(vm);
 
-            // USE EXTENSION METHODS HERE:
             HttpContext.Session.SetCustomerInfo(vm);
             HttpContext.Session.SetUserId(user.UserID);
 
@@ -67,7 +65,6 @@ namespace FlyEase.Controllers
 
             CalculateDiscounts(model);
 
-            // USE EXTENSION METHODS HERE:
             HttpContext.Session.SetCustomerInfo(model);
             return RedirectToAction("PaymentMethod");
         }
@@ -76,7 +73,6 @@ namespace FlyEase.Controllers
         [HttpGet]
         public IActionResult PaymentMethod()
         {
-            // USE EXTENSION METHODS HERE:
             var customerInfo = HttpContext.Session.GetCustomerInfo();
             if (customerInfo == null)
             {
@@ -98,7 +94,6 @@ namespace FlyEase.Controllers
                 return RedirectToAction("PaymentMethod");
             }
 
-            // USE EXTENSION METHODS HERE:
             HttpContext.Session.SetPaymentMethod(paymentMethod);
 
             return paymentMethod == "card"
@@ -110,7 +105,6 @@ namespace FlyEase.Controllers
         [HttpGet]
         public IActionResult CardPayment()
         {
-            // USE EXTENSION METHODS HERE:
             var customerInfo = HttpContext.Session.GetCustomerInfo();
             if (customerInfo == null)
             {
@@ -126,7 +120,6 @@ namespace FlyEase.Controllers
         [HttpPost]
         public async Task<IActionResult> CardPayment(string cardNumber, string expiry, string cvv, string cardholder)
         {
-            // USE EXTENSION METHODS HERE:
             var customerInfo = HttpContext.Session.GetCustomerInfo();
             if (customerInfo == null)
             {
@@ -136,10 +129,10 @@ namespace FlyEase.Controllers
 
             try
             {
-                // 1. CREATE REAL STRIPE PAYMENT INTENT
+                // 1. CREATE STRIPE PAYMENT INTENT
                 var options = new PaymentIntentCreateOptions
                 {
-                    Amount = (long)(customerInfo.FinalAmount * 100), // Convert RM to cents
+                    Amount = (long)(customerInfo.FinalAmount * 100),
                     Currency = "myr",
                     PaymentMethodTypes = new List<string> { "card" },
                     Description = $"FlyEase Booking: {customerInfo.PackageName}",
@@ -155,10 +148,10 @@ namespace FlyEase.Controllers
                 var service = new PaymentIntentService();
                 var paymentIntent = await service.CreateAsync(options);
 
-                // 2. GET REAL STRIPE INTENT ID
-                string realStripeId = paymentIntent.Id; // REAL: pi_xxxxxxxxxxxxx
+                // 2. GET INTENT ID
+                string realStripeId = paymentIntent.Id;
 
-                // 3. PROCESS PAYMENT WITH REAL STRIPE ID
+                // 3. PROCESS PAYMENT
                 return await ProcessBooking("card", realStripeId);
             }
             catch (StripeException ex)
@@ -177,7 +170,6 @@ namespace FlyEase.Controllers
         [HttpGet]
         public IActionResult ManualPayment(string method)
         {
-            // USE EXTENSION METHODS HERE:
             var customerInfo = HttpContext.Session.GetCustomerInfo();
             if (customerInfo == null)
             {
@@ -199,7 +191,6 @@ namespace FlyEase.Controllers
                 return RedirectToAction("ManualPayment");
             }
 
-            // USE EXTENSION METHODS HERE:
             var method = HttpContext.Session.GetPaymentMethod();
             return await ProcessBooking(method, reference);
         }
@@ -207,7 +198,6 @@ namespace FlyEase.Controllers
         // ========== PROCESS BOOKING ==========
         private async Task<IActionResult> ProcessBooking(string paymentMethod, string transactionId)
         {
-            // USE EXTENSION METHODS HERE:
             var customerInfo = HttpContext.Session.GetCustomerInfo();
             var userId = HttpContext.Session.GetUserId();
 
@@ -235,19 +225,18 @@ namespace FlyEase.Controllers
                 TotalBeforeDiscount = customerInfo.BasePrice,
                 TotalDiscountAmount = customerInfo.DiscountAmount,
                 FinalAmount = customerInfo.FinalAmount,
-                BookingStatus = paymentMethod == "card" ? "Confirmed" : "Pending Payment"
+                // === CHANGE 1: Always Pending ===
+                BookingStatus = "Pending"
             };
 
             _context.Bookings.Add(booking);
             await _context.SaveChangesAsync();
 
-            // Create payment with REAL Stripe ID
+            // Create payment
             string paymentMethodText = GetPaymentMethodName(paymentMethod);
 
-            // Store REAL Stripe ID if it's a card payment
             if (paymentMethod == "card")
             {
-                // Check if this looks like a real Stripe ID
                 if (transactionId.StartsWith("pi_"))
                 {
                     paymentMethodText = $"Credit Card (Stripe: {transactionId})";
@@ -270,7 +259,7 @@ namespace FlyEase.Controllers
 
             _context.Payments.Add(payment);
 
-            // Only reduce slots for confirmed payments
+            // Only reduce slots for confirmed/paid payments
             if (paymentMethod == "card")
             {
                 package.AvailableSlots -= customerInfo.NumberOfPeople;
@@ -278,7 +267,6 @@ namespace FlyEase.Controllers
 
             await _context.SaveChangesAsync();
 
-            // USE EXTENSION METHODS HERE: Clear session
             HttpContext.Session.ClearPaymentSession();
 
             return RedirectToAction("Success", new { bookingId = booking.BookingID });
@@ -295,6 +283,56 @@ namespace FlyEase.Controllers
 
             if (booking == null) return NotFound();
             return View(booking);
+        }
+
+        // =========================================================
+        // === DEVELOPER BYPASS (UPDATED TO PENDING) ===
+        // =========================================================
+        [HttpGet("Payment/DevQuickBook")]
+        public async Task<IActionResult> DevQuickBook(int packageId)
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (userIdClaim == null) return Content("Error: You must be logged in.");
+            int userId = int.Parse(userIdClaim);
+
+            var package = await _context.Packages.FindAsync(packageId);
+            if (package == null) return Content("Error: Package not found.");
+
+            var booking = new Booking
+            {
+                UserID = userId,
+                PackageID = packageId,
+                BookingDate = DateTime.Now,
+                TravelDate = DateTime.Now.AddDays(7),
+                NumberOfPeople = 1,
+                TotalBeforeDiscount = package.Price,
+                TotalDiscountAmount = 0,
+                FinalAmount = package.Price,
+                // === CHANGE 2: Always Pending ===
+                BookingStatus = "Pending"
+            };
+
+            _context.Bookings.Add(booking);
+            await _context.SaveChangesAsync();
+
+            var payment = new Payment
+            {
+                BookingID = booking.BookingID,
+                PaymentMethod = "DevBypass",
+                AmountPaid = package.Price,
+                IsDeposit = false,
+                PaymentDate = DateTime.Now,
+                PaymentStatus = "Completed"
+            };
+
+            _context.Payments.Add(payment);
+
+            // Decrease slots for dev bypass since payment is "completed"
+            package.AvailableSlots -= 1;
+
+            await _context.SaveChangesAsync();
+
+            return RedirectToAction("Success", new { bookingId = booking.BookingID });
         }
 
         // ========== HELPER METHODS ==========
@@ -325,6 +363,38 @@ namespace FlyEase.Controllers
                 "cash" => "Cash Payment",
                 _ => method
             };
+        }
+    }
+
+    // Session extension methods
+    public static class SessionExtensions
+    {
+        public static void SetObject(this ISession session, string key, object value)
+        {
+            session.SetString(key, System.Text.Json.JsonSerializer.Serialize(value));
+        }
+
+        public static T GetObject<T>(this ISession session, string key)
+        {
+            var value = session.GetString(key);
+            return value == null ? default(T) : System.Text.Json.JsonSerializer.Deserialize<T>(value);
+        }
+
+        // Typed helpers for PaymentController
+        public static void SetCustomerInfo(this ISession session, CustomerInfoViewModel vm) => session.SetObject("CustomerInfo", vm);
+        public static CustomerInfoViewModel GetCustomerInfo(this ISession session) => session.GetObject<CustomerInfoViewModel>("CustomerInfo");
+
+        public static void SetUserId(this ISession session, int id) => session.SetInt32("UserId", id);
+        public static int GetUserId(this ISession session) => session.GetInt32("UserId") ?? 0;
+
+        public static void SetPaymentMethod(this ISession session, string method) => session.SetString("PaymentMethod", method);
+        public static string GetPaymentMethod(this ISession session) => session.GetString("PaymentMethod");
+
+        public static void ClearPaymentSession(this ISession session)
+        {
+            session.Remove("CustomerInfo");
+            session.Remove("UserId");
+            session.Remove("PaymentMethod");
         }
     }
 }

@@ -38,15 +38,27 @@
                     {
                         @foreach (var item in Model.Bookings)
                         {
-                            // Calculate payments directly in the view since the VM is raw Entity
+                            // 1. FORCE "Confirmed" to look/act like "Pending"
+                            var displayStatus = (item.BookingStatus == "Confirmed") ? "Pending" : item.BookingStatus;
+
+                            // 2. Calculate payments
                             var totalPaid = item.Payments?.Sum(p => p.AmountPaid) ?? 0;
                             var balanceDue = item.FinalAmount - totalPaid;
 
-                            // Determine Payment Status String
+                            // 3. Payment Status Logic
                             string payStatus = "Unpaid";
                             if (item.FinalAmount == 0) { payStatus = "Free"; }
                             else if (totalPaid >= item.FinalAmount) { payStatus = "Fully Paid"; }
                             else if (totalPaid > 0) { payStatus = "Partial"; }
+
+                            // 4. Badge Color Logic (Based on displayStatus)
+                            string badgeClass = "bg-secondary";
+                            switch (displayStatus)
+                            {
+                                case "Completed": badgeClass = "bg-success"; break;       // Green
+                                case "Pending": badgeClass = "bg-warning text-dark"; break; // Yellow
+                                case "Cancelled": badgeClass = "bg-danger"; break;        // Red
+                            }
 
                             <tr>
                                 <td><strong>#@item.BookingID</strong></td>
@@ -89,22 +101,14 @@
                                         }
                                     </div>
                                 </td>
+
                                 <td>
-                                    @{
-                                        string statusClass = item.BookingStatus switch
-                                        {
-                                            "Confirmed" => "success",
-                                            "Pending" => "warning",
-                                            "Cancelled" => "danger",
-                                            "Completed" => "primary",
-                                            _ => "secondary"
-                                        };
-                                    }
-                                    <span class="badge bg-@statusClass">@item.BookingStatus</span>
+                                    <span class="badge @badgeClass">@displayStatus</span>
                                 </td>
+
                                 <td>
                                     <button class="btn btn-sm btn-outline-primary manage-btn"
-                                            onclick="openBookingModal(@item.BookingID, '@item.User?.FullName', '@item.BookingStatus')">
+                                            onclick="openBookingModal(@item.BookingID, '@item.User?.FullName', '@displayStatus')">
                                         Manage
                                     </button>
                                 </td>
@@ -139,10 +143,10 @@
                         <label class="form-label">Booking Status</label>
                         <select id="b_status" asp-for="CurrentBooking.BookingStatus" class="form-select">
                             <option value="Pending">Pending</option>
-                            <option value="Confirmed">Confirmed</option>
                             <option value="Cancelled">Cancelled</option>
                             <option value="Completed">Completed</option>
                         </select>
+                       
                         <div class="form-text text-muted">
                             Note: Cancelling a booking will release the slots back to the package.
                         </div>
@@ -159,13 +163,12 @@
 </div>
 
 <script>
+       // This function receives 'displayStatus' (which is now "Pending")
     function openBookingModal(id, customerName, currentStatus) {
-        // 1. Set values in the modal inputs
         document.getElementById('b_id').value = id;
         document.getElementById('displayCustomerName').value = customerName;
-        document.getElementById('b_status').value = currentStatus;
+        document.getElementById('b_status').value = currentStatus; // Sets dropdown to Pending
 
-        // 2. Show the modal
         new bootstrap.Modal(document.getElementById('bookingModal')).show();
     }
 </script>

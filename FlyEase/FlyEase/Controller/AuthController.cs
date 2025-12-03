@@ -185,7 +185,8 @@ namespace FlyEase.Controllers
                         PackageTitle = b.Package.PackageName,
                         BookingDate = b.BookingDate,
                         Status = b.BookingStatus,
-                        TotalAmount = b.FinalAmount
+                        TotalAmount = b.FinalAmount,
+                        IsReviewed = b.Feedbacks.Any()
                     }).ToList(),
 
                 PaymentHistory = _context.Payments
@@ -227,6 +228,36 @@ namespace FlyEase.Controllers
             };
 
             return View(model);
+        }
+
+        // ==========================================
+        // REFRESH BOOKINGS (AJAX)
+        // ==========================================
+        [HttpGet]
+        public IActionResult RefreshBookings()
+        {
+            var userEmail = User.FindFirst(ClaimTypes.Email)?.Value;
+            var user = _context.Users.FirstOrDefault(u => u.Email == userEmail);
+
+            if (user == null) return NotFound();
+
+            // Re-fetch only the bookings
+            var myBookings = _context.Bookings
+                .Include(b => b.Package)
+                .Where(b => b.UserID == user.UserID)
+                .OrderByDescending(b => b.BookingDate)
+                .Select(b => new BookingDisplayModel
+                {
+                    BookingID = b.BookingID,
+                    PackageTitle = b.Package.PackageName,
+                    BookingDate = b.BookingDate,
+                    Status = b.BookingStatus,
+                    TotalAmount = b.FinalAmount,
+                    IsReviewed = b.Feedbacks.Any()
+                }).ToList();
+
+            // Return ONLY the rows, not the whole page
+            return PartialView("_BookingRows", myBookings);
         }
 
         // ==========================================
@@ -357,6 +388,11 @@ namespace FlyEase.Controllers
         private bool VerifyPassword(string password, string storedHash)
         {
             return HashPassword(password) == storedHash;
+        }
+        [HttpGet]
+        public IActionResult AccessDenied()
+        {
+            return View();
         }
     }
 }

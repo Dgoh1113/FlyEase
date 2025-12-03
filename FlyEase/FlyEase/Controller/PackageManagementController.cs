@@ -2,9 +2,11 @@
 using Microsoft.EntityFrameworkCore;
 using FlyEase.Data;
 using FlyEase.ViewModels;
+using Microsoft.AspNetCore.Authorization; // <--- 1. ADD THIS NAMESPACE
 
 namespace FlyEase.Controllers
 {
+    [Authorize(Roles = "Admin")]
     public class PackageManagementController : Controller
     {
         private readonly FlyEaseDbContext _context;

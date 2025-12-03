@@ -40,11 +40,60 @@ namespace FlyEase.Controllers
 
             if (existingFeedback != null)
             {
-                TempData["Error"] = "You have already reviewed this trip!";
+                TempData["ErrorMessage"] = "You have already reviewed this trip!";
                 return RedirectToAction("Profile", "Auth");
             }
 
             return View(booking);
+        }
+
+        // ==========================================
+        // EDIT REVIEW (GET)
+        // ==========================================
+        [HttpGet]
+        public async Task<IActionResult> Edit(int bookingId)
+        {
+            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+
+            // 1. Find the existing feedback
+            var feedback = await _context.Feedbacks
+                .Include(f => f.Booking)
+                    .ThenInclude(b => b.Package)
+                .Include(f => f.User)
+                .FirstOrDefaultAsync(f => f.BookingID == bookingId && f.UserID == userId);
+
+            if (feedback == null)
+            {
+                return NotFound("Review not found or you don't have permission.");
+            }
+
+            return View(feedback);
+        }
+
+        // ==========================================
+        // EDIT REVIEW (POST)
+        // ==========================================
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Edit(int bookingId, int rating, string comment)
+        {
+            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+
+            var feedback = await _context.Feedbacks
+                .FirstOrDefaultAsync(f => f.BookingID == bookingId && f.UserID == userId);
+
+            if (feedback == null) return NotFound();
+
+            // Update fields
+            feedback.Rating = rating;
+            feedback.Comment = comment;
+            feedback.CreatedDate = DateTime.Now; // Optional: Update date to now
+
+            _context.Feedbacks.Update(feedback);
+            await _context.SaveChangesAsync();
+
+            TempData["SuccessMessage"] = "Review updated successfully!";
+            return RedirectToAction("Profile", "Auth");
         }
 
         // [file]: Controllers/FeedbackController.cs

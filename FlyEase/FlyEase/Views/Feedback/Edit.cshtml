@@ -1,0 +1,100 @@
+﻿@model FlyEase.Data.Feedback
+
+@{
+    ViewData["Title"] = "Edit Review";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<style>
+    /* Reuse your existing Review Styles */
+    .review-container {
+        max-width: 900px;
+        margin: 40px auto;
+        font-family: 'Segoe UI', sans-serif;
+    }
+
+    .review-form-card {
+        background: #fff;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    }
+
+    /* Star Rating Logic */
+    .star-rating-input {
+        display: flex;
+        flex-direction: row-reverse;
+        justify-content: flex-end;
+        gap: 5px;
+    }
+
+        .star-rating-input input {
+            display: none;
+        }
+
+        .star-rating-input label {
+            font-size: 2rem;
+            color: #ddd;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+            .star-rating-input input:checked ~ label,
+            .star-rating-input label:hover,
+            .star-rating-input label:hover ~ label {
+                color: #ffc107;
+            }
+
+    .form-control-custom {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid #ddd;
+        border-radius: 10px;
+    }
+
+    .btn-update {
+        background-color: #0066a1;
+        color: white;
+        padding: 10px 30px;
+        border-radius: 30px;
+        border: none;
+        font-weight: bold;
+    }
+</style>
+
+<div class="container">
+    <div class="review-container">
+
+        <div style="background: #e3f2fd; padding: 15px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid #0066a1;">
+            <h5 class="fw-bold mb-1">Editing Review for: @Model.Booking.Package.PackageName</h5>
+            <p class="text-muted mb-0">Original Date: @Model.CreatedDate.ToString("dd MMM yyyy")</p>
+        </div>
+
+        <div class="review-form-card">
+            <form asp-action="Edit" method="post">
+                <input type="hidden" name="bookingId" value="@Model.BookingID" />
+
+                <div class="mb-4">
+                    <label class="form-label fw-bold">Update Rating</label>
+                    <div class="star-rating-input">
+                        <input type="radio" id="star5" name="rating" value="5" @(Model.Rating == 5 ? "checked" : "")><label for="star5">★</label>
+                        <input type="radio" id="star4" name="rating" value="4" @(Model.Rating == 4 ? "checked" : "")><label for="star4">★</label>
+                        <input type="radio" id="star3" name="rating" value="3" @(Model.Rating == 3 ? "checked" : "")><label for="star3">★</label>
+                        <input type="radio" id="star2" name="rating" value="2" @(Model.Rating == 2 ? "checked" : "")><label for="star2">★</label>
+                        <input type="radio" id="star1" name="rating" value="1" @(Model.Rating == 1 ? "checked" : "")><label for="star1">★</label>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label fw-bold">Update Comment</label>
+                    <textarea name="comment" class="form-control-custom" rows="4" required>@Model.Comment</textarea>
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn-update">Update Review</button>
+                    <a asp-controller="Auth" asp-action="Profile" class="btn btn-outline-secondary" style="border-radius: 30px; padding: 10px 30px;">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

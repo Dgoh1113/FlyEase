@@ -1,4 +1,6 @@
-﻿
+﻿@using Microsoft.AspNetCore.Mvc.Localization
+@inject IHtmlLocalizer<FlyEase.SharedResource> Localizer
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -11,41 +13,79 @@
     @RenderSection("Head", required: false)
 </head>
 <body>
-    <!-- HEADER WITH TITLE - SKY BLUE -->
     <header>
         <h1 asp-controller="Home" asp-action="Index">FlyEase Travel</h1>
-        <p>Your Gateway to Amazing Adventures</p>
+        <p>@Localizer["Welcome"]</p>
     </header>
 
-    <!-- NAVIGATION BAR - DARK BLUE -->
-    <nav>
-        <a asp-controller="Home" asp-action="Index">Home</a>
-        <a asp-controller="Home" asp-action="Packages">Packages</a>
-        <a asp-controller="PackageManagement" asp-action="PackageManagement">Manage Packages</a>
-        <a asp-controller="Discount" asp-action="Discounts">Discounts</a>
-        <a asp-controller="Home" asp-action="Contact">Contact</a>
+    <nav class="d-flex align-items-center justify-content-center flex-wrap gap-3 p-3">
+        <a asp-controller="Home" asp-action="Index">@Localizer["Home"]</a>
+        <a asp-controller="Home" asp-action="Packages">@Localizer["Packages"]</a>
+        
+        @if (User.IsInRole("Admin")) 
+        {
+            <a asp-controller="PackageManagement" asp-action="PackageManagement">@Localizer["ManagePackages"]</a>
+        }
+        
+        <a asp-controller="Discount" asp-action="Discounts">@Localizer["Discounts"]</a>
+        <a asp-controller="Home" asp-action="Contact">@Localizer["Contact"]</a>
 
-        <!-- AUTH NAVIGATION (DROPDOWN) -->
+        <div class="dropdown d-inline-block">
+            <a class="text-white text-decoration-none dropdown-toggle" href="#" role="button" id="langDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="padding: 14px 16px; display: block;">
+                <i class="fas fa-globe me-1"></i> Language
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end shadow border-0" style="min-width: 200px;">
+                <li>
+                    <form asp-controller="Language" asp-action="SetLanguage" method="post">
+                        <input type="hidden" name="culture" value="en" />
+                        <input type="hidden" name="returnUrl" value="@Context.Request.Path" />
+                        <button type="submit" class="dropdown-item d-flex align-items-center py-2">
+                            <img src="https://flagcdn.com/w20/us.png" class="me-3 shadow-sm" style="border-radius: 2px;"> 
+                            <span>English (EN)</span>
+                        </button>
+                    </form>
+                </li>
+                <li>
+                    <form asp-controller="Language" asp-action="SetLanguage" method="post">
+                        <input type="hidden" name="culture" value="ms" />
+                        <input type="hidden" name="returnUrl" value="@Context.Request.Path" />
+                        <button type="submit" class="dropdown-item d-flex align-items-center py-2">
+                            <img src="https://flagcdn.com/w20/my.png" class="me-3 shadow-sm" style="border-radius: 2px;"> 
+                            <span>Bahasa Melayu (BM)</span>
+                        </button>
+                    </form>
+                </li>
+                <li>
+                    <form asp-controller="Language" asp-action="SetLanguage" method="post">
+                        <input type="hidden" name="culture" value="zh-CN" />
+                        <input type="hidden" name="returnUrl" value="@Context.Request.Path" />
+                        <button type="submit" class="dropdown-item d-flex align-items-center py-2">
+                            <img src="https://flagcdn.com/w20/cn.png" class="me-3 shadow-sm" style="border-radius: 2px;"> 
+                            <span>中文 (CN)</span>
+                        </button>
+                    </form>
+                </li>
+            </ul>
+        </div>
+
         @if (User.Identity != null && User.Identity.IsAuthenticated)
         {
-            <div class="dropdown">
+            <div class="dropdown d-inline-block">
                 <a class="text-white text-decoration-none dropdown-toggle" href="#" role="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="padding: 14px 16px; display: block;">
                     <i class="fas fa-user-circle me-1"></i> @User.Identity.Name
                 </a>
 
                 <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
-                    <!-- Profile Link -->
                     <li>
                         <a class="dropdown-item" asp-controller="Auth" asp-action="Profile">
-                            <i class="fas fa-user me-2 text-muted"></i> My Profile
+                            <i class="fas fa-user me-2 text-muted"></i> @Localizer["MyBookings"]
                         </a>
                     </li>
                     <li><hr class="dropdown-divider"></li>
-                    <!-- Logout Button -->
                     <li>
                         <form asp-controller="Auth" asp-action="Logout" method="post" class="m-0 p-0">
                             <button type="submit" class="dropdown-item text-danger">
-                                <i class="fas fa-sign-out-alt me-2"></i> Logout
+                                <i class="fas fa-sign-out-alt me-2"></i> @Localizer["Logout"]
                             </button>
                         </form>
                     </li>
@@ -54,7 +94,7 @@
         }
         else
         {
-            <a asp-controller="Auth" asp-action="Login">Login</a>
+            <a asp-controller="Auth" asp-action="Login">@Localizer["Login"]</a>
             <a asp-controller="Auth" asp-action="Register">Register</a>
         }
     </nav>
