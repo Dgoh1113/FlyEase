@@ -274,12 +274,28 @@ __pycache__/
 /FlyEase/Migrations/20251116184003_DbContext.cs
 /FlyEase/Migrations/FlyEaseDbContextModelSnapshot.cs
 /FlyEase/Migrations/FlyEaseDbContextModelSnapshot.cs
-/FlyEase/appsettings.json
-/FlyEase/appsettings.json
-/FlyEase/appsettings.json
 /FlyEase/obj/FlyEase.csproj.nuget.dgspec.json
 /FlyEase/obj/FlyEase.csproj.nuget.g.props
 /FlyEase/obj/FlyEase.csproj.nuget.g.targets
 /FlyEase/obj/project.assets.json
 /FlyEase/obj/project.nuget.cache
-/FlyEase/appsettings.json
+
+# -------------------------------------------------------------------
+# 🔐 SECRET / ENVIRONMENT SETTINGS (PREVENTS STRIPE KEY LEAK)
+# -------------------------------------------------------------------
+
+# Ignore ALL environment-specific settings (these contain secrets)
+FlyEase/appsettings.Development.json
+FlyEase/appsettings.Local.json
+FlyEase/appsettings.Production.json
+FlyEase/appsettings.Staging.json
+
+# Ignore ALL appsettings.*.json EXCEPT main appsettings.json
+FlyEase/appsettings.*.json
+!FlyEase/appsettings.json
+
+# -------------------------------------------------------------------
+# Project-specific files already ignored earlier
+# -------------------------------------------------------------------
+/FlyEase/obj/
+/FlyEase/bin/
