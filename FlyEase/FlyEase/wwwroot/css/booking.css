@@ -1,87 +1,120 @@
-﻿/* === INTERACTIVE CURSORS === */
+﻿/* ... Existing Styles ... */
 
-/* 1. The Dropdown Menu ("Options") */
-#optionDropdown {
+/* === SELECTION CARDS === */
+.selection-card label {
     cursor: pointer;
+    transition: all 0.2s ease-in-out;
 }
 
-/* 2. All Buttons */
-.btn {
-    cursor: pointer;
+    .selection-card label:hover {
+        background-color: #f8f9fa;
+        border-color: #dee2e6 !important;
+    }
+
+/* Radio: When Checked */
+.btn-check:checked + label {
+    border-color: #0d6efd !important;
+    background-color: #f0f8ff; /* Light Blue tint */
+    color: #0d6efd !important;
 }
 
-/* 3. Gallery Images */
+/* Checkbox Icons */
+.check-icon-checked {
+    font-size: 1.2rem;
+}
+
+.check-icon-unchecked {
+    font-size: 1.2rem;
+}
+
+/* Validation Error Highlight */
+.border-danger {
+    border: 1px solid #dc3545 !important;
+}
+
+
+.btn-close {
+    font-size: 2rem;
+    z-index: 1060;
+    background-color: rgba(0,0,0,0.5);
+}
+
+.prev-icon {
+    height: 60px !important;
+    background-color: #ffffff29;
+}
+
+.btn-close {
+    z-index: 23;
+    font-size: 32px;
+    position: fixed;
+    top: 46px;
+    right: 46px;
+}
+
+.next-icon {
+    height: 60px !important;
+    background-color:#ffffff29;
+}
+
+/* === GALLERY GRID LAYOUT === */
+.main-img-height {
+    height: 408px; /* Fixed height for main image */
+}
+
+.side-img-height {
+    height: 200px; /* Fixed height for side images (200 * 2 + 8px gap = ~408px) */
+}
+
+/* Common Image Styles */
 .gallery-item img {
     cursor: pointer;
-    transition: opacity 0.2s ease-in-out;
+    transition: filter 0.2s;
 }
 
     .gallery-item img:hover {
-        opacity: 0.9;
-    }
-
-/* === LAYOUT UTILS === */
-.object-fit-cover {
-    object-fit: cover;
-}
-
-/* Bootstrap Validation Overrides (Optional visual tweak) */
-.form-select.is-invalid {
-    background-position: right calc(0.375em + 0.1875rem) center;
-}
-
-/* Gallery Layout */
-.gallery-container {
-    height: 400px;
-    overflow: hidden;
-}
-
-.gallery-item {
-    cursor: pointer;
-    overflow: hidden;
-    transition: opacity 0.2s;
-}
-
-    .gallery-item:hover {
-        opacity: 0.9;
+        filter: brightness(0.9);
     }
 
 .object-fit-cover {
     object-fit: cover;
 }
 
-/* See All Overlay */
+/* === GALLERY OVERLAY BUTTON === */
 .gallery-overlay {
     position: absolute;
     top: 0;
     left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.4); /* Darken background */
     display: flex;
     align-items: center;
     justify-content: center;
-    color: white;
-    font-weight: bold;
-    font-size: 1.2rem;
-    border-bottom-right-radius: 0.375rem; /* Matches Bootstrap rounded */
+    border-radius: 0.25rem; /* Matches Bootstrap rounded class */
+    cursor: pointer;
+    transition: background-color 0.2s;
 }
 
-/* Alert Colors */
-.alert-soft-success {
-    background-color: #d1e7dd;
-    color: #0f5132;
-    border: none;
+    .gallery-overlay:hover {
+        background-color: rgba(0, 0, 0, 0.5);
+    }
+
+
+
+/* The "View Gallery" Button */
+.gallery-btn {
+    pointer-events: none; /* Let the click pass through to the overlay div */
+    font-size: 0.9rem;
+    padding: 8px 16px;
+    border-radius: 8px;
 }
 
-.alert-soft-danger {
-    background-color: #f8d7da;
-    color: #842029;
-    border: none;
+/* === GENERAL UTILS === */
+#optionDropdown, .btn {
+    cursor: pointer;
 }
 
-/* Modal Navigation High visibility */
-.carousel-control-prev-icon,
-.carousel-control-next-icon {
-    background-size: 50% 50%;
+.form-select.is-invalid {
+    background-position: right calc(0.375em + 0.1875rem) center;
 }
