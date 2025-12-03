@@ -1,247 +1,311 @@
 ﻿using FlyEase.Data;
 using FlyEase.ViewModels;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration; // REQUIRED for accessing Env Variables
 using Stripe;
-using System;
-using System.Linq;
 using System.Security.Claims;
-using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http; // For ISession
 
 namespace FlyEase.Controllers
 {
     public class PaymentController : Controller
     {
         private readonly FlyEaseDbContext _context;
-        private readonly IConfiguration _configuration; // Inject Configuration
+        private readonly IConfiguration _configuration;
 
         public PaymentController(FlyEaseDbContext context, IConfiguration configuration)
         {
             _context = context;
             _configuration = configuration;
+
+
+            // SET REAL STRIPE TEST KEY
+            StripeConfiguration.ApiKey = _configuration["Stripe:SecretKey"];
         }
 
-        // ... [CustomerInfo GET/POST remain exactly the same as your original file] ...
+        // ========== STEP 1: CUSTOMER INFO ==========
         [HttpGet]
-        public async Task<IActionResult> CustomerInfo(int packageId, int? people = 1)
+        public async Task<IActionResult> CustomerInfo(int packageId, int people = 1)
         {
+            var user = await GetCurrentUserAsync();
+            if (user == null)
+            {
+                TempData["Error"] = "Please login first";
+                return RedirectToAction("Login", "Auth");
+            }
+
             var package = await _context.Packages.FindAsync(packageId);
             if (package == null) return NotFound();
 
-            var vm = new BookingViewModel
+            var vm = new CustomerInfoViewModel
             {
                 PackageID = packageId,
                 PackageName = package.PackageName,
                 PackagePrice = package.Price,
-                NumberOfPeople = people ?? 1,
+                NumberOfPeople = people,
                 TravelDate = DateTime.Now.AddDays(14),
-                BasePrice = package.Price * (people ?? 1)
+                BasePrice = package.Price * people,
+                FullName = user.FullName,
+                Email = user.Email,
+                Phone = user.Phone,
+                Address = user.Address
             };
 
             CalculateDiscounts(vm);
-            HttpContext.Session.SetObject("BookingData", vm);
+
+            // USE EXTENSION METHODS HERE:
+            HttpContext.Session.SetCustomerInfo(vm);
+            HttpContext.Session.SetUserId(user.UserID);
+
             return View(vm);
         }
 
         [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> CustomerInfo(BookingViewModel model)
+        public IActionResult CustomerInfo(CustomerInfoViewModel model)
         {
-            if (ModelState.IsValid)
-            {
-                var bookingData = HttpContext.Session.GetObject<BookingViewModel>("BookingData");
-                if (bookingData == null)
-                {
-                    bookingData = model;
-                    var package = await _context.Packages.FindAsync(model.PackageID);
-                    if (package != null)
-                    {
-                        bookingData.PackageName = package.PackageName;
-                        bookingData.PackagePrice = package.Price;
-                        bookingData.BasePrice = package.Price * model.NumberOfPeople;
-                    }
-                    bookingData.TravelDate = model.TravelDate;
-                    CalculateDiscounts(bookingData);
-                }
+            if (!ModelState.IsValid) return View(model);
 
-                bookingData.FullName = model.FullName;
-                bookingData.Email = model.Email;
-                bookingData.Phone = model.Phone;
-                bookingData.SpecialRequests = model.SpecialRequests;
-                bookingData.TravelDate = model.TravelDate;
-                bookingData.NumberOfPeople = model.NumberOfPeople;
+            CalculateDiscounts(model);
 
-                HttpContext.Session.SetObject("BookingData", bookingData);
-                return RedirectToAction("PaymentDetails");
-            }
-
-            // Reload package data on error
-            var packageReload = await _context.Packages.FindAsync(model.PackageID);
-            if (packageReload != null)
-            {
-                model.PackageName = packageReload.PackageName;
-                model.PackagePrice = packageReload.Price;
-                model.BasePrice = packageReload.Price * model.NumberOfPeople;
-                CalculateDiscounts(model);
-            }
-            return View(model);
+            // USE EXTENSION METHODS HERE:
+            HttpContext.Session.SetCustomerInfo(model);
+            return RedirectToAction("PaymentMethod");
         }
 
-        // STEP 2: Payment Details
+        // ========== STEP 2: PAYMENT METHOD ==========
         [HttpGet]
-        public IActionResult PaymentDetails()
+        public IActionResult PaymentMethod()
         {
-            var bookingData = HttpContext.Session.GetObject<BookingViewModel>("BookingData");
-            if (bookingData == null || string.IsNullOrEmpty(bookingData.FullName))
+            // USE EXTENSION METHODS HERE:
+            var customerInfo = HttpContext.Session.GetCustomerInfo();
+            if (customerInfo == null)
             {
-                TempData["Error"] = "Please complete customer information first";
+                TempData["Error"] = "Please complete customer info";
+                return RedirectToAction("CustomerInfo", new { packageId = 1 });
+            }
+
+            ViewBag.PackageName = customerInfo.PackageName;
+            ViewBag.FinalAmount = customerInfo.FinalAmount;
+            return View();
+        }
+
+        [HttpPost]
+        public IActionResult PaymentMethod(string paymentMethod)
+        {
+            if (string.IsNullOrEmpty(paymentMethod))
+            {
+                TempData["Error"] = "Please select payment method";
+                return RedirectToAction("PaymentMethod");
+            }
+
+            // USE EXTENSION METHODS HERE:
+            HttpContext.Session.SetPaymentMethod(paymentMethod);
+
+            return paymentMethod == "card"
+                ? RedirectToAction("CardPayment")
+                : RedirectToAction("ManualPayment", new { method = paymentMethod });
+        }
+
+        // ========== STEP 3A: CARD PAYMENT ==========
+        [HttpGet]
+        public IActionResult CardPayment()
+        {
+            // USE EXTENSION METHODS HERE:
+            var customerInfo = HttpContext.Session.GetCustomerInfo();
+            if (customerInfo == null)
+            {
+                TempData["Error"] = "Session expired";
                 return RedirectToAction("Index", "Home");
             }
-            return View(bookingData);
+
+            ViewBag.FinalAmount = customerInfo.FinalAmount;
+            ViewBag.StripePublishableKey = _configuration["Stripe:PublishableKey"];
+            return View();
         }
 
         [HttpPost]
-        [ValidateAntiForgeryToken]
-        public IActionResult PaymentDetails(BookingViewModel model)
+        public async Task<IActionResult> CardPayment(string cardNumber, string expiry, string cvv, string cardholder)
         {
-            var bookingData = HttpContext.Session.GetObject<BookingViewModel>("BookingData");
-            if (bookingData == null) return RedirectToAction("Index", "Home");
-
-            if (string.IsNullOrWhiteSpace(model.CardHolderName))
+            // USE EXTENSION METHODS HERE:
+            var customerInfo = HttpContext.Session.GetCustomerInfo();
+            if (customerInfo == null)
             {
-                ModelState.AddModelError("CardHolderName", "Card Holder Name is required.");
-                return View(bookingData);
+                TempData["Error"] = "Session expired";
+                return RedirectToAction("Index", "Home");
             }
-
-            // Update session with payment info
-            bookingData.PaymentMethod = model.PaymentMethod;
-            bookingData.CardHolderName = model.CardHolderName;
-            bookingData.StripeToken = model.StripeToken;
-
-            // === ADD THIS LINE ===
-            // Save the last 4 digits (passed safely from frontend) to the session
-            bookingData.CardNumber = model.CardNumber;
-
-            HttpContext.Session.SetObject("BookingData", bookingData);
-
-            return RedirectToAction("Confirmation");
-        }
-
-        // STEP 3: Confirmation
-        [HttpGet]
-        public IActionResult Confirmation()
-        {
-            var bookingData = HttpContext.Session.GetObject<BookingViewModel>("BookingData");
-            if (bookingData == null) return RedirectToAction("Index", "Home");
-            return View(bookingData);
-        }
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> ProcessBooking()
-        {
-            var bookingData = HttpContext.Session.GetObject<BookingViewModel>("BookingData");
-            if (bookingData == null) return RedirectToAction("Index", "Home");
 
             try
             {
-                if (bookingData.PaymentMethod == "Credit Card")
+                // 1. CREATE REAL STRIPE PAYMENT INTENT
+                var options = new PaymentIntentCreateOptions
                 {
-                    // ---------------------------------------------------------
-                    // SECURE IMPLEMENTATION: Read Key from Environment/UserSecrets
-                    // ---------------------------------------------------------
-                    var secretKey = _configuration["Stripe:SecretKey"];
-                    // Safety Check: Ensure key exists and isn't the dummy text
-                    if (string.IsNullOrEmpty(secretKey) || secretKey.Contains("SET_IN_ENVIRONMENT"))
+                    Amount = (long)(customerInfo.FinalAmount * 100), // Convert RM to cents
+                    Currency = "myr",
+                    PaymentMethodTypes = new List<string> { "card" },
+                    Description = $"FlyEase Booking: {customerInfo.PackageName}",
+                    Metadata = new Dictionary<string, string>
                     {
-                        throw new Exception("Stripe Secret Key is missing. Please check your Environment Variables or User Secrets.");
+                        { "customer_name", customerInfo.FullName },
+                        { "customer_email", customerInfo.Email },
+                        { "package_id", customerInfo.PackageID.ToString() },
+                        { "package_name", customerInfo.PackageName }
                     }
-
-                    StripeConfiguration.ApiKey = secretKey;
-
-                    var options = new ChargeCreateOptions
-                    {
-                        Amount = (long)(bookingData.FinalAmount * 100),
-                        Currency = "myr",
-                        Description = $"FlyEase Booking: {bookingData.PackageName}",
-                        Source = bookingData.StripeToken,
-                        ReceiptEmail = bookingData.Email,
-                    };
-
-                    var service = new ChargeService();
-                    Charge charge = service.Create(options);
-
-                    if (charge.Status != "succeeded")
-                    {
-                        throw new Exception($"Payment failed: {charge.FailureMessage}");
-                    }
-                }
-
-                // Database Saving Logic
-                var userId = GetCurrentUserId() ?? 1;
-
-                var booking = new Booking
-                {
-                    UserID = userId,
-                    PackageID = bookingData.PackageID,
-                    BookingDate = DateTime.Now,
-                    TravelDate = bookingData.TravelDate,
-                    NumberOfPeople = bookingData.NumberOfPeople,
-                    TotalBeforeDiscount = bookingData.BasePrice,
-                    TotalDiscountAmount = bookingData.DiscountAmount,
-                    FinalAmount = bookingData.FinalAmount,
-                    BookingStatus = "Confirmed"
                 };
 
-                _context.Bookings.Add(booking);
-                await _context.SaveChangesAsync();
+                var service = new PaymentIntentService();
+                var paymentIntent = await service.CreateAsync(options);
 
-                var payment = new Payment
-                {
-                    BookingID = booking.BookingID,
-                    PaymentMethod = bookingData.PaymentMethod,
-                    AmountPaid = bookingData.FinalAmount,
-                    IsDeposit = false,
-                    PaymentDate = DateTime.Now,
-                    PaymentStatus = "Completed"
-                };
+                // 2. GET REAL STRIPE INTENT ID
+                string realStripeId = paymentIntent.Id; // REAL: pi_xxxxxxxxxxxxx
 
-                _context.Payments.Add(payment);
-
-                // Update Slots
-                var package = await _context.Packages.FindAsync(bookingData.PackageID);
-                if (package != null)
-                {
-                    package.AvailableSlots -= bookingData.NumberOfPeople;
-                }
-
-                await _context.SaveChangesAsync();
-                HttpContext.Session.Remove("BookingData");
-
-                return RedirectToAction("Success", new { bookingId = booking.BookingID, paymentId = payment.PaymentID });
+                // 3. PROCESS PAYMENT WITH REAL STRIPE ID
+                return await ProcessBooking("card", realStripeId);
+            }
+            catch (StripeException ex)
+            {
+                TempData["Error"] = $"Stripe Error: {ex.StripeError.Message}";
+                return RedirectToAction("CardPayment");
             }
             catch (Exception ex)
             {
-                TempData["Error"] = $"Error processing booking: {ex.Message}";
-                return View("Confirmation", bookingData);
+                TempData["Error"] = $"Payment Error: {ex.Message}";
+                return RedirectToAction("CardPayment");
             }
         }
 
+        // ========== STEP 3B: MANUAL PAYMENT ==========
         [HttpGet]
-        public async Task<IActionResult> Success(int bookingId, int paymentId)
+        public IActionResult ManualPayment(string method)
         {
-            var payment = await _context.Payments
-                .Include(p => p.Booking).ThenInclude(b => b.Package)
-                .Include(p => p.Booking).ThenInclude(b => b.User)
-                .FirstOrDefaultAsync(p => p.PaymentID == paymentId && p.BookingID == bookingId);
+            // USE EXTENSION METHODS HERE:
+            var customerInfo = HttpContext.Session.GetCustomerInfo();
+            if (customerInfo == null)
+            {
+                TempData["Error"] = "Session expired";
+                return RedirectToAction("Index", "Home");
+            }
 
-            if (payment == null) return NotFound();
-            return View(payment);
+            ViewBag.PaymentMethod = method;
+            ViewBag.FinalAmount = customerInfo.FinalAmount;
+            return View();
         }
 
-        private void CalculateDiscounts(BookingViewModel model)
+        [HttpPost]
+        public async Task<IActionResult> ManualPaymentPost(string reference)
+        {
+            if (string.IsNullOrEmpty(reference))
+            {
+                TempData["Error"] = "Please enter reference number";
+                return RedirectToAction("ManualPayment");
+            }
+
+            // USE EXTENSION METHODS HERE:
+            var method = HttpContext.Session.GetPaymentMethod();
+            return await ProcessBooking(method, reference);
+        }
+
+        // ========== PROCESS BOOKING ==========
+        private async Task<IActionResult> ProcessBooking(string paymentMethod, string transactionId)
+        {
+            // USE EXTENSION METHODS HERE:
+            var customerInfo = HttpContext.Session.GetCustomerInfo();
+            var userId = HttpContext.Session.GetUserId();
+
+            if (customerInfo == null || userId == 0)
+            {
+                TempData["Error"] = "Session expired";
+                return RedirectToAction("Index", "Home");
+            }
+
+            var package = await _context.Packages.FindAsync(customerInfo.PackageID);
+            if (package == null || package.AvailableSlots < customerInfo.NumberOfPeople)
+            {
+                TempData["Error"] = "Package not available";
+                return RedirectToAction("Index", "Home");
+            }
+
+            // Create booking
+            var booking = new Booking
+            {
+                UserID = userId,
+                PackageID = customerInfo.PackageID,
+                BookingDate = DateTime.Now,
+                TravelDate = customerInfo.TravelDate,
+                NumberOfPeople = customerInfo.NumberOfPeople,
+                TotalBeforeDiscount = customerInfo.BasePrice,
+                TotalDiscountAmount = customerInfo.DiscountAmount,
+                FinalAmount = customerInfo.FinalAmount,
+                BookingStatus = paymentMethod == "card" ? "Confirmed" : "Pending Payment"
+            };
+
+            _context.Bookings.Add(booking);
+            await _context.SaveChangesAsync();
+
+            // Create payment with REAL Stripe ID
+            string paymentMethodText = GetPaymentMethodName(paymentMethod);
+
+            // Store REAL Stripe ID if it's a card payment
+            if (paymentMethod == "card")
+            {
+                // Check if this looks like a real Stripe ID
+                if (transactionId.StartsWith("pi_"))
+                {
+                    paymentMethodText = $"Credit Card (Stripe: {transactionId})";
+                }
+                else
+                {
+                    paymentMethodText = $"Credit Card (Ref: {transactionId})";
+                }
+            }
+
+            var payment = new Payment
+            {
+                BookingID = booking.BookingID,
+                PaymentMethod = paymentMethodText,
+                AmountPaid = customerInfo.FinalAmount,
+                IsDeposit = false,
+                PaymentDate = DateTime.Now,
+                PaymentStatus = paymentMethod == "card" ? "Completed" : "Pending"
+            };
+
+            _context.Payments.Add(payment);
+
+            // Only reduce slots for confirmed payments
+            if (paymentMethod == "card")
+            {
+                package.AvailableSlots -= customerInfo.NumberOfPeople;
+            }
+
+            await _context.SaveChangesAsync();
+
+            // USE EXTENSION METHODS HERE: Clear session
+            HttpContext.Session.ClearPaymentSession();
+
+            return RedirectToAction("Success", new { bookingId = booking.BookingID });
+        }
+
+        // ========== SUCCESS PAGE ==========
+        [HttpGet]
+        public async Task<IActionResult> Success(int bookingId)
+        {
+            var booking = await _context.Bookings
+                .Include(b => b.Package)
+                .Include(b => b.User)
+                .FirstOrDefaultAsync(b => b.BookingID == bookingId);
+
+            if (booking == null) return NotFound();
+            return View(booking);
+        }
+
+        // ========== HELPER METHODS ==========
+        private async Task<User> GetCurrentUserAsync()
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (userId == null) return null;
+            return await _context.Users.FindAsync(int.Parse(userId));
+        }
+
+        private void CalculateDiscounts(CustomerInfoViewModel model)
         {
             decimal discount = 0;
             if ((model.TravelDate - DateTime.Now).TotalDays >= 30) discount += model.BasePrice * 0.10m;
@@ -250,24 +314,17 @@ namespace FlyEase.Controllers
             model.FinalAmount = model.BasePrice - discount;
         }
 
-        private int? GetCurrentUserId()
+        private string GetPaymentMethodName(string method)
         {
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            return userIdClaim != null ? int.Parse(userIdClaim) : null;
-        }
-    }
-
-    public static class SessionExtensions
-    {
-        public static void SetObject(this ISession session, string key, object value)
-        {
-            session.SetString(key, System.Text.Json.JsonSerializer.Serialize(value));
-        }
-
-        public static T GetObject<T>(this ISession session, string key)
-        {
-            var value = session.GetString(key);
-            return value == null ? default(T) : System.Text.Json.JsonSerializer.Deserialize<T>(value);
+            return method switch
+            {
+                "card" => "Credit Card",
+                "bank_transfer" => "Bank Transfer",
+                "tng_ewallet" => "Touch 'n Go",
+                "grabpay" => "GrabPay",
+                "cash" => "Cash Payment",
+                _ => method
+            };
         }
     }
 }

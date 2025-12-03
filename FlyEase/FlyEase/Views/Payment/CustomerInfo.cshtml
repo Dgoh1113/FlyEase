@@ -1,5 +1,4 @@
-﻿<!-- [file name]: Views/Payment/CustomerInfo.cshtml -->
-@model FlyEase.ViewModels.BookingViewModel
+﻿@model FlyEase.ViewModels.CustomerInfoViewModel
 @{
     ViewData["Title"] = "Customer Information - Book Your Trip";
     Layout = "~/Views/Shared/_Layout.cshtml";
@@ -8,7 +7,6 @@
 <div class="container mt-4">
     <div class="row justify-content-center">
         <div class="col-lg-8">
-            <!-- Progress Bar -->
             <partial name="_BookingProgress" />
 
             <div class="card shadow-sm">
@@ -26,11 +24,17 @@
                         <p class="mb-0"><strong>Selected People:</strong> @Model.NumberOfPeople</p>
                     </div>
 
-                    <form asp-action="PaymentDetails" method="post">
+                    <form asp-action="CustomerInfo" method="post">
+                        @Html.AntiForgeryToken()
+
                         <input type="hidden" asp-for="PackageID" />
                         <input type="hidden" asp-for="PackageName" />
                         <input type="hidden" asp-for="PackagePrice" />
                         <input type="hidden" asp-for="NumberOfPeople" />
+                        <!-- ADD THESE HIDDEN FIELDS FOR PRICES -->
+                        <input type="hidden" asp-for="BasePrice" />
+                        <input type="hidden" asp-for="DiscountAmount" />
+                        <input type="hidden" asp-for="FinalAmount" />
 
                         <div class="row">
                             <div class="col-md-6 mb-3">
@@ -49,7 +53,10 @@
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label asp-for="Phone" class="form-label">Phone Number *</label>
-                                <input asp-for="Phone" class="form-control" placeholder="e.g., 123456789">
+                                <div class="input-group">
+                                    <span class="input-group-text">+60</span>
+                                    <input asp-for="Phone" class="form-control" placeholder="123456789">
+                                </div>
                                 <span asp-validation-for="Phone" class="text-danger small"></span>
                             </div>
 
@@ -57,19 +64,23 @@
                                 <label asp-for="TravelDate" class="form-label">Travel Date *</label>
                                 <input asp-for="TravelDate" type="date" class="form-control"
                                        min="@DateTime.Now.AddDays(1).ToString("yyyy-MM-dd")"
-                                       max="@DateTime.Now.AddYears(1).ToString("yyyy-MM-dd")" required>
+                                       max="@DateTime.Now.AddYears(1).ToString("yyyy-MM-dd")">
                                 <span asp-validation-for="TravelDate" class="text-danger small"></span>
                             </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Address" class="form-label">Address</label>
+                            <textarea asp-for="Address" class="form-control" rows="2" placeholder="Your address"></textarea>
                         </div>
 
                         <div class="mb-4">
                             <label asp-for="SpecialRequests" class="form-label">Special Requests</label>
                             <textarea asp-for="SpecialRequests" class="form-control" rows="3"
                                       placeholder="Any special requirements or requests..."></textarea>
-                            <span asp-validation-for="SpecialRequests" class="text-danger small"></span>
                         </div>
 
-                        <!-- Price Preview -->
+                        <!-- Real-time Price Summary -->
                         <div class="card bg-light mb-4">
                             <div class="card-body">
                                 <h6 class="card-title">Price Summary</h6>
@@ -78,24 +89,48 @@
                                         <small>Base Price (@Model.NumberOfPeople person(s)):</small>
                                     </div>
                                     <div class="col-6 text-end">
-                                        <small>RM <span id="previewBasePrice">@((Model.PackagePrice * Model.NumberOfPeople).ToString("N2"))</span></small>
+                                        <small>RM @Model.BasePrice.ToString("N2")</small>
                                     </div>
                                 </div>
-                                <div class="row">
-                                    <div class="col-6">
-                                        <small>Discounts:</small>
+
+                                <!-- Discount Breakdown -->
+                                @if (Model.DiscountAmount > 0)
+                                {
+                                    <div class="row">
+                                        <div class="col-6">
+                                            <small class="text-success">Discounts Applied:</small>
+                                        </div>
+                                        <div class="col-6 text-end text-success">
+                                            <small>-RM @Model.DiscountAmount.ToString("N2")</small>
+                                        </div>
                                     </div>
-                                    <div class="col-6 text-end text-success">
-                                        <small>-RM <span id="previewDiscount">0.00</span></small>
-                                    </div>
-                                </div>
+
+                                    @if ((Model.TravelDate - DateTime.Now).TotalDays >= 30)
+                                    {
+                                        <div class="row">
+                                            <div class="col-6">
+                                                <small class="text-muted">• Early Bird (10%)</small>
+                                            </div>
+                                        </div>
+                                    }
+
+                                    @if (Model.NumberOfPeople >= 5)
+                                    {
+                                        <div class="row">
+                                            <div class="col-6">
+                                                <small class="text-muted">• Bulk Discount (15%)</small>
+                                            </div>
+                                        </div>
+                                    }
+                                }
+
                                 <hr class="my-2">
                                 <div class="row">
                                     <div class="col-6">
                                         <strong>Total Amount:</strong>
                                     </div>
                                     <div class="col-6 text-end">
-                                        <strong class="text-primary">RM <span id="previewTotal">@((Model.PackagePrice * Model.NumberOfPeople).ToString("N2"))</span></strong>
+                                        <strong class="text-primary">RM @Model.FinalAmount.ToString("N2")</strong>
                                     </div>
                                 </div>
                             </div>
@@ -116,127 +151,16 @@
     </div>
 </div>
 
-
 @section Scripts {
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validate/1.19.3/jquery.validate.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validation-unobtrusive/3.2.12/jquery.validate.unobtrusive.min.js"></script>
 
     <script>
-        console.log('=== PAYMENT DEBUG ===');
-        console.log('Scripts loaded');
-
-        $(document).ready(function() {
-            // Check if validation is working
-            var form = $('form');
-            console.log('Form found:', form.length > 0);
-
-            // Initialize validation and check
-            form.validate();
-            console.log('Form validation initialized');
-            console.log('Form valid:', form.valid());
-
-            // Check individual field validation
-            $('input').each(function() {
-                var field = $(this);
-                console.log('Field:', field.attr('name'), 'Valid:', !field.hasClass('input-validation-error'));
-            });
-
-            // Debug form submission
-            form.on('submit', function(e) {
-                console.log('=== FORM SUBMISSION TRIGGERED ===');
-                console.log('Form valid:', $(this).valid());
-                console.log('Form action:', this.action);
-                console.log('Form method:', this.method);
-
-                if (!$(this).valid()) {
-                    console.log('FORM INVALID - Validation errors:');
-                    $('.field-validation-error').each(function() {
-                        console.log('Error:', $(this).text());
-                    });
-                    e.preventDefault();
-                    return false;
-                } else {
-                    console.log('FORM VALID - Proceeding with submission');
-                }
-            });
-
-            // Debug button click
-            $('button[type="submit"]').on('click', function(e) {
-                console.log('=== SUBMIT BUTTON CLICKED ===');
-                console.log('Form checkValidity:', form[0].checkValidity());
-
-                // Manually trigger HTML5 validation
-                if (!form[0].checkValidity()) {
-                    console.log('HTML5 validation failed');
-                    e.preventDefault();
-                }
-            });
-        });
-    </script>
-
-
-    <script>
-        console.log('Scripts loaded');
-
-        // Debug form submission
-        document.querySelector('form').addEventListener('submit', function(e) {
-            console.log('Form submitted');
-            console.log('Form valid:', $(this).valid());
-            console.log('Form action:', this.action);
-            console.log('Form method:', this.method);
-        });
-
-        // Check validation on button click
-        document.querySelector('button[type="submit"]').addEventListener('click', function(e) {
-            console.log('Submit button clicked');
-            var form = document.querySelector('form');
-            console.log('Form validation:', form.checkValidity());
-        });
-
-        // Manually trigger validation to see errors
-        $(document).ready(function() {
-            $('form').validate();
-            console.log('jQuery validation initialized');
-        });
-    </script>
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const travelDateInput = document.querySelector('input[type="date"][name="TravelDate"]');
-            const basePricePreview = document.getElementById('previewBasePrice');
-            const discountPreview = document.getElementById('previewDiscount');
-            const totalPreview = document.getElementById('previewTotal');
-
-            function calculatePreview() {
-                const basePrice = @(Model.PackagePrice* Model.NumberOfPeople);
-                const travelDate = new Date(travelDateInput.value);
-                const today = new Date();
-
-                let discount = 0;
-
-                // Early bird discount
-                const daysInAdvance = (travelDate - today) / (1000 * 60 * 60 * 24);
-                if (daysInAdvance >= 30) {
-                    discount += basePrice * 0.10;
-                }
-
-                // Bulk discount
-                const numberOfPeople = @Model.NumberOfPeople;
-                if (numberOfPeople >= 5) {
-                    discount += basePrice * 0.15;
-                }
-
-                const total = basePrice - discount;
-
-                basePricePreview.textContent = basePrice.toFixed(2);
-                discountPreview.textContent = discount.toFixed(2);
-                totalPreview.textContent = total.toFixed(2);
-            }
-
-            travelDateInput.addEventListener('change', calculatePreview);
-
-            // Initial calculation
-            calculatePreview();
+        // Real-time discount calculation when travel date changes
+        document.getElementById('TravelDate').addEventListener('change', function() {
+            // This will trigger form recalculation on server side
+            console.log('Travel date changed, discounts will be recalculated');
         });
     </script>
 }

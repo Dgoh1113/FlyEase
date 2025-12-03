@@ -129,7 +129,7 @@
                                     </button>
                                     <div class="d-flex gap-2">
                                         <a href="/Payment/CustomerInfo?packageId=@pkg.PackageID" class="btn btn-primary btn-sm flex-grow-1">Book Now</a>
-                                        <a href="/Home/PackageDetails/@pkg.PackageID" class="btn btn-outline-secondary btn-sm">Details</a>
+                                        <a asp-route-id="@pkg.PackageID" asp-action="PackageDetails" asp-controller="PackageDetails" class="btn btn-outline-secondary btn-sm">Details</a>
                                     </div>
                                 </div>
                             </div>
