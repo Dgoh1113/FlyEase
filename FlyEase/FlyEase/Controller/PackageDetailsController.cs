@@ -9,16 +9,16 @@ using System.Threading.Tasks;
 
 namespace FlyEase.Controllers
 {
-    public class BookingController : Controller
+    public class PackageDetailsController : Controller
     {
         private readonly FlyEaseDbContext _db;
 
-        public BookingController(FlyEaseDbContext db)
+        public PackageDetailsController(FlyEaseDbContext db)
         {
             _db = db;
         }
 
-        public async Task<IActionResult> Booking(int id)
+        public async Task<IActionResult> PackageDetails(int id)
         {
             // 1. Safety Check
             if (id <= 0) return RedirectToAction("Index", "Home");
