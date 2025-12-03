@@ -129,11 +129,13 @@
                                     </button>
                                     <div class="d-flex gap-2">
                                         <a href="/Payment/CustomerInfo?packageId=@pkg.PackageID" class="btn btn-primary btn-sm flex-grow-1">Book Now</a>
-                                        <a href="/Home/PackageDetails/@pkg.PackageID" class="btn btn-outline-secondary btn-sm">Details</a>
+                                        <a asp-route-id="@pkg.PackageID" asp-action="PackageDetails" asp-controller="PackageDetails" class="btn btn-outline-secondary btn-sm">Details</a>
                                     </div>
                                 </div>
                             </div>
                         </div>
+                        <!-- stretched-link: makes the whole card clickable (transparent) without wrapping inner content -->
+                        <a asp-controller="PackageDetails" asp-action="PackageDetails" asp-route-id="@pkg.PackageID" class="stretched-link" aria-label="View @pkg.PackageName details"></a>
                     </div>
                 </div>
             }

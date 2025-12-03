@@ -7,7 +7,7 @@
     var itineraryJson = JsonSerializer.Serialize(Model.Itinerary.OrderBy(i => i.DayNumber).Select(i => new { i.DayNumber, i.Title, i.ActivityDescription }));
 }
 
-<div class="card h-100 shadow-sm package-card">
+<div class="card h-100 shadow-sm package-card position-relative">
     <div class="position-relative">
         <img src="@firstImg" class="card-img-top package-img-top" alt="@Model.PackageName">
         <div class="position-absolute top-0 end-0 m-2">
@@ -24,9 +24,12 @@
                 <span class="price-tag">RM @Model.Price.ToString("N0")</span>
                 <small class="text-muted">@Model.AvailableSlots slots</small>
             </div>
-
             <a asp-controller="Payment" asp-action="CustomerInfo" asp-route-packageId="@Model.PackageID" class="btn btn-primary btn-sm w-100 mb-2">Book Now</a>
-            <a asp-controller="Home" asp-action="PackageDetails" asp-route-id="@Model.PackageID" class="btn btn-outline-secondary btn-sm w-100">Details</a>
+            <a asp-controller="PackageDetails" asp-action="PackageDetails" asp-route-id="@Model.PackageID" class="btn btn-outline-secondary btn-sm w-100">Details</a>
         </div>
     </div>
+<!-- stretched-link makes the whole card clickable without wrapping everything in an <a>.
+ It must be inside a position-relative ancestor (we added position-relative to .card above). -->
+<a asp-controller="PackageDetails" asp-action="PackageDetails" asp-route-id="@Model.PackageID"
+   class="stretched-link" aria-label="View @Model.PackageName details"></a>
 </div>
