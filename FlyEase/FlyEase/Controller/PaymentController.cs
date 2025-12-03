@@ -1,13 +1,13 @@
 ﻿// [file name]: PaymentController.cs
 
 
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using FlyEase.Data;
 using FlyEase.ViewModels;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Linq;
-using System.Threading.Tasks;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
 
@@ -53,16 +53,41 @@ namespace FlyEase.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult CustomerInfo(BookingViewModel model)
+        public async Task<IActionResult> CustomerInfo(BookingViewModel model)
         {
+            Console.WriteLine($"Session ID: {HttpContext.Session.Id}");
+            Console.WriteLine($"Session data exists: {HttpContext.Session.GetObject<BookingViewModel>("BookingData") != null}");
+
             if (ModelState.IsValid)
             {
-                // Update session data
-                var bookingData = HttpContext.Session.GetObject<BookingViewModel>("BookingData") ?? model;
+                // Get existing booking data from session
+                var bookingData = HttpContext.Session.GetObject<BookingViewModel>("BookingData");
+
+                if (bookingData == null)
+                {
+                    // If no session data, create new from model
+                    bookingData = model;
+
+                    // Reload package info
+                    var package = await _context.Packages.FindAsync(model.PackageID);
+                    if (package != null)
+                    {
+                        bookingData.PackageName = package.PackageName;
+                        bookingData.PackagePrice = package.Price;
+                        bookingData.BasePrice = package.Price * model.NumberOfPeople;
+                    }
+
+                    // Recalculate discounts with updated travel date
+                    bookingData.TravelDate = model.TravelDate;
+                    CalculateDiscounts(bookingData);
+                }
+
+                // Update customer information
                 bookingData.FullName = model.FullName;
                 bookingData.Email = model.Email;
                 bookingData.Phone = model.Phone;
                 bookingData.SpecialRequests = model.SpecialRequests;
+                bookingData.TravelDate = model.TravelDate;
 
                 HttpContext.Session.SetObject("BookingData", bookingData);
 
@@ -70,11 +95,13 @@ namespace FlyEase.Controllers
             }
 
             // Reload package data if validation fails
-            var package = _context.Packages.Find(model.PackageID);
-            if (package != null)
+            var packageReload = await _context.Packages.FindAsync(model.PackageID);
+            if (packageReload != null)
             {
-                model.PackageName = package.PackageName;
-                model.PackagePrice = package.Price;
+                model.PackageName = packageReload.PackageName;
+                model.PackagePrice = packageReload.Price;
+                model.BasePrice = packageReload.Price * model.NumberOfPeople;
+                CalculateDiscounts(model);
             }
 
             return View(model);
@@ -85,8 +112,9 @@ namespace FlyEase.Controllers
         public IActionResult PaymentDetails()
         {
             var bookingData = HttpContext.Session.GetObject<BookingViewModel>("BookingData");
-            if (bookingData == null)
+            if (bookingData == null || string.IsNullOrEmpty(bookingData.FullName))
             {
+                TempData["Error"] = "Please complete customer information first";
                 return RedirectToAction("Index", "Home");
             }
 
@@ -125,8 +153,9 @@ namespace FlyEase.Controllers
         public IActionResult Confirmation()
         {
             var bookingData = HttpContext.Session.GetObject<BookingViewModel>("BookingData");
-            if (bookingData == null)
+            if (bookingData == null || string.IsNullOrEmpty(bookingData.FullName) || string.IsNullOrEmpty(bookingData.PaymentMethod))
             {
+                TempData["Error"] = "Please complete all booking steps first";
                 return RedirectToAction("Index", "Home");
             }
 

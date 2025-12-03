@@ -5,6 +5,8 @@ using System;
 
 namespace FlyEase.ViewModels
 {
+    [Serializable]
+
     public class BookingViewModel
     {
         // Package Information

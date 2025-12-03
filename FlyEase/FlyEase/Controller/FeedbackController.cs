@@ -27,6 +27,7 @@ namespace FlyEase.Controllers
 
             var booking = await _context.Bookings
                 .Include(b => b.Package)
+                .Include(b => b.User) // <--- ADD THIS LINE!
                 .FirstOrDefaultAsync(b => b.BookingID == bookingId && b.UserID == userId);
 
             if (booking == null)
@@ -46,7 +47,8 @@ namespace FlyEase.Controllers
             return View(booking);
         }
 
-        // POST: Submit Review
+        // [file]: Controllers/FeedbackController.cs
+
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(int bookingId, int rating, string comment)
@@ -59,6 +61,7 @@ namespace FlyEase.Controllers
 
             var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
 
+            // 1. Save Feedback
             var feedback = new Feedback
             {
                 BookingID = bookingId,
@@ -71,7 +74,36 @@ namespace FlyEase.Controllers
             _context.Feedbacks.Add(feedback);
             await _context.SaveChangesAsync();
 
-            TempData["SuccessMessage"] = "Thank you for your feedback!";
+            // =========================================================================
+            // 2. NEW: Send "Thank You" Email
+            // =========================================================================
+            try
+            {
+                // We need to fetch the User and Package details to personalize the email
+                var booking = await _context.Bookings
+                    .Include(b => b.User)
+                    .Include(b => b.Package)
+                    .FirstOrDefaultAsync(b => b.BookingID == bookingId);
+
+                if (booking != null)
+                {
+                    var emailService = new FlyEase.Services.EmailService();
+                    await emailService.SendReviewConfirmation(
+                        booking.User.Email,      // To: User's Email
+                        booking.User.FullName,   // Name
+                        booking.Package.PackageName, // Package
+                        rating,                  // Rating
+                        comment                  // What they wrote
+                    );
+                }
+            }
+            catch
+            {
+                // Ignore email errors so the user still sees the "Success" screen
+            }
+            // =========================================================================
+
+            TempData["SuccessMessage"] = "Thank you for your feedback! A confirmation email has been sent.";
             return RedirectToAction("Profile", "Auth");
         }
 

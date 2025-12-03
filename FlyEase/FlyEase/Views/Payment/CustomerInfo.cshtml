@@ -57,7 +57,7 @@
                                 <label asp-for="TravelDate" class="form-label">Travel Date *</label>
                                 <input asp-for="TravelDate" type="date" class="form-control"
                                        min="@DateTime.Now.AddDays(1).ToString("yyyy-MM-dd")"
-                                       max="@DateTime.Now.AddYears(1).ToString("yyyy-MM-dd")">
+                                       max="@DateTime.Now.AddYears(1).ToString("yyyy-MM-dd")" required>
                                 <span asp-validation-for="TravelDate" class="text-danger small"></span>
                             </div>
                         </div>
@@ -116,12 +116,93 @@
     </div>
 </div>
 
-@* @section Scripts {
-    <partial name="_ValidationScriptsPartial" /> *@
+
+@section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validate/1.19.3/jquery.validate.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validation-unobtrusive/3.2.12/jquery.validate.unobtrusive.min.js"></script>
 
     <script>
+        console.log('=== PAYMENT DEBUG ===');
+        console.log('Scripts loaded');
+
+        $(document).ready(function() {
+            // Check if validation is working
+            var form = $('form');
+            console.log('Form found:', form.length > 0);
+
+            // Initialize validation and check
+            form.validate();
+            console.log('Form validation initialized');
+            console.log('Form valid:', form.valid());
+
+            // Check individual field validation
+            $('input').each(function() {
+                var field = $(this);
+                console.log('Field:', field.attr('name'), 'Valid:', !field.hasClass('input-validation-error'));
+            });
+
+            // Debug form submission
+            form.on('submit', function(e) {
+                console.log('=== FORM SUBMISSION TRIGGERED ===');
+                console.log('Form valid:', $(this).valid());
+                console.log('Form action:', this.action);
+                console.log('Form method:', this.method);
+
+                if (!$(this).valid()) {
+                    console.log('FORM INVALID - Validation errors:');
+                    $('.field-validation-error').each(function() {
+                        console.log('Error:', $(this).text());
+                    });
+                    e.preventDefault();
+                    return false;
+                } else {
+                    console.log('FORM VALID - Proceeding with submission');
+                }
+            });
+
+            // Debug button click
+            $('button[type="submit"]').on('click', function(e) {
+                console.log('=== SUBMIT BUTTON CLICKED ===');
+                console.log('Form checkValidity:', form[0].checkValidity());
+
+                // Manually trigger HTML5 validation
+                if (!form[0].checkValidity()) {
+                    console.log('HTML5 validation failed');
+                    e.preventDefault();
+                }
+            });
+        });
+    </script>
+
+
+    <script>
+        console.log('Scripts loaded');
+
+        // Debug form submission
+        document.querySelector('form').addEventListener('submit', function(e) {
+            console.log('Form submitted');
+            console.log('Form valid:', $(this).valid());
+            console.log('Form action:', this.action);
+            console.log('Form method:', this.method);
+        });
+
+        // Check validation on button click
+        document.querySelector('button[type="submit"]').addEventListener('click', function(e) {
+            console.log('Submit button clicked');
+            var form = document.querySelector('form');
+            console.log('Form validation:', form.checkValidity());
+        });
+
+        // Manually trigger validation to see errors
+        $(document).ready(function() {
+            $('form').validate();
+            console.log('jQuery validation initialized');
+        });
+    </script>
+    <script>
         document.addEventListener('DOMContentLoaded', function() {
-            const travelDateInput = document.querySelector('input[name="TravelDate"]');
+            const travelDateInput = document.querySelector('input[type="date"][name="TravelDate"]');
             const basePricePreview = document.getElementById('previewBasePrice');
             const discountPreview = document.getElementById('previewDiscount');
             const totalPreview = document.getElementById('previewTotal');
@@ -158,4 +239,4 @@
             calculatePreview();
         });
     </script>
-@* } *@
+}

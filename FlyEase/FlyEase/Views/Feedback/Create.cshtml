@@ -1,42 +1,237 @@
 ﻿@model FlyEase.Data.Booking
 
-<div class="container mt-5">
-    <div class="card shadow-sm" style="max-width: 600px; margin: auto;">
-        <div class="card-header bg-primary text-white">
-            <h4 class="mb-0">Rate Your Trip</h4>
-        </div>
-        <div class="card-body">
-            <h5>@Model.Package.PackageName</h5>
-            <p class="text-muted">Travel Date: @Model.TravelDate.ToString("dd MMM yyyy")</p>
-            <hr />
+@{
+    ViewData["Title"] = "Rate Your Trip";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
 
-            <form asp-action="Create" method="post">
+<style>
+    /* === STYLING (Same as before) === */
+    .review-container {
+        max-width: 900px;
+        margin: 40px auto;
+        font-family: 'Segoe UI', sans-serif;
+    }
+
+    /* Header & Summary */
+    .review-summary {
+        display: flex;
+        gap: 40px;
+        margin-bottom: 40px;
+        border-bottom: 1px solid #eee;
+        padding-bottom: 30px;
+    }
+
+    .rating-number {
+        font-size: 4rem;
+        font-weight: 800;
+        color: #333;
+        line-height: 1;
+    }
+
+    .rating-stars-gold {
+        color: #ffc107;
+        font-size: 1.2rem;
+        margin: 5px 0;
+    }
+
+    .rating-bars {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 8px;
+    }
+
+    .bar-row {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        font-size: 0.9rem;
+        color: #666;
+    }
+
+    .progress {
+        flex: 1;
+        height: 6px;
+        background: #f0f0f0;
+        border-radius: 10px;
+        overflow: hidden;
+    }
+
+    .progress-bar {
+        background: #ffc107;
+    }
+
+    /* Form */
+    .review-form-card {
+        background: #fff;
+    }
+
+    .form-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin-bottom: 20px;
+        color: #333;
+    }
+
+    .form-label {
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 8px;
+        display: block;
+    }
+
+    .form-control-custom {
+        width: 100%;
+        padding: 12px 15px;
+        border: 1px solid #e0e0e0;
+        border-radius: 30px;
+        outline: none;
+        transition: 0.3s;
+    }
+
+        .form-control-custom:focus {
+            border-color: #0066a1;
+        }
+
+    textarea.form-control-custom {
+        border-radius: 15px;
+        min-height: 120px;
+    }
+
+    /* Star Rating */
+    .star-rating-input {
+        display: flex;
+        flex-direction: row-reverse;
+        justify-content: flex-end;
+        gap: 5px;
+    }
+
+        .star-rating-input input {
+            display: none;
+        }
+        /* HIDE RADIO BUTTONS */
+        .star-rating-input label {
+            font-size: 2rem;
+            color: #ddd;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+            .star-rating-input input:checked ~ label,
+            .star-rating-input label:hover,
+            .star-rating-input label:hover ~ label {
+                color: #ffc107;
+            }
+
+    .btn-submit-review {
+        background-color: #0066a1;
+        color: white;
+        padding: 12px 35px;
+        border: none;
+        border-radius: 30px;
+        font-weight: bold;
+        cursor: pointer;
+        margin-top: 20px;
+    }
+
+        .btn-submit-review:hover {
+            background-color: #004d7a;
+        }
+</style>
+
+<div class="container">
+    <div class="review-container">
+
+        <div class="review-summary">
+            <div>
+                <div class="rating-number">5.0</div>
+                <div class="rating-stars-gold">★★★★★</div>
+                <div class="text-muted small">out of 5</div>
+            </div>
+            <div class="rating-bars">
+                <div class="bar-row"><span>5 Star</span><div class="progress"><div class="progress-bar" style="width: 85%"></div></div></div>
+                <div class="bar-row"><span>4 Star</span><div class="progress"><div class="progress-bar" style="width: 10%"></div></div></div>
+                <div class="bar-row"><span>3 Star</span><div class="progress"><div class="progress-bar" style="width: 5%"></div></div></div>
+                <div class="bar-row"><span>2 Star</span><div class="progress"><div class="progress-bar" style="width: 0%"></div></div></div>
+                <div class="bar-row"><span>1 Star</span><div class="progress"><div class="progress-bar" style="width: 0%"></div></div></div>
+            </div>
+        </div>
+
+        <div style="background: #f8f9fa; padding: 15px; border-radius: 10px; margin-bottom: 30px; border-left: 4px solid #0066a1;">
+            <h5 class="fw-bold mb-1">@Model.Package.PackageName</h5>
+            <p class="text-muted mb-0">Travel Date: @Model.TravelDate.ToString("dd MMM yyyy")</p>
+        </div>
+
+        <div class="review-form-card">
+            <h3 class="form-title">Add your review</h3>
+
+            <form asp-action="Create" method="post" id="reviewForm">
                 <input type="hidden" name="bookingId" value="@Model.BookingID" />
 
-                <div class="mb-3">
-                    <label class="form-label fw-bold">Rate your experience:</label>
-                    <div class="rating-group">
-                        <select name="rating" class="form-select" required>
-                            <option value="" disabled selected>Select a Rating...</option>
-                            <option value="5">⭐⭐⭐⭐⭐ (Excellent)</option>
-                            <option value="4">⭐⭐⭐⭐ (Good)</option>
-                            <option value="3">⭐⭐⭐ (Average)</option>
-                            <option value="2">⭐⭐ (Poor)</option>
-                            <option value="1">⭐ (Terrible)</option>
-                        </select>
+                <div class="mb-4">
+                    <label class="form-label">Your Rating*</label>
+                    <div class="star-rating-input">
+                        <input type="radio" id="star5" name="rating" value="5"><label for="star5" title="Excellent">★</label>
+                        <input type="radio" id="star4" name="rating" value="4"><label for="star4" title="Good">★</label>
+                        <input type="radio" id="star3" name="rating" value="3"><label for="star3" title="Average">★</label>
+                        <input type="radio" id="star2" name="rating" value="2"><label for="star2" title="Poor">★</label>
+                        <input type="radio" id="star1" name="rating" value="1"><label for="star1" title="Terrible">★</label>
+                    </div>
+                    <div id="ratingError" style="color: red; display: none; margin-top: 5px; font-weight: bold;">
+                        ⚠ Please select a star rating.
                     </div>
                 </div>
 
-                <div class="mb-3">
-                    <label class="form-label fw-bold">Your Comments:</label>
-                    <textarea name="comment" class="form-control" rows="4" placeholder="What did you like or dislike?"></textarea>
+                <div class="mb-4">
+                    <label class="form-label">Your Review*</label>
+                    <textarea name="comment" id="commentBox" class="form-control-custom" placeholder="Tell us about your trip..." required></textarea>
                 </div>
 
-                <div class="d-grid gap-2">
-                    <button type="submit" class="btn btn-success">Submit Review</button>
-                    <a asp-controller="Auth" asp-action="Profile" class="btn btn-secondary">Cancel</a>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Name</label>
+                        <input type="text" class="form-control-custom" value="@(Model.User?.FullName)" readonly style="background: #f9f9f9;" />
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Email</label>
+                        <input type="email" class="form-control-custom" value="@(Model.User?.Email)" readonly style="background: #f9f9f9;" />
+                    </div>
                 </div>
+
+                <button type="button" onclick="submitReview()" class="btn-submit-review">Submit Review</button>
             </form>
         </div>
+
     </div>
 </div>
+
+<script>
+    function submitReview() {
+        // 1. Get the Rating
+        var ratingInput = document.querySelector('input[name="rating"]:checked');
+        var errorMsg = document.getElementById('ratingError');
+        var commentBox = document.getElementById('commentBox');
+
+        // 2. Validate
+        if (!ratingInput) {
+            // Show red error text
+            errorMsg.style.display = 'block';
+
+            // Standard alert
+            alert("Please select a star rating!");
+            return;
+        } else {
+            errorMsg.style.display = 'none';
+        }
+
+        if (commentBox.value.trim() === "") {
+            alert("Please write a comment.");
+            return;
+        }
+
+        // 3. Submit manually
+        document.getElementById('reviewForm').submit();
+    }
+</script>
