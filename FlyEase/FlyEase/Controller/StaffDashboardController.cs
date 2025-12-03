@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Http; // Required for IFormFile
 namespace FlyEase.Controllers
 {
     [Route("StaffDashboard")]
-    // [Authorize(Roles = "Staff")] 
+    [Authorize(Roles = "Admin")]
     public class StaffDashboardController : Controller
     {
         private readonly FlyEaseDbContext _context;
