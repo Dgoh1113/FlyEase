@@ -3,11 +3,12 @@ using Microsoft.EntityFrameworkCore;
 using FlyEase.Data;
 using FlyEase.ViewModels;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http; // Required for IFormFile
 
 namespace FlyEase.Controllers
 {
     [Route("StaffDashboard")]
-    [Authorize(Roles = "Admin")] // Uncomment to secure
+    // [Authorize(Roles = "Staff")] 
     public class StaffDashboardController : Controller
     {
         private readonly FlyEaseDbContext _context;
@@ -19,9 +20,9 @@ namespace FlyEase.Controllers
             _environment = environment;
         }
 
-        // ... (Dashboard, Users, Bookings methods - kept same as before) ...
-        // (Including them briefly so the file is complete)
-
+        // ==========================================
+        // 1. MAIN DASHBOARD SUMMARY
+        // ==========================================
         [HttpGet("StaffDashboard")]
         public async Task<IActionResult> StaffDashboard()
         {
@@ -37,6 +38,9 @@ namespace FlyEase.Controllers
             return View(vm);
         }
 
+        // ==========================================
+        // 2. USERS MANAGEMENT
+        // ==========================================
         [HttpGet("Users")]
         public async Task<IActionResult> Users()
         {
@@ -64,6 +68,31 @@ namespace FlyEase.Controllers
             }
             return RedirectToAction(nameof(Users));
         }
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> UpdateBookingStatus(BookingsPageVM model)
+        {
+            // 1. Find the booking in the database
+            var bookingToUpdate = await _context.Bookings.FindAsync(model.CurrentBooking.BookingID);
+
+            if (bookingToUpdate == null)
+            {
+                TempData["Error"] = "Booking not found.";
+                return RedirectToAction("Bookings");
+            }
+
+            // 2. Update the status
+            bookingToUpdate.BookingStatus = model.CurrentBooking.BookingStatus;
+
+            // 3. (Optional) Logic: If Cancelled, should we free up slots?
+            // If you want to handle slot logic, you would do it here.
+
+            // 4. Save to DB
+            await _context.SaveChangesAsync();
+
+            TempData["Success"] = "Booking updated successfully!";
+            return RedirectToAction("Bookings");
+        }
 
         [HttpPost("DeleteUser")]
         public async Task<IActionResult> DeleteUser(int id)
@@ -83,6 +112,9 @@ namespace FlyEase.Controllers
             return RedirectToAction(nameof(Users));
         }
 
+        // ==========================================
+        // 3. BOOKINGS MANAGEMENT
+        // ==========================================
         [HttpGet("Bookings")]
         public async Task<IActionResult> Bookings(string status = "All")
         {
@@ -98,10 +130,12 @@ namespace FlyEase.Controllers
         public async Task<IActionResult> SaveBooking(BookingsPageVM model)
         {
             var input = model.CurrentBooking;
+            if (input.BookingID == 0) return RedirectToAction(nameof(Bookings));
+
             var booking = await _context.Bookings.FindAsync(input.BookingID);
             if (booking != null)
             {
-                booking.BookingStatus = input.Status;
+                booking.BookingStatus = input.BookingStatus;
                 booking.TravelDate = input.TravelDate;
                 await _context.SaveChangesAsync();
                 TempData["Success"] = "Booking updated!";
@@ -123,8 +157,11 @@ namespace FlyEase.Controllers
         }
 
         // ==========================================
-        // 3. PACKAGES MANAGEMENT (FIXED)
+        // 4. PACKAGES MANAGEMENT (Single Page Modal)
         // ==========================================
+
+        // GET: StaffDashboard/Packages
+        // Loads the list AND the categories for the "Create" modal dropdown
         [HttpGet("Packages")]
         public async Task<IActionResult> Packages()
         {
@@ -132,200 +169,116 @@ namespace FlyEase.Controllers
             {
                 Packages = await _context.Packages
                     .Include(p => p.Category)
-                    .Include(p => p.PackageInclusions)
                     .OrderByDescending(p => p.PackageID)
                     .ToListAsync(),
-                Categories = await _context.PackageCategories.ToListAsync()
+                Categories = await _context.PackageCategories.ToListAsync(),
+                CurrentPackage = new Package() // Empty object for the "Create" form
             };
             return View(vm);
         }
 
+        // POST: StaffDashboard/SavePackage
+        // Handles BOTH Creating new packages and Editing existing ones
         [HttpPost("SavePackage")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> SavePackage(PackagesPageVM model)
         {
             var input = model.CurrentPackage;
-            int categoryId = await GetOrCreateCategoryId(input.CategoryID, input.NewCategoryName);
 
-            // --- EDIT PACKAGE ---
-            if (input.PackageID.HasValue && input.PackageID > 0)
+            // 1. Handle File Uploads
+            // We will build a list of valid image paths
+            var imagePaths = new List<string>();
+
+            // If editing, keep existing images (unless they are in the delete list)
+            if (input.PackageID > 0)
             {
-                var pkg = await _context.Packages
-                    .Include(p => p.PackageInclusions)
-                    .FirstOrDefaultAsync(p => p.PackageID == input.PackageID);
-
-                if (pkg != null)
+                var existingPkg = await _context.Packages.AsNoTracking().FirstOrDefaultAsync(p => p.PackageID == input.PackageID);
+                if (existingPkg != null && !string.IsNullOrEmpty(existingPkg.ImageURL))
                 {
-                    // 1. Load current images from DB into a List
-                    var currentImages = string.IsNullOrEmpty(pkg.ImageURL)
-                        ? new List<string>()
-                        : pkg.ImageURL.Split(';', StringSplitOptions.RemoveEmptyEntries).ToList();
+                    var currentImages = existingPkg.ImageURL.Split(';').ToList();
 
-                    // 2. Remove images the user deleted in the modal
-                    if (input.DeleteImagePaths != null && input.DeleteImagePaths.Any())
+                    imagePaths.AddRange(currentImages);
+                }
+            }
+
+            // 2. Process New Files
+            if (input.ImageFiles != null && input.ImageFiles.Count > 0)
+            {
+                string uploadsFolder = Path.Combine(_environment.WebRootPath, "img");
+                // Ensure directory exists
+                if (!Directory.Exists(uploadsFolder)) Directory.CreateDirectory(uploadsFolder);
+
+                foreach (var file in input.ImageFiles)
+                {
+                    // Create unique filename
+                    string uniqueFileName = Guid.NewGuid().ToString() + Path.GetExtension(file.FileName);
+                    string filePath = Path.Combine(uploadsFolder, uniqueFileName);
+
+                    // Save file to server disk
+                    using (var fileStream = new FileStream(filePath, FileMode.Create))
                     {
-                        foreach (var path in input.DeleteImagePaths)
-                        {
-                            if (currentImages.Contains(path))
-                            {
-                                currentImages.Remove(path);
-                                DeletePhysicalFile(path); // Clean up disk
-                            }
-                        }
+                        await file.CopyToAsync(fileStream);
                     }
 
-                    // 3. Add new uploads
-                    if (input.ImageFiles != null)
-                    {
-                        foreach (var file in input.ImageFiles)
-                        {
-                            currentImages.Add(await HandleImageUpload(file));
-                        }
-                    }
+                    // Add relative path to our list
+                    imagePaths.Add("/img/" + uniqueFileName);
+                }
+            }
 
-                    // 4. If empty, set default
-                    if (currentImages.Count == 0) currentImages.Add("/img/default-package.jpg");
+            // Join all paths back into a single string for the DB
+            input.ImageURL = imagePaths.Count > 0 ? string.Join(";", imagePaths) : null;
 
-                    // 5. Save
-                    pkg.ImageURL = string.Join(";", currentImages.Distinct());
+            // 1. CREATE NEW && Save to database
+            if (input.PackageID == 0)
+            {
+                _context.Packages.Add(input);
+                TempData["Success"] = "Package created successfully!";
+            }
+            // 2. EDIT EXISTING
+            else
+            {
+                var existing = await _context.Packages.FindAsync(input.PackageID);
+                if (existing != null)
+                {
+                    existing.PackageName = input.PackageName;
+                    existing.CategoryID = input.CategoryID;
+                    existing.Destination = input.Destination;
+                    existing.Price = input.Price;
+                    existing.StartDate = input.StartDate;
+                    existing.EndDate = input.EndDate;
+                    existing.AvailableSlots = input.AvailableSlots;
+                    existing.Description = input.Description;
+                    existing.ImageURL = input.ImageURL;
 
-                    // Update other fields
-                    pkg.PackageName = input.PackageName;
-                    pkg.CategoryID = categoryId;
-                    pkg.Destination = input.Destination;
-                    pkg.Price = input.Price;
-                    pkg.StartDate = input.StartDate;
-                    pkg.EndDate = input.EndDate;
-                    pkg.AvailableSlots = input.AvailableSlots;
-                    pkg.Description = input.Description;
-
-                    // Update Inclusions
-                    _context.PackageInclusions.RemoveRange(pkg.PackageInclusions);
-                    if (input.Inclusions != null)
-                    {
-                        foreach (var inc in input.Inclusions.Where(x => !string.IsNullOrWhiteSpace(x)))
-                        {
-                            _context.PackageInclusions.Add(new PackageInclusion { PackageID = pkg.PackageID, InclusionItem = inc });
-                        }
-                    }
-
-                    await _context.SaveChangesAsync();
+                    _context.Packages.Update(existing);
                     TempData["Success"] = "Package updated successfully!";
                 }
             }
-            // --- CREATE PACKAGE ---
-            else
-            {
-                var newImages = new List<string>();
-                if (input.ImageFiles != null)
-                {
-                    foreach (var file in input.ImageFiles)
-                    {
-                        newImages.Add(await HandleImageUpload(file));
-                    }
-                }
-                if (newImages.Count == 0) newImages.Add("/img/default-package.jpg");
 
-                var pkg = new Package
-                {
-                    PackageName = input.PackageName,
-                    CategoryID = categoryId,
-                    Destination = input.Destination,
-                    Price = input.Price,
-                    StartDate = input.StartDate,
-                    EndDate = input.EndDate,
-                    AvailableSlots = input.AvailableSlots,
-                    Description = input.Description,
-                    ImageURL = string.Join(";", newImages)
-                };
-
-                _context.Packages.Add(pkg);
-                await _context.SaveChangesAsync();
-
-                if (input.Inclusions != null)
-                {
-                    foreach (var inc in input.Inclusions.Where(x => !string.IsNullOrWhiteSpace(x)))
-                    {
-                        _context.PackageInclusions.Add(new PackageInclusion { PackageID = pkg.PackageID, InclusionItem = inc });
-                    }
-                    await _context.SaveChangesAsync();
-                }
-                TempData["Success"] = "Package created successfully!";
-            }
-
+            await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Packages));
         }
 
+        // POST: StaffDashboard/DeletePackage
         [HttpPost("DeletePackage")]
         public async Task<IActionResult> DeletePackage(int id)
         {
-            var p = await _context.Packages.FindAsync(id);
-            if (p != null)
+            var package = await _context.Packages.FindAsync(id);
+            if (package != null)
             {
+                // Prevent deletion if bookings exist
                 if (await _context.Bookings.AnyAsync(b => b.PackageID == id))
                 {
-                    TempData["Error"] = "Cannot delete: Active bookings exist.";
+                    TempData["Error"] = "Cannot delete package: Active bookings exist.";
                 }
                 else
                 {
-                    // Delete images
-                    if (!string.IsNullOrEmpty(p.ImageURL))
-                    {
-                        var images = p.ImageURL.Split(';', StringSplitOptions.RemoveEmptyEntries);
-                        foreach (var img in images) DeletePhysicalFile(img);
-                    }
-
-                    _context.Packages.Remove(p);
+                    _context.Packages.Remove(package);
                     await _context.SaveChangesAsync();
-                    TempData["Success"] = "Package deleted.";
+                    TempData["Success"] = "Package deleted successfully.";
                 }
             }
             return RedirectToAction(nameof(Packages));
-        }
-
-        // Helpers
-        private async Task<int> GetOrCreateCategoryId(int? categoryId, string? newCategoryName)
-        {
-            if (categoryId.HasValue && categoryId > 0) return categoryId.Value;
-            if (!string.IsNullOrWhiteSpace(newCategoryName))
-            {
-                var existing = await _context.PackageCategories.FirstOrDefaultAsync(c => c.CategoryName == newCategoryName.Trim());
-                if (existing != null) return existing.CategoryID;
-                var newCat = new PackageCategory { CategoryName = newCategoryName.Trim() };
-                _context.PackageCategories.Add(newCat);
-                await _context.SaveChangesAsync();
-                return newCat.CategoryID;
-            }
-            return 1; // Default Fallback
-        }
-
-        private async Task<string> HandleImageUpload(IFormFile imageFile)
-        {
-            if (imageFile == null || imageFile.Length == 0) return "";
-
-            var uploadsFolder = Path.Combine(_environment.WebRootPath, "img");
-            if (!Directory.Exists(uploadsFolder)) Directory.CreateDirectory(uploadsFolder);
-
-            var ext = Path.GetExtension(imageFile.FileName).ToLower();
-            var fileName = Guid.NewGuid().ToString() + ext;
-            var path = Path.Combine(uploadsFolder, fileName);
-
-            using (var stream = new FileStream(path, FileMode.Create))
-            {
-                await imageFile.CopyToAsync(stream);
-            }
-            return $"/img/{fileName}";
-        }
-
-        private void DeletePhysicalFile(string url)
-        {
-            if (string.IsNullOrEmpty(url) || url.Contains("default-package")) return;
-            try
-            {
-                var path = Path.Combine(_environment.WebRootPath, url.TrimStart('/').Replace("/", "\\"));
-                if (System.IO.File.Exists(path)) System.IO.File.Delete(path);
-            }
-            catch { }
         }
     }
 }

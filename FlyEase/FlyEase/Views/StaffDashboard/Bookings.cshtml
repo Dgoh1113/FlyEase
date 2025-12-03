@@ -1,76 +1,171 @@
 ﻿@model FlyEase.ViewModels.BookingsPageVM
 @{
-    ViewData["Title"] = "Bookings"; Layout = "~/Views/Shared/_StaffLayout.cshtml";
+    ViewData["Title"] = "Bookings Management";
+    Layout = "~/Views/Shared/_StaffLayout.cshtml";
 }
 
-<div class="container mt-4">
-    @if (TempData["Success"] != null)
-    {
-        <div class="alert alert-success">@TempData["Success"]</div>
-    }
+<div class="container-fluid mt-4">
 
-    <div class="d-flex justify-content-between mb-3">
-        <h2>Bookings</h2>
-        <div>
-            <a asp-action="Bookings" asp-route-status="Pending" class="btn btn-outline-warning btn-sm">Pending</a>
-            <a asp-action="Bookings" asp-route-status="All" class="btn btn-outline-secondary btn-sm">All</a>
-        </div>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Bookings Management</h2>
     </div>
 
     <div class="card shadow-sm">
-        <table class="table table-hover mb-0 align-middle">
-            <thead class="table-light"><tr><th>ID</th><th>User</th><th>Package</th><th>Date</th><th>Status</th><th>Actions</th></tr></thead>
-            <tbody>
-                @foreach (var b in Model.Bookings)
-                {
+        <div class="card-header bg-white py-3">
+            <h5 class="mb-0">All Bookings</h5>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
                     <tr>
-                        <td>#@b.BookingID</td>
-                        <td>@b.User.FullName</td>
-                        <td>@b.Package.PackageName</td>
-                        <td>@b.TravelDate.ToString("dd/MM/yyyy")</td>
-                        <td><span class="badge @(b.BookingStatus == "Confirmed" ? "bg-success" : b.BookingStatus == "Pending" ? "bg-warning" : "bg-danger")">@b.BookingStatus</span></td>
-                        <td>
-                            <button class="btn btn-sm btn-primary" onclick="openBookModal(@b.BookingID, '@b.BookingStatus', '@b.TravelDate.ToString("yyyy-MM-dd")')">Edit</button>
-                            <form asp-action="DeleteBooking" asp-route-id="@b.BookingID" method="post" class="d-inline" onsubmit="return confirm('Delete booking?');">
-                                <button type="submit" class="btn btn-sm btn-danger">Delete</button>
-                            </form>
-                        </td>
+                        <th>ID</th>
+                        <th>Customer</th>
+                        <th>Package Info</th>
+                        <th>Travel Date</th>
+                        <th>Financials</th>
+                        <th>Status</th>
+                        <th>Actions</th>
                     </tr>
-                }
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    @if (Model.Bookings == null || !Model.Bookings.Any())
+                    {
+                        <tr>
+                            <td colspan="7" class="text-center py-5 text-muted">No bookings found.</td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var item in Model.Bookings)
+                        {
+                            // Calculate payments directly in the view since the VM is raw Entity
+                            var totalPaid = item.Payments?.Sum(p => p.AmountPaid) ?? 0;
+                            var balanceDue = item.FinalAmount - totalPaid;
+
+                            // Determine Payment Status String
+                            string payStatus = "Unpaid";
+                            if (item.FinalAmount == 0) { payStatus = "Free"; }
+                            else if (totalPaid >= item.FinalAmount) { payStatus = "Fully Paid"; }
+                            else if (totalPaid > 0) { payStatus = "Partial"; }
+
+                            <tr>
+                                <td><strong>#@item.BookingID</strong></td>
+                                <td>
+                                    <div class="d-flex flex-column">
+                                        <span class="fw-bold">@item.User?.FullName</span>
+                                        <small class="text-muted">@item.User?.Email</small>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="d-block text-truncate" style="max-width: 150px;" title="@item.Package?.PackageName">
+                                        @item.Package?.PackageName
+                                    </span>
+                                    <small class="text-muted"><i class="bi bi-people"></i> @item.NumberOfPeople Pax</small>
+                                </td>
+                                <td>
+                                    <div>@item.TravelDate.ToString("MMM dd, yyyy")</div>
+                                    <small class="text-muted">Booked: @item.BookingDate.ToString("MMM dd")</small>
+                                </td>
+                                <td>
+                                    <div class="d-flex flex-column">
+                                        <span class="fw-bold">@item.FinalAmount.ToString("C")</span>
+
+                                        @if (payStatus == "Fully Paid")
+                                        {
+                                            <span class="badge bg-success bg-opacity-10 text-success border border-success rounded-pill" style="width:fit-content; font-size:0.7rem">Paid</span>
+                                        }
+                                        else if (payStatus == "Unpaid")
+                                        {
+                                            <span class="badge bg-danger bg-opacity-10 text-danger border border-danger rounded-pill" style="width:fit-content; font-size:0.7rem">Unpaid</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-warning bg-opacity-10 text-warning border border-warning rounded-pill" style="width:fit-content; font-size:0.7rem">Partial</span>
+                                        }
+
+                                        @if (balanceDue > 0)
+                                        {
+                                            <small class="text-danger" style="font-size:0.75rem">Due: @balanceDue.ToString("C")</small>
+                                        }
+                                    </div>
+                                </td>
+                                <td>
+                                    @{
+                                        string statusClass = item.BookingStatus switch
+                                        {
+                                            "Confirmed" => "success",
+                                            "Pending" => "warning",
+                                            "Cancelled" => "danger",
+                                            "Completed" => "primary",
+                                            _ => "secondary"
+                                        };
+                                    }
+                                    <span class="badge bg-@statusClass">@item.BookingStatus</span>
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary manage-btn"
+                                            onclick="openBookingModal(@item.BookingID, '@item.User?.FullName', '@item.BookingStatus')">
+                                        Manage
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 
-<!-- BOOKING MODAL -->
-<div class="modal fade" id="bookModal" tabindex="-1" aria-hidden="true">
+<div class="modal fade" id="bookingModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
-            <div class="modal-header bg-primary text-white"><h5 class="modal-title">Edit Booking</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
-            <form asp-action="SaveBooking" method="post">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">Manage Booking</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+
+            <form asp-action="UpdateBookingStatus" method="post">
                 <div class="modal-body">
+
                     <input type="hidden" id="b_id" asp-for="CurrentBooking.BookingID" />
+
                     <div class="mb-3">
-                        <label>Status</label>
-                        <select id="b_status" asp-for="CurrentBooking.Status" class="form-select">
+                        <label class="form-label">Customer Name</label>
+                        <input type="text" class="form-control" id="displayCustomerName" readonly disabled />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Booking Status</label>
+                        <select id="b_status" asp-for="CurrentBooking.BookingStatus" class="form-select">
                             <option value="Pending">Pending</option>
                             <option value="Confirmed">Confirmed</option>
                             <option value="Cancelled">Cancelled</option>
+                            <option value="Completed">Completed</option>
                         </select>
+                        <div class="form-text text-muted">
+                            Note: Cancelling a booking will release the slots back to the package.
+                        </div>
                     </div>
-                    <div class="mb-3"><label>Travel Date</label><input type="date" id="b_date" asp-for="CurrentBooking.TravelDate" class="form-control" /></div>
+
                 </div>
-                <div class="modal-footer"><button type="submit" class="btn btn-primary">Update</button></div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+				</div>
             </form>
         </div>
     </div>
 </div>
 
 <script>
-    function openBookModal(id, status, date) {
+    function openBookingModal(id, customerName, currentStatus) {
+        // 1. Set values in the modal inputs
         document.getElementById('b_id').value = id;
-        document.getElementById('b_status').value = status;
-        document.getElementById('b_date').value = date;
-        new bootstrap.Modal(document.getElementById('bookModal')).show();
+        document.getElementById('displayCustomerName').value = customerName;
+        document.getElementById('b_status').value = currentStatus;
+
+        // 2. Show the modal
+        new bootstrap.Modal(document.getElementById('bookingModal')).show();
     }
 </script>

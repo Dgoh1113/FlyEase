@@ -1,0 +1,378 @@
+﻿@model IEnumerable<FlyEase.Data.Package>
+@{
+    ViewData["Title"] = "Home";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var categories = ViewBag.Categories as List<FlyEase.Data.PackageCategory>;
+}
+
+<div class="hero">
+    <div class="hero-text">
+        <h1>Welcome to FlyEase</h1>
+        <p>Discover your next great adventure</p>
+    </div>
+</div>
+
+<div class="search-section">
+    <div class="search-container">
+        <form asp-action="Index" method="get" class="search-form">
+
+            <div class="form-group">
+                <label><i class="fas fa-search"></i> Search</label>
+                <input type="text" name="searchTerm" value="@ViewBag.SearchTerm" placeholder="Package name..." />
+            </div>
+
+            <div class="form-group">
+                <label><i class="fas fa-map-marker-alt"></i> Destination</label>
+                <input type="text" name="destination" value="@ViewBag.Destination" placeholder="e.g. Japan" />
+            </div>
+
+            <div class="form-group">
+                <label><i class="fas fa-tags"></i> Category</label>
+                <select name="categoryId">
+                    <option value="">All Categories</option>
+                    @if (categories != null)
+                    {
+                        foreach (var cat in categories)
+                        {
+                            if (ViewBag.CategoryId != null && (int)ViewBag.CategoryId == cat.CategoryID)
+                            {
+                                <option value="@cat.CategoryID" selected>@cat.CategoryName</option>
+                            }
+                            else
+                            {
+                                <option value="@cat.CategoryID">@cat.CategoryName</option>
+                            }
+                        }
+                    }
+                </select>
+            </div>
+
+            <div class="form-group small-group">
+                <label>Min RM</label>
+                <input type="number" name="minPrice" value="@ViewBag.MinPrice" placeholder="0" />
+            </div>
+            <div class="form-group small-group">
+                <label>Max RM</label>
+                <input type="number" name="maxPrice" value="@ViewBag.MaxPrice" placeholder="Max" />
+            </div>
+
+            <div class="form-group button-group">
+                <button type="submit" class="btn-search">Search</button>
+                <a href="/" class="btn-reset">Reset</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<section class="packages">
+    @if (!Model.Any())
+    {
+        <div class="no-results">
+            <h3>No packages found matching your criteria.</h3>
+            <p>Try clearing your filters to see more results.</p>
+        </div>
+    }
+
+    @foreach (var package in Model)
+    {
+        <div class="package-card">
+            <img src="@(package.ImageURL ?? "/img/default-package.jpg")" alt="@package.PackageName" />
+
+            <span class="category-badge">@package.Category?.CategoryName</span>
+
+            <div class="package-content">
+                <h3>@package.PackageName</h3>
+
+                <p class="price">RM @package.Price.ToString("N0")</p>
+                <p>@package.Description</p>
+                <p><small><strong>Destination:</strong> @package.Destination</small></p>
+                <p><small><strong>Duration:</strong> @((package.EndDate - package.StartDate).Days) Days</small></p>
+
+                @if (package.AvailableSlots < 5)
+                {
+                    <p style="color:red; font-weight:bold;"><small>Only @package.AvailableSlots slots left!</small></p>
+                }
+                else
+                {
+                    <p><small>Available: @package.AvailableSlots slots</small></p>
+                }
+
+                @if (package.PackageInclusions.Any())
+                {
+                    <div class="inclusions">
+                        <strong>Includes:</strong>
+                        <ul>
+                            @foreach (var inclusion in package.PackageInclusions.Take(2))
+                            {
+                                <li>@inclusion.InclusionItem</li>
+                            }
+                            @if (package.PackageInclusions.Count > 2)
+                            {
+                                <li>+@(package.PackageInclusions.Count - 2) more inclusions</li>
+                            }
+                        </ul>
+                    </div>
+                }
+
+                <div class="mt-3">
+                    <a asp-controller="Payment" asp-action="CustomerInfo"
+                       asp-route-packageId="@package.PackageID"
+                       asp-route-people="1"
+                       class="btn-book">
+                        Book Now
+                    </a>
+                </div>
+            </div>
+        </div>
+    }
+</section>
+
+<style>
+    /* --- Hero Updates --- */
+    .hero {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .hero-text {
+        text-align: center;
+        color: white;
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.7);
+    }
+
+    /* --- Search Section Styling --- */
+    .search-section {
+        background-color: #f4f4f4; /* Matches body bg */
+        padding: 20px 0;
+        margin-top: -30px; /* Slight overlap for modern look, or remove for flat look */
+        position: relative;
+        z-index: 10;
+        display: flex;
+        justify-content: center;
+    }
+
+    .search-container {
+        background: white;
+        padding: 25px;
+        border-radius: 8px;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        width: 90%;
+        max-width: 1100px;
+        border-top: 4px solid #0066a1; /* Teal accent */
+    }
+
+    .search-form {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 15px;
+        align-items: flex-end;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        min-width: 160px;
+    }
+
+    .small-group {
+        flex: 0.5;
+        min-width: 80px;
+    }
+
+    .form-group label {
+        font-size: 13px;
+        font-weight: 600;
+        color: #555;
+        margin-bottom: 5px;
+    }
+
+    .form-group input,
+    .form-group select {
+        padding: 10px 12px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 14px;
+        transition: border-color 0.3s;
+    }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            border-color: #0066a1;
+            outline: none;
+        }
+
+    .button-group {
+        flex: 0 0 auto; /* Don't grow */
+        flex-direction: row;
+        gap: 10px;
+    }
+
+    .btn-search {
+        background-color: #0066a1;
+        color: white;
+        border: none;
+        padding: 10px 25px;
+        border-radius: 4px;
+        font-weight: bold;
+        cursor: pointer;
+        height: 42px; /* Match input height roughly */
+    }
+
+        .btn-search:hover {
+            background-color: #004d7a;
+        }
+
+    .btn-reset {
+        background-color: #eee;
+        color: #333;
+        padding: 10px 15px;
+        border-radius: 4px;
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid #ccc;
+    }
+
+        .btn-reset:hover {
+            background-color: #e0e0e0;
+        }
+
+    /* --- Package Grid & Cards (Enhanced) --- */
+    .packages {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 30px;
+        padding: 40px 20px;
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    .no-results {
+        grid-column: 1 / -1;
+        text-align: center;
+        padding: 50px;
+        color: #666;
+    }
+
+    .package-card {
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+        overflow: hidden;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        position: relative;
+    }
+
+        .package-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .package-card img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+        }
+
+    .category-badge {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        background: rgba(0, 102, 161, 0.9);
+        color: white;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 11px;
+        font-weight: bold;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .package-content {
+        padding: 20px;
+    }
+
+        .package-content h3 {
+            margin: 0 0 10px 0;
+            color: #333;
+            font-size: 1.2rem;
+        }
+
+    .price {
+        font-size: 1.4rem;
+        font-weight: 700;
+        color: #0066a1;
+        margin-bottom: 10px;
+    }
+
+    .inclusions {
+        margin-top: 15px;
+        padding-top: 15px;
+        border-top: 1px solid #eee;
+    }
+
+        .inclusions ul {
+            list-style: none;
+            padding: 0;
+            margin: 5px 0;
+        }
+
+        .inclusions li {
+            font-size: 0.9rem;
+            margin-bottom: 3px;
+            color: #555;
+        }
+
+            .inclusions li:before {
+                content: "✓ ";
+                color: #28a745;
+                font-weight: bold;
+                margin-right: 5px;
+            }
+
+    .btn-book {
+        display: block;
+        width: 100%;
+        background-color: #0066a1;
+        color: white;
+        text-align: center;
+        padding: 12px;
+        border-radius: 5px;
+        text-decoration: none;
+        font-weight: bold;
+        transition: background-color 0.2s;
+    }
+
+        .btn-book:hover {
+            background-color: #004d7a;
+            color: white;
+        }
+
+    /* Mobile Responsive */
+    /* media (max-width: 768px) {
+        .search-form
+
+    {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .form-group, .small-group, .button-group {
+        width: 100%;
+    }
+
+    .button-group {
+        flex-direction: column;
+        margin-top: 10px;
+    }
+
+    .search-section {
+        margin-top: 0; /* Remove overlap on mobile */
+    }
+
+    } */
+</style>
