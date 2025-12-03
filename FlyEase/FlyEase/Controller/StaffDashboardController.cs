@@ -198,11 +198,12 @@ namespace FlyEase.Controllers
                     var emailService = new EmailService();
                     try
                     {
+                        // === FIXED ORDER BELOW ===
                         await emailService.SendReviewInvitation(
-                            booking.User.Email,
-                            booking.User.FullName,
-                            booking.BookingID,
-                            booking.Package.PackageName
+                            booking.User.Email,             // 1. User Email
+                            booking.User.FullName,          // 2. User Name
+                            booking.Package.PackageName,    // 3. Package Name (String)
+                            booking.BookingID               // 4. Booking ID (Int)
                         );
                         TempData["Success"] = "Booking marked Completed & Review Email Sent!";
                     }
