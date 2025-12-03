@@ -16,7 +16,16 @@ namespace FlyEase.ViewModels
         // === NEW: For Chart.js ===
         public List<string> PackageNames { get; set; } = new List<string>();
         public List<double> PackageRatings { get; set; } = new List<double>();
+
+        public List<string> RevenueMonths { get; set; } = new List<string>(); // e.g., ["Jan", "Feb", "Mar"]
+        public List<decimal> RevenueValues { get; set; } = new List<decimal>(); // e.g., [1200, 3500, 4200]  
+        public List<int> PackageBookingCounts { get; set; } = new List<int>();
+        public int CompletedBookingsCount { get; set; }
+        public int CancelledBookingsCount { get; set; }
+        public int PendingBookingsCount { get; set; }
+
     }
+
 
     // 2. For the Users Management Tab
     public class UsersPageVM

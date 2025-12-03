@@ -1,117 +1,64 @@
-﻿<!-- [file name]: Views/Payment/PaymentDetails.cshtml -->
+﻿@using Microsoft.Extensions.Configuration
+@inject IConfiguration Configuration
 @model FlyEase.ViewModels.BookingViewModel
 @{
-    ViewData["Title"] = "Payment Details - Complete Your Booking";
+    ViewData["Title"] = "Payment Details";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
 <div class="container mt-4">
     <div class="row justify-content-center">
         <div class="col-lg-8">
-            <!-- Progress Bar -->
             <partial name="_BookingProgress" />
 
             <div class="card shadow-sm">
                 <div class="card-header bg-warning text-dark">
-                    <h4 class="mb-0">
-                        <i class="fas fa-credit-card me-2"></i>Payment Details
-                    </h4>
+                    <h4 class="mb-0"><i class="fas fa-credit-card me-2"></i>Payment Details</h4>
                 </div>
                 <div class="card-body">
-                    <!-- Booking Summary -->
                     <div class="alert alert-success mb-4">
-                        <h6 class="alert-heading">Booking Confirmed!</h6>
+                        <h6 class="alert-heading">Booking Summary</h6>
                         <p class="mb-1"><strong>Package:</strong> @Model.PackageName</p>
-                        <p class="mb-1"><strong>Traveler:</strong> @Model.FullName</p>
-                        <p class="mb-1"><strong>Travel Date:</strong> @Model.TravelDate.ToString("dd MMM yyyy")</p>
-                        <p class="mb-0"><strong>Total Amount:</strong> <span class="fw-bold text-primary">RM @Model.FinalAmount.ToString("N2")</span></p>
+                        <p class="mb-0"><strong>Total:</strong> <span class="fw-bold text-primary">RM @Model.FinalAmount.ToString("N2")</span></p>
                     </div>
 
-                    <form asp-action="Confirmation" method="post">
-                        <!-- Payment Method -->
+                    <form asp-action="PaymentDetails" method="post" id="payment-form">
                         <div class="mb-4">
-                            <label class="form-label fw-bold">Payment Method *</label>
+                            <label class="form-label fw-bold">Payment Method</label>
                             <div class="row g-3">
                                 <div class="col-md-4">
                                     <div class="form-check card h-100">
-                                        <input class="form-check-input" type="radio" name="PaymentMethod"
-                                               id="creditCard" value="Credit Card" checked>
-                                        <label class="form-check-label card-body text-center" for="creditCard">
-                                            <i class="fab fa-cc-visa fa-2x text-primary mb-2"></i><br>
-                                            <small>Credit Card</small>
-                                        </label>
+                                        <input class="form-check-input" type="radio" name="PaymentMethod" id="cc" value="Credit Card" checked>
+                                        <label class="form-check-label card-body text-center" for="cc">Credit Card</label>
                                     </div>
                                 </div>
                                 <div class="col-md-4">
                                     <div class="form-check card h-100">
-                                        <input class="form-check-input" type="radio" name="PaymentMethod"
-                                               id="debitCard" value="Debit Card">
-                                        <label class="form-check-label card-body text-center" for="debitCard">
-                                            <i class="fab fa-cc-mastercard fa-2x text-danger mb-2"></i><br>
-                                            <small>Debit Card</small>
-                                        </label>
-                                    </div>
-                                </div>
-                                <div class="col-md-4">
-                                    <div class="form-check card h-100">
-                                        <input class="form-check-input" type="radio" name="PaymentMethod"
-                                               id="onlineBanking" value="Online Banking">
-                                        <label class="form-check-label card-body text-center" for="onlineBanking">
-                                            <i class="fas fa-mobile-alt fa-2x text-success mb-2"></i><br>
-                                            <small>Online Banking</small>
-                                        </label>
+                                        <input class="form-check-input" type="radio" name="PaymentMethod" id="bank" value="Online Banking">
+                                        <label class="form-check-label card-body text-center" for="bank">Online Banking</label>
                                     </div>
                                 </div>
                             </div>
-                            <span asp-validation-for="PaymentMethod" class="text-danger small"></span>
                         </div>
 
-                        <!-- Card Details -->
-                        <div id="cardDetails">
-                            <div class="row">
-                                <div class="col-12 mb-3">
-                                    <label asp-for="CardHolderName" class="form-label">Card Holder Name *</label>
-                                    <input asp-for="CardHolderName" class="form-control" placeholder="JOHN DOE">
-                                    <span asp-validation-for="CardHolderName" class="text-danger small"></span>
-                                </div>
-
-                                <div class="col-12 mb-3">
-                                    <label asp-for="CardNumber" class="form-label">Card Number *</label>
-                                    <input asp-for="CardNumber" class="form-control" placeholder="1234 5678 9012 3456">
-                                    <span asp-validation-for="CardNumber" class="text-danger small"></span>
-                                </div>
-
-                                <div class="col-md-6 mb-3">
-                                    <label asp-for="ExpiryDate" class="form-label">Expiry Date (MM/YY) *</label>
-                                    <input asp-for="ExpiryDate" class="form-control" placeholder="12/25">
-                                    <span asp-validation-for="ExpiryDate" class="text-danger small"></span>
-                                </div>
-
-                                <div class="col-md-6 mb-3">
-                                    <label asp-for="CVV" class="form-label">CVV *</label>
-                                    <input asp-for="CVV" class="form-control" placeholder="123">
-                                    <span asp-validation-for="CVV" class="text-danger small"></span>
-                                </div>
+                        <div id="stripe-section">
+                            <div class="mb-3">
+                                <label asp-for="CardHolderName" class="form-label">Card Holder Name</label>
+                                <input asp-for="CardHolderName" class="form-control" placeholder="Name on card">
+                                <span asp-validation-for="CardHolderName" class="text-danger"></span>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Card Details</label>
+                                <div id="card-element" class="form-control p-3"></div>
+                                <div id="card-errors" class="text-danger small mt-2" role="alert"></div>
                             </div>
                         </div>
 
-                        <!-- Security Notice -->
-                        <div class="alert alert-info mt-4">
-                            <h6><i class="fas fa-shield-alt me-2"></i>Secure Payment</h6>
-                            <p class="mb-0 small">
-                                Your payment information is encrypted and secure. We never store your complete card details.
-                                All transactions are protected by SSL encryption.
-                            </p>
-                        </div>
+                        <input type="hidden" id="StripeToken" name="StripeToken" />
 
                         <div class="d-flex justify-content-between mt-4">
-                            <a asp-action="CustomerInfo" asp-route-packageId="@Model.PackageID"
-                               class="btn btn-outline-secondary">
-                                <i class="fas fa-arrow-left me-1"></i>Back
-                            </a>
-                            <button type="submit" class="btn btn-success">
-                                Review & Confirm <i class="fas fa-check-circle ms-1"></i>
-                            </button>
+                            <a asp-action="CustomerInfo" asp-route-packageId="@Model.PackageID" class="btn btn-outline-secondary">Back</a>
+                            <button type="submit" class="btn btn-success">Review & Confirm</button>
                         </div>
                     </form>
                 </div>
@@ -119,17 +66,54 @@
         </div>
     </div>
 </div>
- @* @section Scripts {
-    <partial name="_ValidationScriptsPartial" />  *@
+
+@section Scripts {
+    <script src="https://js.stripe.com/v3/"></script>
 
     <script>
-        // Format card number input
-        document.getElementById('CardNumber')?.addEventListener('input', function(e) {
-            let value = e.target.value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
-            let formattedValue = value.match(/.{1,4}/g)?.join(' ');
-            if (formattedValue) {
-                e.target.value = formattedValue;
+        // 1. SECURELY READ KEY: Gets key from Env Vars or User Secrets
+        var pubKey = '@Configuration["Stripe:PublishableKey"]';
+        // Debugging check (Remove in production)
+        if (!pubKey || pubKey.includes("SET_IN_ENVIRONMENT")) {
+            console.error("Stripe Publishable Key is missing! Check your Env Variables.");
+            alert("Payment System Error: Configuration Missing");
+        }
+
+        var stripe = Stripe(pubKey);
+        var elements = stripe.elements();
+
+        var card = elements.create('card', {
+            style: { base: { fontSize: '16px', color: '#32325d' } }
+        });
+        card.mount('#card-element');
+
+        card.on('change', function(event) {
+            var displayError = document.getElementById('card-errors');
+            displayError.textContent = event.error ? event.error.message : '';
+        });
+
+        var form = document.getElementById('payment-form');
+        form.addEventListener('submit', function(event) {
+            var method = document.querySelector('input[name="PaymentMethod"]:checked').value;
+            if (method === "Credit Card") {
+                event.preventDefault();
+                stripe.createToken(card).then(function(result) {
+                    if (result.error) {
+                        document.getElementById('card-errors').textContent = result.error.message;
+                    } else {
+                        document.getElementById('StripeToken').value = result.token.id;
+                        form.submit();
+                    }
+                });
+            }
+        });
+
+        $('input[name="PaymentMethod"]').change(function() {
+            if($(this).val() === 'Credit Card') {
+                $('#stripe-section').slideDown();
+            } else {
+                $('#stripe-section').slideUp();
             }
         });
     </script>
- @* }  *@
+}

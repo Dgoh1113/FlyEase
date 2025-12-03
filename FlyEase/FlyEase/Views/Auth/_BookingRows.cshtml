@@ -1,0 +1,55 @@
+﻿@model IEnumerable<FlyEase.ViewModels.BookingDisplayModel>
+
+@if (Model != null && Model.Any())
+{
+    // NOTICE: We loop through "Model", NOT "Model.MyBookings"
+    @foreach (var b in Model)
+    {
+        // 1. FORCE "Confirmed" to look and act like "Pending"
+        var displayStatus = (b.Status == "Confirmed") ? "Pending" : b.Status;
+
+        // 2. Color Logic based on the NEW displayStatus
+        string statusClass = "bg-secondary";
+        switch (displayStatus)
+        {
+            case "Completed": statusClass = "bg-success"; break;           // Green
+            case "Pending": statusClass = "bg-warning text-dark"; break; // Yellow
+            case "Cancelled": statusClass = "bg-danger"; break;            // Red
+        }
+
+        <tr>
+            <td class="text-muted small">#@b.BookingID</td>
+            <td class="fw-bold">@b.PackageTitle</td>
+            <td>@b.BookingDate.ToString("dd MMM yyyy")</td>
+            <td>RM @b.TotalAmount.ToString("N2")</td>
+
+            <td><span class="badge @statusClass">@displayStatus</span></td>
+
+            <td>
+                @if (displayStatus == "Completed")
+                {
+                    @if (b.IsReviewed)
+                    {
+                        <a asp-controller="Feedback" asp-action="Edit" asp-route-bookingId="@b.BookingID"
+                           class="btn btn-sm btn-outline-secondary" title="Edit your review">
+                            <i class="fas fa-edit me-1"></i> Edit
+                        </a>
+                    }
+                    else
+                    {
+                        <a asp-controller="Feedback" asp-action="Create" asp-route-bookingId="@b.BookingID"
+                           class="btn btn-sm btn-outline-warning">
+                            <i class="fas fa-star me-1"></i> Rate
+                        </a>
+                    }
+                }
+            </td>
+        </tr>
+    }
+}
+else
+{
+    <tr>
+        <td colspan="6" class="text-center py-5 text-muted">No bookings found.</td>
+    </tr>
+}

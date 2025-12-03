@@ -1,5 +1,4 @@
-﻿<!-- [file name]: Views/Payment/Confirmation.cshtml -->
-@model FlyEase.ViewModels.BookingViewModel
+﻿@model FlyEase.ViewModels.ConfirmationViewModel
 @{
     ViewData["Title"] = "Confirmation - Review Your Booking";
     Layout = "~/Views/Shared/_Layout.cshtml";
@@ -8,7 +7,6 @@
 <div class="container mt-4">
     <div class="row justify-content-center">
         <div class="col-lg-8">
-            <!-- Progress Bar -->
             <partial name="_BookingProgress" />
 
             <div class="card shadow-sm">
@@ -51,7 +49,7 @@
                         <div class="col-md-6">
                             <h6 class="text-muted mb-3">Payment Details</h6>
                             <p><strong>Payment Method:</strong> @Model.PaymentMethod</p>
-                            <p><strong>Card Ending:</strong> **** @Model.CardNumber[^4..]</p>
+                            <p><strong>Card Holder:</strong> @Model.CardHolderName</p>
                         </div>
                         <div class="col-md-6">
                             <h6 class="text-muted mb-3">Price Summary</h6>
@@ -89,7 +87,9 @@
                             <i class="fas fa-arrow-left me-1"></i>Back to Payment
                         </a>
 
+                        <!-- FIXED: Added AntiForgeryToken -->
                         <form asp-action="ProcessBooking" method="post" id="confirmForm">
+                            @Html.AntiForgeryToken()
                             <button type="submit" class="btn btn-success btn-lg" id="confirmButton" disabled>
                                 <i class="fas fa-lock me-2"></i>
                                 Confirm & Pay RM @Model.FinalAmount.ToString("N2")

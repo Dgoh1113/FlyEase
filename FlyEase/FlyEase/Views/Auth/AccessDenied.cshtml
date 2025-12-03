@@ -1,0 +1,30 @@
+﻿@{
+    ViewData["Title"] = "Access Denied";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container mt-5 text-center">
+    <div class="card shadow-sm border-0 p-5 mx-auto" style="max-width: 600px; border-radius: 15px;">
+        <div class="mb-4">
+            <i class="fas fa-lock text-danger" style="font-size: 5rem;"></i>
+        </div>
+
+        <h2 class="fw-bold text-danger mb-3">Access Denied</h2>
+        <p class="lead text-muted">
+            Sorry, you do not have permission to view this page.
+            <br>
+            This area is restricted to Administrators only.
+        </p>
+
+        <hr class="my-4">
+
+        <div class="d-grid gap-2">
+            <a asp-controller="Home" asp-action="Index" class="btn btn-primary btn-lg">
+                <i class="fas fa-home me-2"></i>Go to Home
+            </a>
+            <a asp-controller="Auth" asp-action="Login" class="btn btn-outline-secondary">
+                Login as different user
+            </a>
+        </div>
+    </div>
+</div>

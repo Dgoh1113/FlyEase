@@ -6,7 +6,6 @@
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<!-- 1. LEAFLET CSS -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <link rel="stylesheet" href="~/css/packagemanagement.css" />
 
@@ -107,7 +106,6 @@
     }
 
     <div class="management-grid">
-        <!-- FORM COLUMN -->
         <div class="form-card">
             <div class="form-header">
                 <h3>@(Model.EditingPackageId == null ? "Create New Package" : "Edit Package")</h3>
@@ -123,7 +121,6 @@
                         <input type="hidden" name="PackageID" value="@Model.EditingPackageId.Value" />
                     }
 
-                    <!-- BASIC INFO -->
                     <div class="form-row">
                         <div class="form-group">
                             <label class="form-label">Package Name</label>
@@ -163,7 +160,6 @@
                         </div>
                     </div>
 
-                    <!-- === LOCATION MAP === -->
                     <div class="form-group border p-3 bg-light rounded">
                         <label class="form-label fw-bold">Location (Search & Pin)</label>
                         <div class="input-group mb-2">
@@ -172,12 +168,9 @@
                         </div>
                         <div id="adminMap"></div>
                         <small class="text-muted">Drag the marker to pinpoint the exact location.</small>
-                        <!-- Hidden Inputs for Lat/Long -->
                         <input type="hidden" id="p_lat" name="Latitude" value="@Model.Package.Latitude" />
                         <input type="hidden" id="p_long" name="Longitude" value="@Model.Package.Longitude" />
                     </div>
-                    <!-- ===================== -->
-
                     <div class="form-row">
                         <div class="form-group">
                             <label class="form-label">Start Date</label>
@@ -198,7 +191,6 @@
                         <input class="form-control" name="AvailableSlots" type="number" value="@(Model.Package.AvailableSlots == 0 ? "" : Model.Package.AvailableSlots.ToString())" required />
                     </div>
 
-                    <!-- IMAGES -->
                     <div class="form-group">
                         <label class="form-label">Package Images</label>
                         <div class="input-group">
@@ -228,7 +220,6 @@
                         }
                     </div>
 
-                    <!-- INCLUSIONS -->
                     <div class="form-group">
                         <label class="form-label">Package Inclusions</label>
                         <div id="inclusions-container">
@@ -236,7 +227,7 @@
                             {
                                 <div class="inclusion-item mb-2">
                                     <div class="input-group">
-                                        <input type="text" class="form-control" name="Inclusions[@i]" value="@Model.Inclusions[i]" placeholder="Enter inclusion item" />
+                                        <input type="text" class="form-control" name="Inclusions" value="@Model.Inclusions[i]" placeholder="Enter inclusion item" />
                                         <button type="button" class="btn btn-danger" onclick="removeInclusion(this)">Remove</button>
                                     </div>
                                 </div>
@@ -247,7 +238,6 @@
 
                     <hr class="my-4" />
 
-                    <!-- === DAY-BY-DAY ITINERARY === -->
                     <div class="form-group mb-4">
                         <div class="d-flex justify-content-between align-items-center mb-2">
                             <label class="form-label mb-0 h5">Itinerary</label>
@@ -283,8 +273,6 @@
                         <button type="button" class="btn btn-outline-secondary mt-2 w-100" onclick="addItineraryRow()">+ Add Extra Day</button>
                         <small class="text-danger d-none" id="itineraryError">Every day must have a Title and Description.</small>
                     </div>
-                    <!-- ================================= -->
-
                     <div class="form-actions">
                         @if (Model.EditingPackageId == null)
                         {
@@ -300,7 +288,6 @@
             </div>
         </div>
 
-        <!-- LIST COLUMN -->
         <div class="list-card">
             <div class="list-header"><h3>Existing Packages</h3></div>
             <div class="packages-grid">
@@ -342,32 +329,23 @@
     </div>
 </div>
 
-<!-- 2. LEAFLET JS -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 @section Scripts {
     <script>
         // --- MAP LOGIC ---
         let map, marker;
-
         function initMap() {
-            // Get current Lat/Long from hidden inputs or default to KL
             let lat = parseFloat(document.getElementById('p_lat').value) || 3.1390;
             let lng = parseFloat(document.getElementById('p_long').value) || 101.6869;
 
-            // Prevent 0,0 issue (defaulting to null coordinates)
             if(lat === 0 && lng === 0) { lat = 3.1390; lng = 101.6869; }
 
             map = L.map('adminMap').setView([lat, lng], 13);
-
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '&copy; OpenStreetMap'
             }).addTo(map);
-
-            // Add Draggable Marker
             marker = L.marker([lat, lng], {draggable: true}).addTo(map);
-
-            // Listener: Update hidden inputs when dragged
             marker.on('dragend', function(e) {
                 var position = marker.getLatLng();
                 document.getElementById('p_lat').value = position.lat;
@@ -385,12 +363,8 @@
                 if(data && data.length > 0) {
                     const lat = data[0].lat;
                     const lon = data[0].lon;
-
-                    // Move Map
                     map.setView([lat, lon], 13);
                     marker.setLatLng([lat, lon]);
-
-                    // Update Hidden Inputs
                     document.getElementById('p_lat').value = lat;
                     document.getElementById('p_long').value = lon;
                 } else {
@@ -399,7 +373,6 @@
             } catch(e) { console.error(e); }
         }
 
-        // Initialize map on load
         document.addEventListener("DOMContentLoaded", function() {
             initMap();
         });
@@ -514,7 +487,6 @@
         }
 
         // --- EXISTING IMAGE/INCLUSION LOGIC ---
-        let inclusionIndex = @Model.Inclusions.Count;
         const dt = new DataTransfer();
 
         function handleFileSelect(input) {
@@ -577,13 +549,14 @@
             }
         }
 
+        // FIXED: name="Inclusions" (No Index)
         function addInclusion() {
             const container = document.getElementById('inclusions-container');
             const div = document.createElement('div');
             div.className = 'inclusion-item mb-2';
-            div.innerHTML = `<div class="input-group"><input type="text" class="form-control" name="Inclusions[${inclusionIndex}]" placeholder="Enter item" /><button type="button" class="btn btn-danger" onclick="removeInclusion(this)">Remove</button></div>`;
+            // FIX IS HERE: name="Inclusions" instead of name="Inclusions[${inclusionIndex}]"
+            div.innerHTML = `<div class="input-group"><input type="text" class="form-control" name="Inclusions" placeholder="Enter item" /><button type="button" class="btn btn-danger" onclick="removeInclusion(this)">Remove</button></div>`;
             container.appendChild(div);
-            inclusionIndex++;
         }
 
         function removeInclusion(btn) { btn.closest('.inclusion-item').remove(); }
@@ -603,13 +576,13 @@
 
             @if (Model.EditingPackageId.HasValue)
             {
-                        <text>
-                        const s = document.querySelector('input[name="StartDate"]');
-                        const e = document.querySelector('input[name="EndDate"]');
-                        if (s && s.value === '') s.value = '@Model.Package.StartDate.ToString("yyyy-MM-dd")';
-                        if (e && e.value === '') e.value = '@Model.Package.EndDate.ToString("yyyy-MM-dd")';
-                        </text>
+                    <text>
+                    const s = document.querySelector('input[name="StartDate"]');
+                    const e = document.querySelector('input[name="EndDate"]');
+                    if (s && s.value === '') s.value = '@Model.Package.StartDate.ToString("yyyy-MM-dd")';
+                    if (e && e.value === '') e.value = '@Model.Package.EndDate.ToString("yyyy-MM-dd")';
+                    </text>
             }
         });
     </script>
-}   
+}

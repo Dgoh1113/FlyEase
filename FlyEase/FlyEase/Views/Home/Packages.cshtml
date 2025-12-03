@@ -1,97 +1,137 @@
-﻿<!-- [file name]: Views/Home/Packages.cshtml -->
+﻿@using System.Text.Json
 @model IEnumerable<FlyEase.Data.Package>
+
 @{
-    ViewData["Title"] = "All Travel Packages";
+    ViewData["Title"] = "All Packages";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<div class="container mt-4">
-    <div class="row mb-4">
-        <div class="col-12">
-            <h1>Explore Our Travel Packages</h1>
-            <p class="lead">Discover amazing adventures and create unforgettable memories</p>
+<style>
+    /* Package Card Styling */
+    .package-card {
+        border: none;
+        border-radius: 12px;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        height: 100%;
+        background: #fff;
+    }
+
+        .package-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+
+    .package-img-top {
+        height: 200px;
+        object-fit: cover;
+        border-top-left-radius: 12px;
+        border-top-right-radius: 12px;
+    }
+
+    .price-tag {
+        font-size: 1.1rem;
+        font-weight: bold;
+        color: #0d6efd;
+    }
+</style>
+
+<div class="bg-light py-5 mb-5">
+    <div class="container text-center">
+        <h1 class="display-5 fw-bold mb-3">Explore All Packages</h1>
+        <p class="lead mb-4">Find your next adventure</p>
+
+        <!-- SEARCH & FILTER BAR -->
+        <div class="card p-4 shadow-sm border-0 mx-auto" style="max-width: 900px; border-radius: 15px;">
+            <form method="get" asp-action="Packages">
+                <div class="row g-2">
+                    <div class="col-md-4">
+                        <input type="text" name="searchTerm" class="form-control border-0 bg-light" placeholder="Search destinations..." value="@ViewBag.SearchTerm" />
+                    </div>
+                    <div class="col-md-3">
+                        <select name="categoryId" class="form-select border-0 bg-light">
+                            <option value="">All Categories</option>
+                            @if (ViewBag.Categories != null)
+                            {
+                                foreach (var cat in ViewBag.Categories)
+                                {
+                                    bool selected = ViewBag.CategoryId != null && (int)ViewBag.CategoryId == cat.CategoryID;
+                                    <option value="@cat.CategoryID" selected="@selected">@cat.CategoryName</option>
+                                }
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="input-group">
+                            <span class="input-group-text border-0 bg-light">RM</span>
+                            <input type="number" name="maxPrice" class="form-control border-0 bg-light" placeholder="Max Budget" value="@ViewBag.MaxPrice" />
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-primary w-100 fw-bold">Filter</button>
+                    </div>
+                </div>
+            </form>
         </div>
     </div>
+</div>
 
+<div class="container pb-5">
     @if (!Model.Any())
     {
-        <div class="alert alert-info text-center">
-            <h4>No packages available at the moment</h4>
-            <p>Please check back later for new travel packages.</p>
+        <div class="alert alert-warning text-center">No packages found matching your criteria.</div>
+        <div class="text-center mt-3">
+            <a asp-action="Packages" class="btn btn-outline-secondary">Clear All Filters</a>
         </div>
     }
     else
     {
         <div class="row">
-            @foreach (var package in Model)
+            @foreach (var pkg in Model)
             {
-                <div class="col-md-6 col-lg-4 mb-4">
-                    <div class="card h-100 shadow-sm package-card postion-relative">
-                        <a asp-action="Booking"
-                           asp-controller="Booking"
-                           asp-route-id="@package.PackageID"
-                           class="stretched-link">
-                        </a>
-                        <img src="@(package.ImageURL?.Split(';').FirstOrDefault() ?? "/img/default-package.jpg")"
-                             class="card-img-top" alt="@package.PackageName"
-                             style="height: 200px; object-fit: cover;">
+                <div class="col-md-6 col-lg-3 mb-4">
+                    @{
+                        var firstImg = pkg.ImageURL?.Split(';').FirstOrDefault() ?? "/img/default-package.jpg";
 
-                        <div class="card-body d-flex flex-column">
-                            <h5 class="card-title">@package.PackageName</h5>
-                            <p class="card-text text-muted">@package.Description</p>
+                        // Serialize itinerary for the popup button (Using projection to avoid circular refs)
+                        var itineraryJson = JsonSerializer.Serialize(pkg.Itinerary
+                        .OrderBy(i => i.DayNumber)
+                        .Select(i => new { i.DayNumber, i.Title, i.ActivityDescription }));
+                    }
 
-                            <div class="package-details mb-3">
-                                <p class="mb-1">
-                                    <i class="fas fa-map-marker-alt text-primary me-2"></i>
-                                    @package.Destination
-                                </p>
-                                <p class="mb-1">
-                                    <i class="fas fa-calendar text-primary me-2"></i>
-                                    @((package.EndDate - package.StartDate).Days) Days
-                                </p>
-                                <p class="mb-2">
-                                    <i class="fas fa-users text-primary me-2"></i>
-                                    @package.AvailableSlots slots available
-                                </p>
+                    <div class="card h-100 shadow-sm package-card">
+                        <div class="position-relative">
+                            <img src="@firstImg" class="card-img-top package-img-top" alt="@pkg.PackageName">
+                            <div class="position-absolute top-0 end-0 m-2">
+                                <span class="badge bg-warning text-dark">
+                                    <i class="fas fa-star me-1"></i>@(pkg.AverageRating > 0 ? pkg.AverageRating.ToString("0.0") : "New")
+                                </span>
                             </div>
+                        </div>
 
-                            @if (package.PackageInclusions.Any())
-                            {
-                                <div class="inclusions mb-3">
-                                    <strong class="small">Includes:</strong>
-                                    <ul class="list-unstyled mb-0">
-                                        @foreach (var inclusion in package.PackageInclusions.Take(2))
-                                        {
-                                            <li class="small">✓ @inclusion.InclusionItem</li>
-                                        }
-                                        @if (package.PackageInclusions.Count > 2)
-                                        {
-                                            <li class="small text-muted">+@(package.PackageInclusions.Count - 2) more</li>
-                                        }
-                                    </ul>
-                                </div>
-                            }
+                        <div class="card-body p-3">
+                            <h5 class="card-title text-truncate" title="@pkg.PackageName">@pkg.PackageName</h5>
+                            <p class="card-text small text-muted mb-2">
+                                <i class="fas fa-map-marker-alt me-1 text-danger"></i>@pkg.Destination
+                                <!-- Map Link -->
+                                <a href="https://www.google.com/maps/search/?api=1&query=@pkg.Latitude,@pkg.Longitude" target="_blank" class="ms-1 text-primary text-decoration-none" title="View on Google Maps">(Map)</a>
+                            </p>
 
-                            
+                            <div class="mt-auto">
                                 <div class="d-flex justify-content-between align-items-center mb-3">
-                                    <h4 class="text-primary mb-0">RM @package.Price.ToString("N0")</h4>
-                                    <span class="badge bg-success">Available</span>
+                                    <span class="price-tag">RM @pkg.Price.ToString("N0")</span>
+                                    <small class="text-muted">@pkg.AvailableSlots slots</small>
                                 </div>
 
-                            <div class="mt-auto" style="position: relative; z-index: 2;">
-                                <!-- BOOK NOW BUTTON -->
-                                <a asp-controller="Payment" asp-action="CustomerInfo"
-                                   asp-route-packageId="@package.PackageID"
-                                   asp-route-people="1"
-                                   class="btn btn-primary w-100">
-                                    <i class="fas fa-calendar-check me-1"></i>Book Now
-                                </a>
-
-                                <a asp-controller="Booking" asp-action="Booking"
-                                   asp-route-id="@package.PackageID"
-                                   class="btn btn-outline-secondary w-100 mt-2">
-                                    <i class="fas fa-info-circle me-1"></i>View Details
-                                </a>
+                                <div class="d-grid gap-2">
+                                    <!-- Itinerary Button -->
+                                    <button type="button" class="btn btn-outline-info btn-sm" onclick='showItineraryModal(@Html.Raw(itineraryJson), "@pkg.PackageName.Replace("\"", "&quot;")")'>
+                                        <i class="fas fa-list-ul"></i> Itinerary
+                                    </button>
+                                    <div class="d-flex gap-2">
+                                        <a href="/Payment/CustomerInfo?packageId=@pkg.PackageID" class="btn btn-primary btn-sm flex-grow-1">Book Now</a>
+                                        <a asp-route-id="@pkg.PackageID" asp-action="PackageDetails" asp-controller="PackageDetails" class="btn btn-outline-secondary btn-sm">Details</a>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -101,20 +141,47 @@
     }
 </div>
 
-<style>
-    .package-card {
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
-        border: none;
-        border-radius: 15px;
-    }
+<!-- === ITINERARY MODAL (Reused) === -->
+<div class="modal fade" id="itineraryModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="itineraryModalTitle">Trip Schedule</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body bg-light" id="itineraryModalBody"></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
 
-        .package-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+<script>
+    function showItineraryModal(data, packageName) {
+        document.getElementById('itineraryModalTitle').innerText = "Itinerary for " + packageName;
+        const container = document.getElementById('itineraryModalBody');
+        container.innerHTML = "";
+
+        if (!data || data.length === 0) {
+            container.innerHTML = '<p class="text-center text-muted p-3">No detailed itinerary available.</p>';
+        } else {
+            let html = '<div class="timeline p-2">';
+            data.forEach(day => {
+                html += `
+                <div class="card mb-3 border-0 shadow-sm">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center mb-2">
+                            <span class="badge bg-primary rounded-pill me-2">Day ${day.DayNumber}</span>
+                            <h5 class="card-title mb-0 text-dark">${day.Title}</h5>
+                        </div>
+                        <p class="card-text text-muted ms-1">${day.ActivityDescription}</p>
+                    </div>
+                </div>`;
+            });
+            html += '</div>';
+            container.innerHTML = html;
         }
-
-    .inclusions li {
-        padding: 2px 0;
-        color: #666;
+        new bootstrap.Modal(document.getElementById('itineraryModal')).show();
     }
-</style>
+</script>

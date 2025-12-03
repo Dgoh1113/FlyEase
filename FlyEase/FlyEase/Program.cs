@@ -2,18 +2,38 @@
 using FlyEase.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
+using Stripe;
+using Microsoft.AspNetCore.Localization; // Added for Localization
+using System.Globalization; // Added for Localization
+
 var builder = WebApplication.CreateBuilder(args);
+
+// Add logging
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
+builder.Logging.AddDebug();
+builder.Logging.SetMinimumLevel(LogLevel.Information);
+
+// Add this line after builder creation
+StripeConfiguration.ApiKey = builder.Configuration["Stripe:SecretKey"];
 
 // ====================================================================
 // 1. DYNAMIC PATH SETUP (No App_Data folder)
-// This sets |DataDirectory| to the project's root folder
+// ====================================================================
 string path = builder.Environment.ContentRootPath;
 AppDomain.CurrentDomain.SetData("DataDirectory", path);
+
+// ====================================================================
+// 2. REGISTER SERVICES (Modified for Localization)
 // ====================================================================
 
-// Add services...
-// Add services to the container
-builder.Services.AddControllersWithViews();
+// A. Add Localization Service (Points to "Resources" folder)
+builder.Services.AddLocalization(options => options.ResourcesPath = "Resources");
+
+// B. Update ControllersWithViews to support View Localization
+builder.Services.AddControllersWithViews()
+    .AddViewLocalization(Microsoft.AspNetCore.Mvc.Razor.LanguageViewLocationExpanderFormat.Suffix)
+    .AddDataAnnotationsLocalization();
 
 // Configure DbContext
 builder.Services.AddDbContext<FlyEaseDbContext>(options =>
@@ -65,6 +85,9 @@ using (var scope = app.Services.CreateScope())
 }
 
 // [Add this in Program.cs after var app = builder.Build();]
+// ====================================================================
+// 3. SEEDING DATABASE
+// ====================================================================
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<FlyEaseDbContext>();
@@ -158,6 +181,7 @@ using (var scope = app.Services.CreateScope())
         Console.WriteLine("Database seeded successfully!");
     }
 }
+
 // Configure the HTTP request pipeline
 if (!app.Environment.IsDevelopment())
 {
@@ -166,6 +190,19 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+// ====================================================================
+// 4. ADD LOCALIZATION MIDDLEWARE (Multi-Language Support)
+// ====================================================================
+var supportedCultures = new[] { "en", "ms", "zh-CN" }; // English, Malay, Chinese
+var localizationOptions = new RequestLocalizationOptions()
+    .SetDefaultCulture("en")
+    .AddSupportedCultures(supportedCultures)
+    .AddSupportedUICultures(supportedCultures);
+
+app.UseRequestLocalization(localizationOptions);
+// ====================================================================
+
 app.UseStaticFiles();
 app.UseRouting();
 app.UseAuthentication();

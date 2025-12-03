@@ -49,6 +49,7 @@ namespace FlyEase.ViewModels
         public DateTime BookingDate { get; set; }
         public string Status { get; set; } = "";
         public decimal TotalAmount { get; set; }
+        public bool IsReviewed { get; set; }
     }
 
     public class ReviewDisplayModel

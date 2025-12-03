@@ -1,10 +1,8 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using FlyEase.Data;
+﻿using FlyEase.Data;
 using FlyEase.ViewModels;
-using System;
-using System.Linq;
-using System.Threading.Tasks;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Stripe;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
 
@@ -13,249 +11,310 @@ namespace FlyEase.Controllers
     public class PaymentController : Controller
     {
         private readonly FlyEaseDbContext _context;
+        private readonly IConfiguration _configuration;
 
-        public PaymentController(FlyEaseDbContext context)
+        public PaymentController(FlyEaseDbContext context, IConfiguration configuration)
         {
             _context = context;
+            _configuration = configuration;
+
+            // SET REAL STRIPE KEY
+            StripeConfiguration.ApiKey = _configuration["Stripe:SecretKey"];
         }
 
-        // STEP 1: Customer Information
+        // ========== STEP 1: CUSTOMER INFO ==========
         [HttpGet]
-        public async Task<IActionResult> CustomerInfo(int packageId, int? people = 1)
+        public async Task<IActionResult> CustomerInfo(int packageId, int people = 1)
         {
-            var package = await _context.Packages.FindAsync(packageId);
-            if (package == null)
+            var user = await GetCurrentUserAsync();
+            if (user == null)
             {
-                return NotFound();
+                TempData["Error"] = "Please login first";
+                return RedirectToAction("Login", "Auth");
             }
 
-            var vm = new BookingViewModel
+            var package = await _context.Packages.FindAsync(packageId);
+            if (package == null) return NotFound();
+
+            var vm = new CustomerInfoViewModel
             {
                 PackageID = packageId,
                 PackageName = package.PackageName,
                 PackagePrice = package.Price,
-                NumberOfPeople = people ?? 1,
+                NumberOfPeople = people,
                 TravelDate = DateTime.Now.AddDays(14),
-                BasePrice = package.Price * (people ?? 1)
+                BasePrice = package.Price * people,
+                FullName = user.FullName,
+                Email = user.Email,
+                Phone = user.Phone,
+                Address = user.Address
             };
 
-            // Calculate initial discounts
             CalculateDiscounts(vm);
 
-            // Store in session for multi-step process
-            HttpContext.Session.SetObject("BookingData", vm);
+            HttpContext.Session.SetCustomerInfo(vm);
+            HttpContext.Session.SetUserId(user.UserID);
 
             return View(vm);
         }
 
         [HttpPost]
-        [ValidateAntiForgeryToken]
-        public IActionResult CustomerInfo(BookingViewModel model)
+        public IActionResult CustomerInfo(CustomerInfoViewModel model)
         {
-            if (ModelState.IsValid)
-            {
-                // Update session data
-                var bookingData = HttpContext.Session.GetObject<BookingViewModel>("BookingData") ?? model;
-                bookingData.FullName = model.FullName;
-                bookingData.Email = model.Email;
-                bookingData.Phone = model.Phone;
-                bookingData.SpecialRequests = model.SpecialRequests;
+            if (!ModelState.IsValid) return View(model);
 
-                HttpContext.Session.SetObject("BookingData", bookingData);
+            CalculateDiscounts(model);
 
-                return RedirectToAction("PaymentDetails");
-            }
-
-            // Reload package data if validation fails
-            var package = _context.Packages.Find(model.PackageID);
-            if (package != null)
-            {
-                model.PackageName = package.PackageName;
-                model.PackagePrice = package.Price;
-            }
-
-            return View(model);
+            HttpContext.Session.SetCustomerInfo(model);
+            return RedirectToAction("PaymentMethod");
         }
 
-        // STEP 2: Payment Details
+        // ========== STEP 2: PAYMENT METHOD ==========
         [HttpGet]
-        public IActionResult PaymentDetails()
+        public IActionResult PaymentMethod()
         {
-            var bookingData = HttpContext.Session.GetObject<BookingViewModel>("BookingData");
-            if (bookingData == null)
+            var customerInfo = HttpContext.Session.GetCustomerInfo();
+            if (customerInfo == null)
             {
-                return RedirectToAction("Index", "Home");
+                TempData["Error"] = "Please complete customer info";
+                return RedirectToAction("CustomerInfo", new { packageId = 1 });
             }
 
-            return View(bookingData);
+            ViewBag.PackageName = customerInfo.PackageName;
+            ViewBag.FinalAmount = customerInfo.FinalAmount;
+            return View();
         }
 
         [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> PaymentDetails(BookingViewModel model)
+        public IActionResult PaymentMethod(string paymentMethod)
         {
-            var bookingData = HttpContext.Session.GetObject<BookingViewModel>("BookingData");
-            if (bookingData == null)
+            if (string.IsNullOrEmpty(paymentMethod))
             {
-                return RedirectToAction("Index", "Home");
+                TempData["Error"] = "Please select payment method";
+                return RedirectToAction("PaymentMethod");
             }
 
-            if (ModelState.IsValid)
-            {
-                // Update payment details in session
-                bookingData.PaymentMethod = model.PaymentMethod;
-                bookingData.CardNumber = model.CardNumber;
-                bookingData.CardHolderName = model.CardHolderName;
-                bookingData.ExpiryDate = model.ExpiryDate;
-                bookingData.CVV = model.CVV;
+            HttpContext.Session.SetPaymentMethod(paymentMethod);
 
-                HttpContext.Session.SetObject("BookingData", bookingData);
-
-                return RedirectToAction("Confirmation");
-            }
-
-            return View(bookingData);
+            return paymentMethod == "card"
+                ? RedirectToAction("CardPayment")
+                : RedirectToAction("ManualPayment", new { method = paymentMethod });
         }
 
-        // STEP 3: Confirmation
+        // ========== STEP 3A: CARD PAYMENT ==========
         [HttpGet]
-        public IActionResult Confirmation()
+        public IActionResult CardPayment()
         {
-            var bookingData = HttpContext.Session.GetObject<BookingViewModel>("BookingData");
-            if (bookingData == null)
+            var customerInfo = HttpContext.Session.GetCustomerInfo();
+            if (customerInfo == null)
             {
+                TempData["Error"] = "Session expired";
                 return RedirectToAction("Index", "Home");
             }
 
-            return View(bookingData);
+            ViewBag.FinalAmount = customerInfo.FinalAmount;
+            ViewBag.StripePublishableKey = _configuration["Stripe:PublishableKey"];
+            return View();
         }
 
         [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> ProcessBooking()
+        public async Task<IActionResult> CardPayment(string cardNumber, string expiry, string cvv, string cardholder)
         {
-            var bookingData = HttpContext.Session.GetObject<BookingViewModel>("BookingData");
-            if (bookingData == null)
+            var customerInfo = HttpContext.Session.GetCustomerInfo();
+            if (customerInfo == null)
             {
+                TempData["Error"] = "Session expired";
                 return RedirectToAction("Index", "Home");
             }
 
             try
             {
-                var userId = GetCurrentUserId();
-                if (userId == null)
+                // 1. CREATE STRIPE PAYMENT INTENT
+                var options = new PaymentIntentCreateOptions
                 {
-                    // For demo, create a temporary user or redirect to login
-                    userId = 1; // Demo user ID
-                }
-
-                // Create booking
-                var booking = new Booking
-                {
-                    UserID = userId.Value,
-                    PackageID = bookingData.PackageID,
-                    BookingDate = DateTime.Now,
-                    TravelDate = bookingData.TravelDate,
-                    NumberOfPeople = bookingData.NumberOfPeople,
-                    TotalBeforeDiscount = bookingData.BasePrice,
-                    TotalDiscountAmount = bookingData.DiscountAmount,
-                    FinalAmount = bookingData.FinalAmount,
-                    BookingStatus = "Confirmed"
+                    Amount = (long)(customerInfo.FinalAmount * 100),
+                    Currency = "myr",
+                    PaymentMethodTypes = new List<string> { "card" },
+                    Description = $"FlyEase Booking: {customerInfo.PackageName}",
+                    Metadata = new Dictionary<string, string>
+                    {
+                        { "customer_name", customerInfo.FullName },
+                        { "customer_email", customerInfo.Email },
+                        { "package_id", customerInfo.PackageID.ToString() },
+                        { "package_name", customerInfo.PackageName }
+                    }
                 };
 
-                _context.Bookings.Add(booking);
-                await _context.SaveChangesAsync();
+                var service = new PaymentIntentService();
+                var paymentIntent = await service.CreateAsync(options);
 
-                // Create payment
-                var payment = new Payment
-                {
-                    BookingID = booking.BookingID,
-                    PaymentMethod = bookingData.PaymentMethod,
-                    AmountPaid = bookingData.FinalAmount,
-                    IsDeposit = false,
-                    PaymentDate = DateTime.Now,
-                    PaymentStatus = "Completed"
-                };
+                // 2. GET INTENT ID
+                string realStripeId = paymentIntent.Id;
 
-                _context.Payments.Add(payment);
-
-                // Update package availability
-                var package = await _context.Packages.FindAsync(bookingData.PackageID);
-                if (package != null)
-                {
-                    package.AvailableSlots -= bookingData.NumberOfPeople;
-                }
-
-                await _context.SaveChangesAsync();
-
-                // Clear session
-                HttpContext.Session.Remove("BookingData");
-
-                return RedirectToAction("Success", new
-                {
-                    bookingId = booking.BookingID,
-                    paymentId = payment.PaymentID
-                });
+                // 3. PROCESS PAYMENT
+                return await ProcessBooking("card", realStripeId);
+            }
+            catch (StripeException ex)
+            {
+                TempData["Error"] = $"Stripe Error: {ex.StripeError.Message}";
+                return RedirectToAction("CardPayment");
             }
             catch (Exception ex)
             {
-                TempData["Error"] = $"Error processing booking: {ex.Message}";
-                return View("Confirmation", bookingData);
+                TempData["Error"] = $"Payment Error: {ex.Message}";
+                return RedirectToAction("CardPayment");
             }
         }
 
-        // STEP 4: Success Page
+        // ========== STEP 3B: MANUAL PAYMENT ==========
         [HttpGet]
-        public async Task<IActionResult> Success(int bookingId, int paymentId)
+        public IActionResult ManualPayment(string method)
         {
-            var payment = await _context.Payments
-                .Include(p => p.Booking)
-                    .ThenInclude(b => b.Package)
-                .Include(p => p.Booking)
-                    .ThenInclude(b => b.User)
-                .FirstOrDefaultAsync(p => p.PaymentID == paymentId && p.BookingID == bookingId);
-
-            if (payment == null)
+            var customerInfo = HttpContext.Session.GetCustomerInfo();
+            if (customerInfo == null)
             {
-                return NotFound();
+                TempData["Error"] = "Session expired";
+                return RedirectToAction("Index", "Home");
             }
 
-            return View(payment);
+            ViewBag.PaymentMethod = method;
+            ViewBag.FinalAmount = customerInfo.FinalAmount;
+            return View();
         }
 
-        // =========================================================
-        // === TEMPORARY DEVELOPER BYPASS (FOR TESTING REVIEWS) ===
-        // =========================================================
-        [HttpGet]
-        public async Task<IActionResult> DevQuickBook(int packageId)
+        [HttpPost]
+        public async Task<IActionResult> ManualPaymentPost(string reference)
         {
-            // 1. Get Logged In User (Must be logged in!)
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (userIdClaim == null) return Content("Error: You must be logged in to use the bypass.");
-            int userId = int.Parse(userIdClaim);
+            if (string.IsNullOrEmpty(reference))
+            {
+                TempData["Error"] = "Please enter reference number";
+                return RedirectToAction("ManualPayment");
+            }
 
-            // 2. Get Package Details
-            var package = await _context.Packages.FindAsync(packageId);
-            if (package == null) return Content("Error: Package not found.");
+            var method = HttpContext.Session.GetPaymentMethod();
+            return await ProcessBooking(method, reference);
+        }
 
-            // 3. Create a Mock Booking
+        // ========== PROCESS BOOKING ==========
+        private async Task<IActionResult> ProcessBooking(string paymentMethod, string transactionId)
+        {
+            var customerInfo = HttpContext.Session.GetCustomerInfo();
+            var userId = HttpContext.Session.GetUserId();
+
+            if (customerInfo == null || userId == 0)
+            {
+                TempData["Error"] = "Session expired";
+                return RedirectToAction("Index", "Home");
+            }
+
+            var package = await _context.Packages.FindAsync(customerInfo.PackageID);
+            if (package == null || package.AvailableSlots < customerInfo.NumberOfPeople)
+            {
+                TempData["Error"] = "Package not available";
+                return RedirectToAction("Index", "Home");
+            }
+
+            // Create booking
             var booking = new Booking
             {
                 UserID = userId,
-                PackageID = packageId,
+                PackageID = customerInfo.PackageID,
                 BookingDate = DateTime.Now,
-                TravelDate = DateTime.Now.AddDays(7), // Default to next week
-                NumberOfPeople = 1,
-                TotalBeforeDiscount = package.Price,
-                TotalDiscountAmount = 0,
-                FinalAmount = package.Price,
-                BookingStatus = "Confirmed" // Auto-confirm so it shows in dashboard
+                TravelDate = customerInfo.TravelDate,
+                NumberOfPeople = customerInfo.NumberOfPeople,
+                TotalBeforeDiscount = customerInfo.BasePrice,
+                TotalDiscountAmount = customerInfo.DiscountAmount,
+                FinalAmount = customerInfo.FinalAmount,
+                // === CHANGE 1: Always Pending ===
+                BookingStatus = "Pending"
             };
 
             _context.Bookings.Add(booking);
             await _context.SaveChangesAsync();
 
-            // 4. Create a Mock Payment
+            // Create payment
+            string paymentMethodText = GetPaymentMethodName(paymentMethod);
+
+            if (paymentMethod == "card")
+            {
+                if (transactionId.StartsWith("pi_"))
+                {
+                    paymentMethodText = $"Credit Card (Stripe: {transactionId})";
+                }
+                else
+                {
+                    paymentMethodText = $"Credit Card (Ref: {transactionId})";
+                }
+            }
+
+            var payment = new Payment
+            {
+                BookingID = booking.BookingID,
+                PaymentMethod = paymentMethodText,
+                AmountPaid = customerInfo.FinalAmount,
+                IsDeposit = false,
+                PaymentDate = DateTime.Now,
+                PaymentStatus = paymentMethod == "card" ? "Completed" : "Pending"
+            };
+
+            _context.Payments.Add(payment);
+
+            // Only reduce slots for confirmed/paid payments
+            if (paymentMethod == "card")
+            {
+                package.AvailableSlots -= customerInfo.NumberOfPeople;
+            }
+
+            await _context.SaveChangesAsync();
+
+            HttpContext.Session.ClearPaymentSession();
+
+            return RedirectToAction("Success", new { bookingId = booking.BookingID });
+        }
+
+        // ========== SUCCESS PAGE ==========
+        [HttpGet]
+        public async Task<IActionResult> Success(int bookingId)
+        {
+            var booking = await _context.Bookings
+                .Include(b => b.Package)
+                .Include(b => b.User)
+                .FirstOrDefaultAsync(b => b.BookingID == bookingId);
+
+            if (booking == null) return NotFound();
+            return View(booking);
+        }
+
+        // =========================================================
+        // === DEVELOPER BYPASS (UPDATED TO PENDING) ===
+        // =========================================================
+        [HttpGet("Payment/DevQuickBook")]
+        public async Task<IActionResult> DevQuickBook(int packageId)
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (userIdClaim == null) return Content("Error: You must be logged in.");
+            int userId = int.Parse(userIdClaim);
+
+            var package = await _context.Packages.FindAsync(packageId);
+            if (package == null) return Content("Error: Package not found.");
+
+            var booking = new Booking
+            {
+                UserID = userId,
+                PackageID = packageId,
+                BookingDate = DateTime.Now,
+                TravelDate = DateTime.Now.AddDays(7),
+                NumberOfPeople = 1,
+                TotalBeforeDiscount = package.Price,
+                TotalDiscountAmount = 0,
+                FinalAmount = package.Price,
+                // === CHANGE 2: Always Pending ===
+                BookingStatus = "Pending"
+            };
+
+            _context.Bookings.Add(booking);
+            await _context.SaveChangesAsync();
+
             var payment = new Payment
             {
                 BookingID = booking.BookingID,
@@ -267,38 +326,43 @@ namespace FlyEase.Controllers
             };
 
             _context.Payments.Add(payment);
+
+            // Decrease slots for dev bypass since payment is "completed"
+            package.AvailableSlots -= 1;
+
             await _context.SaveChangesAsync();
 
-            // 5. Redirect to Success Page
-            return RedirectToAction("Success", new { bookingId = booking.BookingID, paymentId = payment.PaymentID });
+            return RedirectToAction("Success", new { bookingId = booking.BookingID });
         }
-        // =========================================================
 
-        // Helper Methods
-        private void CalculateDiscounts(BookingViewModel model)
+        // ========== HELPER METHODS ==========
+        private async Task<User> GetCurrentUserAsync()
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (userId == null) return null;
+            return await _context.Users.FindAsync(int.Parse(userId));
+        }
+
+        private void CalculateDiscounts(CustomerInfoViewModel model)
         {
             decimal discount = 0;
-
-            // Early Bird Discount (30 days in advance)
-            if ((model.TravelDate - DateTime.Now).TotalDays >= 30)
-            {
-                discount += model.BasePrice * 0.10m; // 10% discount
-            }
-
-            // Bulk Discount (5+ people)
-            if (model.NumberOfPeople >= 5)
-            {
-                discount += model.BasePrice * 0.15m; // 15% discount
-            }
-
+            if ((model.TravelDate - DateTime.Now).TotalDays >= 30) discount += model.BasePrice * 0.10m;
+            if (model.NumberOfPeople >= 5) discount += model.BasePrice * 0.15m;
             model.DiscountAmount = discount;
             model.FinalAmount = model.BasePrice - discount;
         }
 
-        private int? GetCurrentUserId()
+        private string GetPaymentMethodName(string method)
         {
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            return userIdClaim != null ? int.Parse(userIdClaim) : null;
+            return method switch
+            {
+                "card" => "Credit Card",
+                "bank_transfer" => "Bank Transfer",
+                "tng_ewallet" => "Touch 'n Go",
+                "grabpay" => "GrabPay",
+                "cash" => "Cash Payment",
+                _ => method
+            };
         }
     }
 
@@ -314,6 +378,23 @@ namespace FlyEase.Controllers
         {
             var value = session.GetString(key);
             return value == null ? default(T) : System.Text.Json.JsonSerializer.Deserialize<T>(value);
+        }
+
+        // Typed helpers for PaymentController
+        public static void SetCustomerInfo(this ISession session, CustomerInfoViewModel vm) => session.SetObject("CustomerInfo", vm);
+        public static CustomerInfoViewModel GetCustomerInfo(this ISession session) => session.GetObject<CustomerInfoViewModel>("CustomerInfo");
+
+        public static void SetUserId(this ISession session, int id) => session.SetInt32("UserId", id);
+        public static int GetUserId(this ISession session) => session.GetInt32("UserId") ?? 0;
+
+        public static void SetPaymentMethod(this ISession session, string method) => session.SetString("PaymentMethod", method);
+        public static string GetPaymentMethod(this ISession session) => session.GetString("PaymentMethod");
+
+        public static void ClearPaymentSession(this ISession session)
+        {
+            session.Remove("CustomerInfo");
+            session.Remove("UserId");
+            session.Remove("PaymentMethod");
         }
     }
 }
