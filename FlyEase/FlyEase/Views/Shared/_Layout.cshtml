@@ -22,8 +22,7 @@
         <a asp-controller="Home" asp-action="Index">@Localizer["Home"]</a>
         <a asp-controller="Home" asp-action="Packages">@Localizer["Packages"]</a>
 
-        @if (User.IsInRole("Staff" || "Admin")) 
-        {
+        @if (User.IsInRole("Staff") || User.IsInRole("Admin")){
             <a asp-controller="PackageManagement" asp-action="PackageManagement">@Localizer["ManagePackages"]</a>
         }
         
