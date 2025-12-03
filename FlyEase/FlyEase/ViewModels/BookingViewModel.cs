@@ -53,7 +53,7 @@ namespace FlyEase.ViewModels
         public string PaymentMethod { get; set; } = "Credit Card";
 
         [Required(ErrorMessage = "Card number is required")]
-        [CreditCard(ErrorMessage = "Please enter a valid card number")]
+        [RegularExpression(@"^[0-9\s]{13,19}$", ErrorMessage = "Please enter a valid card number (13-19 digits)")]
         [Display(Name = "Card Number")]
         public string CardNumber { get; set; } = string.Empty;
 

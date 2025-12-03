@@ -1,137 +1,903 @@
-﻿<!-- [file name]: Views/Payment/PaymentDetails.cshtml -->
-@model FlyEase.ViewModels.BookingViewModel
+﻿@model FlyEase.ViewModels.PaymentDetailsViewModel
 @{
-    ViewData["Title"] = "Payment Details - Complete Your Booking";
+    ViewData["Title"] = "Payment - Complete Your Booking";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
 <div class="container mt-4">
     <div class="row justify-content-center">
-        <div class="col-lg-8">
-            <!-- Progress Bar -->
+        <div class="col-lg-10">
             <partial name="_BookingProgress" />
 
             <div class="card shadow-sm">
-                <div class="card-header bg-warning text-dark">
+                <div class="card-header bg-primary text-white">
                     <h4 class="mb-0">
-                        <i class="fas fa-credit-card me-2"></i>Payment Details
+                        <i class="fas fa-wallet me-2"></i>Choose Payment Method
                     </h4>
                 </div>
                 <div class="card-body">
                     <!-- Booking Summary -->
                     <div class="alert alert-success mb-4">
-                        <h6 class="alert-heading">Booking Confirmed!</h6>
-                        <p class="mb-1"><strong>Package:</strong> @Model.PackageName</p>
-                        <p class="mb-1"><strong>Traveler:</strong> @Model.FullName</p>
-                        <p class="mb-1"><strong>Travel Date:</strong> @Model.TravelDate.ToString("dd MMM yyyy")</p>
-                        <p class="mb-0"><strong>Total Amount:</strong> <span class="fw-bold text-primary">RM @Model.FinalAmount.ToString("N2")</span></p>
+                        <div class="row">
+                            <div class="col-md-8">
+                                <h6 class="alert-heading">Booking Summary</h6>
+                                <p class="mb-1"><strong>Package:</strong> @Model.PackageName</p>
+                                <p class="mb-1"><strong>Traveler:</strong> @Model.FullName</p>
+                                <p class="mb-0"><strong>Amount:</strong> <span class="fw-bold text-primary">RM @Model.FinalAmount.ToString("N2")</span></p>
+                            </div>
+                            <div class="col-md-4 text-end">
+                                <div class="h4 text-primary fw-bold">RM @Model.FinalAmount.ToString("N2")</div>
+                                <small class="text-muted">Total to Pay</small>
+                            </div>
+                        </div>
                     </div>
 
-                    <form asp-action="Confirmation" method="post">
-                        <!-- Payment Method -->
-                        <div class="mb-4">
-                            <label class="form-label fw-bold">Payment Method *</label>
-                            <div class="row g-3">
-                                <div class="col-md-4">
-                                    <div class="form-check card h-100">
-                                        <input class="form-check-input" type="radio" name="PaymentMethod"
-                                               id="creditCard" value="Credit Card" checked>
-                                        <label class="form-check-label card-body text-center" for="creditCard">
-                                            <i class="fab fa-cc-visa fa-2x text-primary mb-2"></i><br>
-                                            <small>Credit Card</small>
-                                        </label>
+                    <!-- Payment Method Selection -->
+                    <h5 class="mb-3">
+                        <i class="fas fa-credit-card me-2 text-primary"></i>Select Payment Method
+                    </h5>
+
+                    <div class="row g-3 mb-4">
+                        @foreach (var method in Model.AvailablePaymentMethods)
+                        {
+                            <div class="col-md-6 col-lg-4">
+                                <div class="payment-method-card @(method.IsPopular ? "popular" : "")"
+                                     data-method="@method.Id"
+                                     onclick="selectPaymentMethod('@method.Id', @method.UsesStripe.ToString().ToLower())">
+                                    <div class="payment-icon">
+                                        <i class="@method.Icon fa-2x"></i>
                                     </div>
-                                </div>
-                                <div class="col-md-4">
-                                    <div class="form-check card h-100">
-                                        <input class="form-check-input" type="radio" name="PaymentMethod"
-                                               id="debitCard" value="Debit Card">
-                                        <label class="form-check-label card-body text-center" for="debitCard">
-                                            <i class="fab fa-cc-mastercard fa-2x text-danger mb-2"></i><br>
-                                            <small>Debit Card</small>
-                                        </label>
+                                    <div class="payment-details">
+                                        <h6 class="mb-1">@method.Name</h6>
+                                        <p class="small text-muted mb-0">@method.Description</p>
                                     </div>
-                                </div>
-                                <div class="col-md-4">
-                                    <div class="form-check card h-100">
-                                        <input class="form-check-input" type="radio" name="PaymentMethod"
-                                               id="onlineBanking" value="Online Banking">
-                                        <label class="form-check-label card-body text-center" for="onlineBanking">
-                                            <i class="fas fa-mobile-alt fa-2x text-success mb-2"></i><br>
-                                            <small>Online Banking</small>
-                                        </label>
+                                    @if (method.UsesStripe)
+                                    {
+                                        <span class="badge bg-success">Secure</span>
+                                    }
+                                    <div class="payment-check">
+                                        <i class="fas fa-check-circle"></i>
                                     </div>
                                 </div>
                             </div>
-                            <span asp-validation-for="PaymentMethod" class="text-danger small"></span>
+                        }
+                    </div>
+
+                    <!-- Payment Forms (Dynamic) -->
+                    <div id="payment-forms">
+                        <!-- Stripe Card Form (Only for cards) -->
+                        <!-- In PaymentDetails.cshtml, find the stripe-form section and replace it with: -->
+                        <!-- In PaymentDetails.cshtml, replace the stripe-form section with this: -->
+                        <div id="stripe-form" class="payment-form" style="display: none;">
+                            <h6 class="border-bottom pb-2 mb-3">
+                                <i class="fas fa-lock me-2"></i>Secure Card Payment
+                            </h6>
+
+                            <div class="alert alert-info mb-3">
+                                <i class="fas fa-shield-alt me-2"></i>
+                                Your card details are encrypted and processed securely by Stripe.
+                            </div>
+
+                            <!-- NEW: Separate Card Fields Layout -->
+                            <div class="card-details-form">
+                                <!-- Card Number -->
+                                <div class="mb-3">
+                                    <label class="form-label">
+                                        <i class="fas fa-credit-card me-1"></i>Card Number *
+                                    </label>
+                                    <div id="card-number-element" class="form-control p-3 stripe-element-container" style="height: 50px;">
+                                        <!-- Stripe will inject the card number input here -->
+                                        <div class="stripe-placeholder">Card number will appear here</div>
+                                    </div>
+                                    <div class="card-brand-icons mt-2">
+                                        <i class="fab fa-cc-visa text-primary me-2" title="Visa"></i>
+                                        <i class="fab fa-cc-mastercard text-warning me-2" title="Mastercard"></i>
+                                        <i class="fab fa-cc-amex text-success me-2" title="American Express"></i>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <!-- Expiry Date -->
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">
+                                            <i class="fas fa-calendar me-1"></i>Expiry Date *
+                                        </label>
+                                        <div id="card-expiry-element" class="form-control p-3 stripe-element-container" style="height: 50px;">
+                                            <!-- Stripe will inject the expiry input here -->
+                                            <div class="stripe-placeholder">MM/YY</div>
+                                        </div>
+                                    </div>
+
+                                    <!-- CVV -->
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">
+                                            <i class="fas fa-lock me-1"></i>Security Code (CVV) *
+                                        </label>
+                                        <div id="card-cvc-element" class="form-control p-3 stripe-element-container" style="height: 50px;">
+                                            <!-- Stripe will inject the CVV input here -->
+                                            <div class="stripe-placeholder">123</div>
+                                        </div>
+                                        <small class="text-muted">3 or 4 digits on back of card</small>
+                                    </div>
+                                </div>
+
+                                <!-- Cardholder Name -->
+                                <div class="mb-3">
+                                    <label class="form-label">
+                                        <i class="fas fa-user me-1"></i>Name on Card *
+                                    </label>
+                                    <input type="text" id="cardholder-name" class="form-control"
+                                           placeholder="Enter name as shown on card"
+                                           value="@Model.FullName">
+                                </div>
+
+                                <!-- Errors Display -->
+                                <div id="card-errors" class="alert alert-danger small mt-3" role="alert" style="display: none;"></div>
+                            </div>
+
+                            <!-- Test Card Info -->
+                            <div class="alert alert-warning small">
+                                <i class="fas fa-vial me-1"></i>
+                                <strong>Test Card:</strong> Use <code>4242 4242 4242 4242</code>
+                                with expiry <code>12/34</code> and CVC <code>123</code>
+                            </div>
                         </div>
 
-                        <!-- Card Details -->
-                        <div id="cardDetails">
+                        <!-- Manual Payment Form -->
+                        <div id="manual-form" class="payment-form" style="display: none;">
+                            <h6 class="border-bottom pb-2 mb-3">
+                                <i class="fas fa-info-circle me-2"></i>Payment Instructions
+                            </h6>
+
+                            <div id="method-instructions" class="alert alert-info mb-3">
+                                <!-- Instructions will be inserted here -->
+                            </div>
+
                             <div class="row">
-                                <div class="col-12 mb-3">
-                                    <label asp-for="CardHolderName" class="form-label">Card Holder Name *</label>
-                                    <input asp-for="CardHolderName" class="form-control" placeholder="JOHN DOE">
-                                    <span asp-validation-for="CardHolderName" class="text-danger small"></span>
+                                <div class="col-md-8 mb-3">
+                                    <label class="form-label fw-bold">
+                                        Transaction ID / Reference Number *
+                                        <span id="format-hint" class="text-muted small fw-normal"></span>
+                                    </label>
+                                    <input type="text" class="form-control" id="reference-number"
+                                           placeholder="Enter your payment reference" required>
+                                    <div id="format-example" class="small text-muted mt-1"></div>
+                                    <div id="transaction-error" class="text-danger small mt-1" style="display: none;"></div>
                                 </div>
 
-                                <div class="col-12 mb-3">
-                                    <label asp-for="CardNumber" class="form-label">Card Number *</label>
-                                    <input asp-for="CardNumber" class="form-control" placeholder="1234 5678 9012 3456">
-                                    <span asp-validation-for="CardNumber" class="text-danger small"></span>
-                                </div>
-
-                                <div class="col-md-6 mb-3">
-                                    <label asp-for="ExpiryDate" class="form-label">Expiry Date (MM/YY) *</label>
-                                    <input asp-for="ExpiryDate" class="form-control" placeholder="12/25">
-                                    <span asp-validation-for="ExpiryDate" class="text-danger small"></span>
-                                </div>
-
-                                <div class="col-md-6 mb-3">
-                                    <label asp-for="CVV" class="form-label">CVV *</label>
-                                    <input asp-for="CVV" class="form-control" placeholder="123">
-                                    <span asp-validation-for="CVV" class="text-danger small"></span>
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label fw-bold">Payment Date *</label>
+                                    <input type="date" class="form-control" id="payment-date"
+                                           value="@DateTime.Now.ToString("yyyy-MM-dd")" max="@DateTime.Now.ToString("yyyy-MM-dd")" required>
+                                    <small class="text-muted">When you made the payment</small>
                                 </div>
                             </div>
-                        </div>
 
-                        <!-- Security Notice -->
-                        <div class="alert alert-info mt-4">
-                            <h6><i class="fas fa-shield-alt me-2"></i>Secure Payment</h6>
-                            <p class="mb-0 small">
-                                Your payment information is encrypted and secure. We never store your complete card details.
-                                All transactions are protected by SSL encryption.
-                            </p>
-                        </div>
+                            <!-- Optional: Upload receipt (if you want to add file upload later) -->
+                            <div class="mb-3" id="receipt-upload" style="display: none;">
+                                <label class="form-label">Upload Payment Receipt (Optional)</label>
+                                <input type="file" class="form-control" accept=".jpg,.jpeg,.png,.pdf">
+                                <small class="text-muted">Screenshot or photo of payment confirmation</small>
+                            </div>
 
-                        <div class="d-flex justify-content-between mt-4">
-                            <a asp-action="CustomerInfo" asp-route-packageId="@Model.PackageID"
-                               class="btn btn-outline-secondary">
-                                <i class="fas fa-arrow-left me-1"></i>Back
-                            </a>
-                            <button type="submit" class="btn btn-success">
-                                Review & Confirm <i class="fas fa-check-circle ms-1"></i>
-                            </button>
+                            <div class="alert alert-light">
+                                <i class="fas fa-clock me-2"></i>
+                                <strong>Processing Time:</strong> Manual payments take 1-2 business days to verify.
+                                We'll email you once confirmed.
+                            </div>
                         </div>
-                    </form>
+                    </div>
+
+                    <!-- Terms and Conditions -->
+                    <div class="alert alert-light border mt-4">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="accept-terms" required>
+                            <label class="form-check-label small" for="accept-terms">
+                                I authorize FlyEase Travel to process my payment of RM @Model.FinalAmount.ToString("N2").
+                                I understand that bookings are confirmed only after payment verification.
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="d-flex justify-content-between mt-4 pt-3 border-top">
+                        <a href="@ViewBag.BackUrl" class="btn btn-outline-secondary px-4">
+                            <i class="fas fa-arrow-left me-1"></i>Back
+                        </a>
+                        <button type="button" id="submit-payment" class="btn btn-success btn-lg px-5" disabled>
+                            <i class="fas fa-paper-plane me-2"></i>
+                            Complete Payment
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-</div>
- @section Scripts {
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validate/1.19.3/jquery.validate.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validation-unobtrusive/3.2.12/jquery.validate.unobtrusive.min.js"></script>
-
+    <!-- Add this at the BOTTOM of your PaymentDetails.cshtml, just before closing </div> -->
     <script>
-        // Format card number input
-        document.getElementById('CardNumber')?.addEventListener('input', function(e) {
-            let value = e.target.value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
-            let formattedValue = value.match(/.{1,4}/g)?.join(' ');
-            if (formattedValue) {
-                e.target.value = formattedValue;
-            }
+        // Simple direct approach
+        document.addEventListener('DOMContentLoaded', function() {
+            const submitButton = document.getElementById('submit-payment');
+
+            submitButton.onclick = function() {
+                console.log("Button clicked - minimal version");
+
+                // Create simple form
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '@Url.Action("ProcessBooking", "Payment")';
+
+                // Add anti-forgery token
+                const token = '@Html.AntiForgeryToken()';
+                form.innerHTML = token;
+
+                // Add payment method
+                const methodInput = document.createElement('input');
+                methodInput.type = 'hidden';
+                methodInput.name = 'paymentMethod';
+                methodInput.value = 'card'; // Default to card
+                form.appendChild(methodInput);
+
+                // Add payment intent ID
+                const intentInput = document.createElement('input');
+                intentInput.type = 'hidden';
+                intentInput.name = 'paymentIntentId';
+                intentInput.value = 'test_pi_' + Date.now();
+                form.appendChild(intentInput);
+
+                // Submit
+                document.body.appendChild(form);
+                form.submit();
+            };
         });
     </script>
- } 
+</div>
+
+    <style>
+        .payment-method-card {
+            border: 2px solid #dee2e6;
+            border-radius: 10px;
+            padding: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            background: white;
+        }
+
+            .payment-method-card:hover {
+                border-color: #0d6efd;
+                transform: translateY(-2px);
+            }
+
+            .payment-method-card.selected {
+                border-color: #0d6efd;
+                background-color: #f0f7ff;
+            }
+
+            .payment-method-card.popular {
+                border-color: #ffc107;
+            }
+
+        .payment-icon {
+            width: 50px;
+            height: 50px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
+            color: #0d6efd;
+        }
+
+        .payment-details {
+            flex: 1;
+        }
+
+        .payment-check {
+            color: #0d6efd;
+            font-size: 1.5rem;
+            opacity: 0;
+        }
+
+        .payment-method-card.selected .payment-check {
+            opacity: 1;
+        }
+
+        .payment-form {
+            padding: 20px;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            margin-top: 20px;
+            background: #f8f9fa;
+        }
+
+        .badge {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            font-size: 0.7em;
+        }
+    </style>
+
+
+@section Scripts {
+    <style>
+        /* Card Form Styling */
+        .card-details-form {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+        }
+
+        .card-brand-icons {
+            font-size: 1.5rem;
+            opacity: 0.7;
+            margin-top: 8px;
+        }
+
+            .card-brand-icons i {
+                transition: opacity 0.3s;
+            }
+
+                .card-brand-icons i:hover {
+                    opacity: 1;
+                }
+
+        /* Regular input fields */
+        .card-input-field {
+            height: 50px;
+            padding: 12px;
+            font-size: 16px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+            width: 100%;
+        }
+
+            .card-input-field:focus {
+                border-color: #86b7fe;
+                box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+                outline: 0;
+            }
+
+        /* Hide Stripe containers */
+        .stripe-element-container {
+            display: none !important;
+        }
+
+        /* Show regular inputs */
+        .regular-card-input {
+            display: block !important;
+        }
+
+       
+
+        .card-input-field {
+            height: 45px;
+        }
+
+        }
+    </style>
+
+    <script>
+        // Configuration
+        let selectedMethod = '';
+        let usesStripe = false;
+        let stripe = null;
+        let stripeElements = null;
+        let currentClientSecret = '@ViewBag.ClientSecret';
+        let stripePublishableKey = '@ViewBag.StripePublishableKey';
+
+        // Track if we're using regular HTML inputs
+        let usingRegularInputs = false;
+
+        console.log('Payment page loaded');
+
+        const methodInstructions = {
+            'bank_transfer': {
+                title: 'Bank Transfer Instructions',
+                instructions: 'Please transfer <strong>RM @Model.FinalAmount.ToString("N2")</strong> to:<br><br>' +
+                             '<div class="bank-details p-3 bg-white rounded border">' +
+                             '<strong>Bank:</strong> Maybank<br>' +
+                             '<strong>Account:</strong> 1234-5678-9012<br>' +
+                             '<strong>Name:</strong> FlyEase Travel Sdn Bhd<br>' +
+                             '<strong>Reference:</strong> Your Name + Booking' +
+                             '</div><br>' +
+                             '<i class="fas fa-envelope me-1"></i> Email receipt to: payments@flyease.com',
+                format: 'Bank transaction reference number (10-20 characters)',
+                example: 'Example: TFR20231215-ABC123 or REF9876543210'
+            },
+            'tng_ewallet': {
+                title: 'Touch \'n Go eWallet',
+                instructions: 'Send <strong>RM @Model.FinalAmount.ToString("N2")</strong> to:<br><br>' +
+                             '<div class="bank-details p-3 bg-white rounded border">' +
+                             '<strong>TnG ID:</strong> FlyEaseTravel<br>' +
+                             '<strong>Phone:</strong> 012-3456789<br>' +
+                             '<strong>Name:</strong> FlyEase Travel' +
+                             '</div><br>' +
+                             '<i class="fas fa-camera me-1"></i> Take screenshot and email to: payments@flyease.com',
+                format: 'TnG transaction ID (12-16 digits)',
+                example: 'Example: TNG123456789012 or 0123456789123456'
+            },
+            'grabpay': {
+                title: 'GrabPay Payment',
+                instructions: 'Send <strong>RM @Model.FinalAmount.ToString("N2")</strong> to:<br><br>' +
+                             '<div class="bank-details p-3 bg-white rounded border">' +
+                             '<strong>GrabPay:</strong> 012-3456789<br>' +
+                             '<strong>Name:</strong> FlyEase Travel' +
+                             '</div><br>' +
+                             '<i class="fas fa-receipt me-1"></i> Email receipt to: payments@flyease.com',
+                format: 'Grab transaction ID (mix of letters & numbers)',
+                example: 'Example: GP-ABC123XYZ456 or GRAB-20231215-001'
+            },
+            'cash': {
+                title: 'Cash Payment',
+                instructions: 'Visit our office to pay cash:<br><br>' +
+                             '<div class="bank-details p-3 bg-white rounded border">' +
+                             '<strong>Address:</strong> Level 5, KL Sentral, Kuala Lumpur<br>' +
+                             '<strong>Hours:</strong> 9AM-6PM (Mon-Fri)<br>' +
+                             '<strong>Phone:</strong> 03-1234 5678' +
+                             '</div><br>' +
+                             '<i class="fas fa-user me-1"></i> Bring your booking details',
+                format: 'Receipt number or your name',
+                example: 'Example: CASH-RCPT-001 or Paid by John'
+            }
+        };
+
+        // Show instructions for manual methods
+        function showInstructions(methodId) {
+            const methodInfo = methodInstructions[methodId];
+            if (!methodInfo) return;
+
+            const instructionsDiv = document.getElementById('method-instructions');
+            instructionsDiv.innerHTML = `
+                <h6 class="mb-2">${methodInfo.title}</h6>
+                ${methodInfo.instructions}
+            `;
+
+            // Show format hints
+            document.getElementById('format-hint').textContent = `(${methodInfo.format})`;
+            document.getElementById('format-example').textContent = methodInfo.example;
+
+            // Show receipt upload for certain methods
+            const receiptUpload = document.getElementById('receipt-upload');
+            if (methodId === 'tng_ewallet' || methodId === 'grabpay') {
+                receiptUpload.style.display = 'block';
+            } else {
+                receiptUpload.style.display = 'none';
+            }
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Payment page initialized');
+
+            // Select first method by default (card if available, otherwise first)
+            setTimeout(() => {
+                const cardMethod = document.querySelector('[data-method="card"]');
+                if (cardMethod) {
+                    cardMethod.click();
+                } else {
+                    const firstMethod = document.querySelector('[data-method]');
+                    if (firstMethod) firstMethod.click();
+                }
+            }, 100);
+
+            // Watch terms checkbox
+            document.getElementById('accept-terms').addEventListener('change', updateSubmitButton);
+
+            // Handle payment submission
+            document.getElementById('submit-payment').addEventListener('click', processPayment);
+
+            // Watch inputs
+            document.addEventListener('input', function(e) {
+                if (e.target.id === 'reference-number' ||
+                    e.target.id === 'payment-date' ||
+                    e.target.id === 'cardholder-name' ||
+                    e.target.classList.contains('card-input-field')) {
+                    updateSubmitButton();
+                }
+            });
+        });
+
+        // Select payment method
+        function selectPaymentMethod(methodId, stripeEnabled) {
+            console.log('Selected method:', methodId);
+
+            // Update UI
+            document.querySelectorAll('.payment-method-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            event.currentTarget.classList.add('selected');
+
+            // Store selection
+            selectedMethod = methodId;
+            usesStripe = false; // We'll use regular inputs for now
+
+            // Show appropriate form
+            document.querySelectorAll('.payment-form').forEach(form => {
+                form.style.display = 'none';
+            });
+
+            if (methodId === 'card') {
+                // Always show regular HTML inputs for card
+                document.getElementById('stripe-form').style.display = 'block';
+                createRegularCardInputs();
+            } else {
+                // Show manual form for other methods
+                document.getElementById('manual-form').style.display = 'block';
+                showInstructions(methodId);
+            }
+
+            updateSubmitButton();
+        }
+
+        // Create regular HTML input fields for card details
+        function createRegularCardInputs() {
+            console.log('Creating regular card input fields');
+            usingRegularInputs = true;
+
+            // First, check if inputs already exist
+            const existingCardNumber = document.getElementById('regular-card-number');
+            const existingExpiry = document.getElementById('regular-card-expiry');
+            const existingCvv = document.getElementById('regular-card-cvv');
+
+            // If inputs already exist, just show them
+            if (existingCardNumber && existingExpiry && existingCvv) {
+                existingCardNumber.style.display = 'block';
+                existingExpiry.style.display = 'block';
+                existingCvv.style.display = 'block';
+                return;
+            }
+
+            // Remove any existing regular inputs (clean slate)
+            const existingInputs = document.querySelectorAll('.regular-card-input');
+            existingInputs.forEach(input => input.remove());
+
+            // Get the card details form
+            const cardDetailsForm = document.querySelector('.card-details-form');
+
+            // Create regular card number input - FIXED
+            const cardNumberContainer = document.getElementById('card-number-element').closest('.mb-3');
+            if (cardNumberContainer) {
+                // Create input element
+                const cardNumberInput = document.createElement('input');
+                cardNumberInput.type = 'text';
+                cardNumberInput.id = 'regular-card-number';
+                cardNumberInput.className = 'form-control card-input-field regular-card-input';
+                cardNumberInput.placeholder = '4242 4242 4242 4242';
+                cardNumberInput.maxLength = 19;
+                cardNumberInput.value = '4242 4242 4242 4242'; // Test value
+
+                // Find where to insert (after the label)
+                const label = cardNumberContainer.querySelector('label');
+                const stripeContainer = cardNumberContainer.querySelector('#card-number-element');
+
+                if (label && stripeContainer) {
+                    // Insert the input after the stripe container
+                    stripeContainer.parentNode.insertBefore(cardNumberInput, stripeContainer.nextSibling);
+                } else {
+                    // Fallback: append to container
+                    cardNumberContainer.appendChild(cardNumberInput);
+                }
+
+                // Add input masking for card number
+                cardNumberInput.addEventListener('input', function(e) {
+                    let value = e.target.value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
+                    let formatted = '';
+
+                    for (let i = 0; i < value.length; i++) {
+                        if (i > 0 && i % 4 === 0) formatted += ' ';
+                        formatted += value[i];
+                    }
+
+                    e.target.value = formatted.substring(0, 19);
+                });
+
+                console.log('Card number input created');
+            }
+
+            // Create regular expiry input - FIXED
+            const expiryContainer = document.querySelector('#card-expiry-element').closest('.col-md-6');
+            if (expiryContainer) {
+                // Create input element
+                const expiryInput = document.createElement('input');
+                expiryInput.type = 'text';
+                expiryInput.id = 'regular-card-expiry';
+                expiryInput.className = 'form-control card-input-field regular-card-input mt-3';
+                expiryInput.placeholder = 'MM/YY';
+                expiryInput.maxLength = 5;
+                expiryInput.value = '12/34'; // Test value
+
+                // Find where to insert
+                const label = expiryContainer.querySelector('label');
+                const stripeContainer = expiryContainer.querySelector('#card-expiry-element');
+
+                if (label && stripeContainer) {
+                    // Insert the input after the stripe container
+                    stripeContainer.parentNode.insertBefore(expiryInput, stripeContainer.nextSibling);
+                } else {
+                    // Fallback: append to container
+                    expiryContainer.appendChild(expiryInput);
+                }
+
+                // Add input masking for expiry
+                expiryInput.addEventListener('input', function(e) {
+                    let value = e.target.value.replace(/[^0-9]/gi, '');
+
+                    if (value.length >= 2) {
+                        value = value.substring(0, 2) + '/' + value.substring(2, 4);
+                    }
+
+                    e.target.value = value.substring(0, 5);
+                });
+
+                console.log('Expiry input created');
+            }
+
+            // Create regular CVV input - FIXED
+            const cvvContainer = document.querySelector('#card-cvc-element').closest('.col-md-6');
+            if (cvvContainer) {
+                // Create input element
+                const cvvInput = document.createElement('input');
+                cvvInput.type = 'text';
+                cvvInput.id = 'regular-card-cvv';
+                cvvInput.className = 'form-control card-input-field regular-card-input mt-3';
+                cvvInput.placeholder = '123';
+                cvvInput.maxLength = 4;
+                cvvInput.value = '123'; // Test value
+
+                // Find where to insert
+                const label = cvvContainer.querySelector('label');
+                const stripeContainer = cvvContainer.querySelector('#card-cvc-element');
+
+                if (label && stripeContainer) {
+                    // Insert the input after the stripe container
+                    stripeContainer.parentNode.insertBefore(cvvInput, stripeContainer.nextSibling);
+                } else {
+                    // Fallback: append to container
+                    cvvContainer.appendChild(cvvInput);
+                }
+
+                // Only allow numbers for CVV
+                cvvInput.addEventListener('input', function(e) {
+                    e.target.value = e.target.value.replace(/[^0-9]/gi, '').substring(0, 4);
+                });
+
+                console.log('CVV input created');
+            }
+
+            // Show demo info
+            const errorDisplay = document.getElementById('card-errors');
+            errorDisplay.innerHTML = `
+                <div class="alert alert-info mt-3">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>Card Payment Form</strong>
+                    <p class="mb-0 mt-2">Enter your card details to complete the payment.</p>
+                    <hr>
+                    <small class="text-muted">
+                        <i class="fas fa-vial me-1"></i>
+                        <strong>Test Data Pre-filled:</strong> You can modify or use as-is for testing.
+                    </small>
+                </div>
+            `;
+            errorDisplay.style.display = 'block';
+
+            console.log('All card inputs created successfully');
+        }
+
+        // Update submit button state
+        function updateSubmitButton() {
+            const submitButton = document.getElementById('submit-payment');
+            const termsChecked = document.getElementById('accept-terms').checked;
+
+            let isValid = termsChecked && selectedMethod !== '';
+
+            // Additional validation
+            if (selectedMethod === 'card') {
+                // Check cardholder name
+                const cardholderName = document.getElementById('cardholder-name');
+                if (cardholderName) {
+                    isValid = isValid && cardholderName.value.trim().length > 0;
+                }
+
+                if (usingRegularInputs) {
+                    // Validate regular card fields
+                    const cardNumber = document.getElementById('regular-card-number');
+                    const cardExpiry = document.getElementById('regular-card-expiry');
+                    const cardCvv = document.getElementById('regular-card-cvv');
+
+                    if (cardNumber) {
+                        const cardNumberValue = cardNumber.value.replace(/\s+/g, '');
+                        isValid = isValid && cardNumberValue.length === 16;
+                        if (!isValid) console.log('Card number validation failed:', cardNumberValue);
+                    } else {
+                        console.log('Card number element not found');
+                        isValid = false;
+                    }
+
+                    if (cardExpiry) {
+                        isValid = isValid && cardExpiry.value.length === 5;
+                        if (!isValid) console.log('Expiry validation failed:', cardExpiry.value);
+                    } else {
+                        console.log('Expiry element not found');
+                        isValid = false;
+                    }
+
+                    if (cardCvv) {
+                        const cvvValue = cardCvv.value;
+                        isValid = isValid && (cvvValue.length === 3 || cvvValue.length === 4);
+                        if (!isValid) console.log('CVV validation failed:', cvvValue);
+                    } else {
+                        console.log('CVV element not found');
+                        isValid = false;
+                    }
+                }
+            } else if (selectedMethod) {
+                // For manual methods, check reference number
+                const reference = document.getElementById('reference-number');
+                if (reference) {
+                    isValid = isValid && reference.value.trim().length > 0;
+                }
+            }
+
+            submitButton.disabled = !isValid;
+        }
+
+            // Process card payment (demo)
+    async function processCardPayment() {
+        // Get card details
+        const cardholderName = document.getElementById('cardholder-name').value;
+        const cardNumber = document.getElementById('regular-card-number') ?
+            document.getElementById('regular-card-number').value.replace(/\s+/g, '') : '';
+        const cardExpiry = document.getElementById('regular-card-expiry') ?
+            document.getElementById('regular-card-expiry').value : '';
+        const cardCvv = document.getElementById('regular-card-cvv') ?
+            document.getElementById('regular-card-cvv').value : '';
+
+        console.log('Processing card payment:', {
+            cardholderName,
+            cardNumber: cardNumber ? '****' + cardNumber.slice(-4) : 'missing',
+            cardExpiry,
+            cardCvv: cardCvv ? '***' : 'missing'
+        });
+
+        // Validate card details
+        if (!cardholderName || cardholderName.trim() === '') {
+            alert('Please enter the name on your card');
+            throw new Error('Please enter the name on your card');
+        }
+
+        if (!cardNumber || cardNumber.length !== 16) {
+            alert('Please enter a valid 16-digit card number');
+            throw new Error('Please enter a valid 16-digit card number');
+        }
+
+        if (!cardExpiry || cardExpiry.length !== 5) {
+            alert('Please enter a valid expiry date (MM/YY)');
+            throw new Error('Please enter a valid expiry date (MM/YY)');
+        }
+
+        if (!cardCvv || (cardCvv.length !== 3 && cardCvv.length !== 4)) {
+            alert('Please enter a valid CVV (3 or 4 digits)');
+            throw new Error('Please enter a valid CVV (3 or 4 digits)');
+        }
+
+        // For demo, create a mock payment intent ID
+        const demoPaymentIntentId = 'demo_pi_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+
+        // Submit to server
+        submitToServer({
+            paymentMethod: 'card',
+            paymentIntentId: demoPaymentIntentId,
+            referenceNumber: null,
+            paymentDate: new Date().toISOString().split('T')[0]
+        });
+    }
+
+        // Process card payment (demo)
+        async function processCardPayment() {
+            // Get card details
+            const cardholderName = document.getElementById('cardholder-name').value;
+            const cardNumber = document.getElementById('regular-card-number') ?
+                document.getElementById('regular-card-number').value.replace(/\s+/g, '') : '';
+            const cardExpiry = document.getElementById('regular-card-expiry') ?
+                document.getElementById('regular-card-expiry').value : '';
+            const cardCvv = document.getElementById('regular-card-cvv') ?
+                document.getElementById('regular-card-cvv').value : '';
+
+            console.log('Processing card payment:', {
+                cardholderName,
+                cardNumber: cardNumber ? '****' + cardNumber.slice(-4) : 'missing',
+                cardExpiry,
+                cardCvv: cardCvv ? '***' : 'missing'
+            });
+
+            // Validate card details
+            if (!cardholderName || cardholderName.trim() === '') {
+                throw new Error('Please enter the name on your card');
+            }
+
+            if (!cardNumber || cardNumber.length !== 16) {
+                throw new Error('Please enter a valid 16-digit card number');
+            }
+
+            if (!cardExpiry || cardExpiry.length !== 5) {
+                throw new Error('Please enter a valid expiry date (MM/YY)');
+            }
+
+            if (!cardCvv || (cardCvv.length !== 3 && cardCvv.length !== 4)) {
+                throw new Error('Please enter a valid CVV (3 or 4 digits)');
+            }
+
+            // Simulate processing delay
+            await new Promise(resolve => setTimeout(resolve, 1500));
+
+            // Submit to server with demo payment intent ID
+            submitToServer({
+                paymentMethod: 'card',
+                paymentIntentId: 'demo_pi_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+                usesStripe: false,
+                isDemo: true,
+                cardLast4: cardNumber.substr(-4)
+            });
+        }
+
+        // Process manual payment
+        async function processManualPayment() {
+            const referenceNumber = document.getElementById('reference-number').value;
+            const paymentDate = document.getElementById('payment-date').value;
+
+            // Submit to server
+            submitToServer({
+                paymentMethod: selectedMethod,
+                referenceNumber: referenceNumber,
+                paymentDate: paymentDate,
+                usesStripe: false
+            });
+        }
+
+        // Submit to server
+        function submitToServer(data) {
+            console.log('Submitting to server:', data);
+
+            // Create form
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '@Url.Action("ProcessBooking", "Payment")';
+
+            // Find and add anti-forgery token
+            const tokenElement = document.querySelector('input[name="__RequestVerificationToken"]');
+            if (!tokenElement) {
+                alert('Security token missing. Please refresh the page.');
+                return;
+            }
+
+            const tokenInput = document.createElement('input');
+            tokenInput.type = 'hidden';
+            tokenInput.name = '__RequestVerificationToken';
+            tokenInput.value = tokenElement.value;
+            form.appendChild(tokenInput);
+
+            // Add data
+            for (const [key, value] of Object.entries(data)) {
+                if (value !== undefined && value !== null) {
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = key;
+                    input.value = value.toString();
+                    form.appendChild(input);
+                }
+            }
+
+            // Submit
+            document.body.appendChild(form);
+            form.submit();
+        }
+    </script>
+}

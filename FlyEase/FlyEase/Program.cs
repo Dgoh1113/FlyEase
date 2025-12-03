@@ -1,8 +1,17 @@
 ﻿using FlyEase.Data;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
+using Stripe;
+
 var builder = WebApplication.CreateBuilder(args);
 
+// Add logging
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
+builder.Logging.AddDebug();
+builder.Logging.SetMinimumLevel(LogLevel.Information);
+// Add this line after builder creation
+StripeConfiguration.ApiKey = builder.Configuration["Stripe:SecretKey"];
 // ====================================================================
 // 1. DYNAMIC PATH SETUP (No App_Data folder)
 // This sets |DataDirectory| to the project's root folder

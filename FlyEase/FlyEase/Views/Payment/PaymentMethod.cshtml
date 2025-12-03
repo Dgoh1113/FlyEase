@@ -1,0 +1,136 @@
+﻿@{
+    ViewData["Title"] = "Select Payment Method";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-wallet me-2"></i>Select Payment Method
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <!-- Booking Summary -->
+                    <div class="alert alert-info mb-4">
+                        <h6 class="alert-heading">Booking Summary</h6>
+                        <p><strong>Package:</strong> @ViewBag.PackageName</p>
+                        <p><strong>Amount to Pay:</strong> <span class="fw-bold text-primary">RM @ViewBag.FinalAmount.ToString("N2")</span></p>
+                    </div>
+
+                    <form method="post" action="/Payment/PaymentMethod">
+                        @Html.AntiForgeryToken()
+                        
+                        <h5 class="mb-3">Choose payment method:</h5>
+                        
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <div class="payment-option">
+                                    <input type="radio" id="card" name="paymentMethod" value="card" checked class="form-check-input">
+                                    <label for="card" class="payment-label">
+                                        <div class="payment-icon">
+                                            <i class="fas fa-credit-card fa-2x text-primary"></i>
+                                        </div>
+                                        <div class="payment-info">
+                                            <h6>Credit/Debit Card</h6>
+                                            <p class="small text-muted mb-0">Pay with card</p>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="payment-option">
+                                    <input type="radio" id="bank" name="paymentMethod" value="bank_transfer" class="form-check-input">
+                                    <label for="bank" class="payment-label">
+                                        <div class="payment-icon">
+                                            <i class="fas fa-university fa-2x text-success"></i>
+                                        </div>
+                                        <div class="payment-info">
+                                            <h6>Bank Transfer</h6>
+                                            <p class="small text-muted mb-0">Bank transfer</p>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="payment-option">
+                                    <input type="radio" id="tng" name="paymentMethod" value="tng_ewallet" class="form-check-input">
+                                    <label for="tng" class="payment-label">
+                                        <div class="payment-icon">
+                                            <i class="fas fa-wallet fa-2x text-warning"></i>
+                                        </div>
+                                        <div class="payment-info">
+                                            <h6>Touch 'n Go</h6>
+                                            <p class="small text-muted mb-0">eWallet</p>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="payment-option">
+                                    <input type="radio" id="cash" name="paymentMethod" value="cash" class="form-check-input">
+                                    <label for="cash" class="payment-label">
+                                        <div class="payment-icon">
+                                            <i class="fas fa-money-bill-wave fa-2x text-info"></i>
+                                        </div>
+                                        <div class="payment-info">
+                                            <h6>Cash</h6>
+                                            <p class="small text-muted mb-0">Pay in office</p>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mt-4 pt-3 border-top">
+                            <div class="d-flex justify-content-between">
+                                <a href="/Payment/CustomerInfo" class="btn btn-outline-secondary">
+                                    <i class="fas fa-arrow-left me-1"></i>Back
+                                </a>
+                                <button type="submit" class="btn btn-primary">
+                                    Continue <i class="fas fa-arrow-right ms-1"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .payment-option {
+        margin-bottom: 15px;
+    }
+    
+    .payment-label {
+        display: flex;
+        align-items: center;
+        padding: 15px;
+        border: 2px solid #dee2e6;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: all 0.3s;
+        background: white;
+    }
+    
+    .payment-label:hover {
+        border-color: #0d6efd;
+        background: #f8f9fa;
+    }
+    
+    input[type="radio"]:checked + .payment-label {
+        border-color: #0d6efd;
+        background: #e7f1ff;
+    }
+    
+    .payment-icon {
+        margin-right: 15px;
+    }
+</style>

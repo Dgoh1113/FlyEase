@@ -1,47 +1,55 @@
-﻿@model FlyEase.Data.Payment
-
+﻿@model FlyEase.Data.Booking
 @{
-    ViewData["Title"] = "Payment Successful";
+    ViewData["Title"] = "Booking Confirmed!";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<div class="container mt-5 text-center">
-    <div class="card shadow-lg border-0 p-5 mx-auto" style="max-width: 600px; border-radius: 15px;">
-        <div class="mb-4">
-            <i class="fas fa-check-circle text-success" style="font-size: 5rem;"></i>
-        </div>
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-sm border-0">
+                <div class="card-body text-center py-5">
+                    <div class="mb-4">
+                        <i class="fas fa-check-circle text-success" style="font-size: 4rem;"></i>
+                    </div>
+                    
+                    <h1 class="text-success mb-3">Booking Confirmed!</h1>
+                    <p class="lead mb-4">Thank you for your booking. Your adventure awaits!</p>
 
-        <h2 class="fw-bold text-success mb-3">Booking Confirmed!</h2>
-        <p class="lead text-muted">Thank you for booking with FlyEase. Your adventure awaits!</p>
+                    <div class="card bg-light mb-4">
+                        <div class="card-body text-start">
+                            <h5 class="card-title">Booking Details</h5>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p><strong>Booking ID:</strong> #@Model.BookingID</p>
+                                    <p><strong>Package:</strong> @Model.Package.PackageName</p>
+                                    <p><strong>Travel Date:</strong> @Model.TravelDate.ToString("dd MMM yyyy")</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p><strong>Travelers:</strong> @Model.NumberOfPeople</p>
+                                    <p><strong>Total Amount:</strong> RM @Model.FinalAmount.ToString("N2")</p>
+                                    <p><strong>Status:</strong> <span class="badge bg-success">@Model.BookingStatus</span></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
-        <hr class="my-4">
+                    <div class="alert alert-info">
+                        <h6><i class="fas fa-envelope me-2"></i>What's Next?</h6>
+                        <p class="mb-2">A confirmation email has been sent to your email address.</p>
+                        <p class="mb-0">You can view your booking details in your profile page.</p>
+                    </div>
 
-        <div class="text-start bg-light p-4 rounded">
-            <div class="d-flex justify-content-between mb-2">
-                <span class="fw-bold">Booking ID:</span>
-                <span>#@Model.BookingID</span>
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-center mt-4">
+                        <a asp-controller="Home" asp-action="Index" class="btn btn-primary me-md-2">
+                            <i class="fas fa-home me-1"></i>Back to Home
+                        </a>
+                        <a asp-controller="Auth" asp-action="Profile" class="btn btn-outline-secondary">
+                            <i class="fas fa-user me-1"></i>View My Bookings
+                        </a>
+                    </div>
+                </div>
             </div>
-            <div class="d-flex justify-content-between mb-2">
-                <span class="fw-bold">Package:</span>
-                <span>@Model.Booking.Package.PackageName</span>
-            </div>
-            <div class="d-flex justify-content-between mb-2">
-                <span class="fw-bold">Amount Paid:</span>
-                <span class="text-primary fw-bold">RM @Model.AmountPaid.ToString("N2")</span>
-            </div>
-            <div class="d-flex justify-content-between mb-0">
-                <span class="fw-bold">Date:</span>
-                <span>@Model.PaymentDate.ToString("dd MMM yyyy, hh:mm tt")</span>
-            </div>
-        </div>
-
-        <div class="mt-4 d-grid gap-2">
-            <a asp-controller="Auth" asp-action="Profile" class="btn btn-primary btn-lg fw-bold shadow-sm">
-                <i class="fas fa-user-circle me-2"></i>Go to My Dashboard
-            </a>
-            <a asp-controller="Home" asp-action="Index" class="btn btn-outline-secondary">
-                Back to Home
-            </a>
         </div>
     </div>
 </div>
