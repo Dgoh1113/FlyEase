@@ -4,6 +4,7 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Http;
 
 namespace FlyEase.Data
 {
@@ -19,6 +20,10 @@ namespace FlyEase.Data
         public DbSet<Package> Packages { get; set; } = null!;
         public DbSet<PackageCategory> PackageCategories { get; set; } = null!;
         public DbSet<PackageInclusion> PackageInclusions { get; set; } = null!;
+
+        // === 1. NEW TABLE FOR ITINERARY ===
+        public DbSet<PackageItinerary> PackageItineraries { get; set; } = null!;
+
         public DbSet<Payment> Payments { get; set; } = null!;
         public DbSet<DiscountType> DiscountTypes { get; set; } = null!;
         public DbSet<BookingDiscount> BookingDiscounts { get; set; } = null!;
@@ -47,7 +52,7 @@ namespace FlyEase.Data
                 .HasOne(p => p.Category)
                 .WithMany(pc => pc.Packages)
                 .HasForeignKey(p => p.CategoryID)
-                .OnDelete(DeleteBehavior.Restrict); // Change to Restrict
+                .OnDelete(DeleteBehavior.Restrict);
 
             // PackageInclusion
             modelBuilder.Entity<PackageInclusion>()
@@ -59,6 +64,17 @@ namespace FlyEase.Data
                 .HasForeignKey(pi => pi.PackageID)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            // === 2. CONFIGURATION FOR ITINERARY ===
+            modelBuilder.Entity<PackageItinerary>()
+                .HasKey(pi => pi.ItineraryID);
+
+            modelBuilder.Entity<PackageItinerary>()
+                .HasOne(pi => pi.Package)
+                .WithMany(p => p.Itinerary)
+                .HasForeignKey(pi => pi.PackageID)
+                .OnDelete(DeleteBehavior.Cascade);
+            // ======================================
+
             // Booking
             modelBuilder.Entity<Booking>()
                 .HasKey(b => b.BookingID);
@@ -67,13 +83,13 @@ namespace FlyEase.Data
                 .HasOne(b => b.User)
                 .WithMany(u => u.Bookings)
                 .HasForeignKey(b => b.UserID)
-                .OnDelete(DeleteBehavior.Restrict); // Change to Restrict
+                .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<Booking>()
                 .HasOne(b => b.Package)
                 .WithMany(p => p.Bookings)
                 .HasForeignKey(b => b.PackageID)
-                .OnDelete(DeleteBehavior.Restrict); // Change to Restrict
+                .OnDelete(DeleteBehavior.Restrict);
 
             // Payment
             modelBuilder.Entity<Payment>()
@@ -103,9 +119,9 @@ namespace FlyEase.Data
                 .HasOne(bd => bd.DiscountType)
                 .WithMany(dt => dt.BookingDiscounts)
                 .HasForeignKey(bd => bd.DiscountTypeID)
-                .OnDelete(DeleteBehavior.Restrict); // Change to Restrict
+                .OnDelete(DeleteBehavior.Restrict);
 
-            // Feedback - FIXED: Remove UserID and fix relationships
+            // Feedback
             modelBuilder.Entity<Feedback>()
                 .HasKey(f => f.FeedbackID);
 
@@ -114,9 +130,6 @@ namespace FlyEase.Data
                 .WithMany(b => b.Feedbacks)
                 .HasForeignKey(f => f.BookingID)
                 .OnDelete(DeleteBehavior.Cascade);
-
-            // Remove the User relationship from Feedback since it's redundant
-            // User can be accessed via Booking.User
         }
     }
 
@@ -133,7 +146,6 @@ namespace FlyEase.Data
         public DateTime CreatedDate { get; set; }
         public ICollection<Booking> Bookings { get; set; } = new List<Booking>();
         public ICollection<Feedback> Feedbacks { get; set; } = new List<Feedback>();
-
     }
 
     public class PackageCategory
@@ -157,13 +169,34 @@ namespace FlyEase.Data
         public int AvailableSlots { get; set; }
         public string? ImageURL { get; set; }
 
-        // === ADD THESE PROPERTIES ===
+        // === 3. NEW LOCATION FIELDS ===
+        public double Latitude { get; set; }
+        public double Longitude { get; set; }
+
         [NotMapped]
-        public List<IFormFile>? ImageFiles { get; set; } // Catches the actual files from the View
+        public double AverageRating { get; set; }
+
+        [NotMapped]
+        public List<IFormFile>? ImageFiles { get; set; }
 
         public PackageCategory Category { get; set; } = null!;
         public ICollection<PackageInclusion> PackageInclusions { get; set; } = new List<PackageInclusion>();
         public ICollection<Booking> Bookings { get; set; } = new List<Booking>();
+
+        // === 4. NEW ITINERARY RELATIONSHIP ===
+        public ICollection<PackageItinerary> Itinerary { get; set; } = new List<PackageItinerary>();
+    }
+
+    // === 5. NEW ITINERARY CLASS ===
+    public class PackageItinerary
+    {
+        public int ItineraryID { get; set; }
+        public int PackageID { get; set; }
+        public int DayNumber { get; set; } // e.g., 1, 2, 3
+        public string Title { get; set; } = null!; // e.g., "Arrival"
+        public string ActivityDescription { get; set; } = null!;
+
+        public Package Package { get; set; } = null!;
     }
 
     public class PackageInclusion
@@ -192,8 +225,6 @@ namespace FlyEase.Data
         public ICollection<Payment> Payments { get; set; } = new List<Payment>();
         public ICollection<BookingDiscount> BookingDiscounts { get; set; } = new List<BookingDiscount>();
         public ICollection<Feedback> Feedbacks { get; set; } = new List<Feedback>();
-
-
     }
 
     public class Payment
@@ -238,42 +269,37 @@ namespace FlyEase.Data
         public Booking Booking { get; set; } = null!;
         public User User { get; set; } = null!;
     }
+
+    // --- VIEW MODELS (DTOs) KEPT FOR COMPATIBILITY ---
     public class StaffBookingsViewModel
     {
-        // For Filter/Search Inputs
-        public string? SearchTerm { get; set; } // Search by Name or Booking ID
-        public string? StatusFilter { get; set; } // e.g., "Confirmed", "Pending", "Cancelled"
+        public string? SearchTerm { get; set; }
+        public string? StatusFilter { get; set; }
         public DateTime? DateFrom { get; set; }
         public DateTime? DateTo { get; set; }
 
-        // KPI Cards (Stats at the top of the dashboard)
         public int TotalBookingsCount { get; set; }
         public int PendingBookingsCount { get; set; }
 
         [DataType(DataType.Currency)]
         public decimal TotalRevenueGenerated { get; set; }
 
-        // The List of Data
         public List<BookingItemVM> Bookings { get; set; } = new List<BookingItemVM>();
     }
 
-    // 2. The Individual Row Data (Data Transfer Object)
     public class BookingItemVM
     {
         public int BookingID { get; set; }
 
-        // Customer Info (Flattened from User entity)
         [Display(Name = "Customer Name")]
         public string CustomerName { get; set; } = string.Empty;
 
         [Display(Name = "Email")]
         public string CustomerEmail { get; set; } = string.Empty;
 
-        // Package Info (Flattened from Package entity)
         [Display(Name = "Package")]
         public string PackageName { get; set; } = string.Empty;
 
-        // Booking Specifics
         [Display(Name = "Travel Date")]
         [DataType(DataType.Date)]
         public DateTime TravelDate { get; set; }
@@ -285,14 +311,12 @@ namespace FlyEase.Data
         [DataType(DataType.Date)]
         public DateTime BookingDate { get; set; }
 
-        // Financials
         [DataType(DataType.Currency)]
-        public decimal FinalAmount { get; set; } // The total cost
+        public decimal FinalAmount { get; set; }
 
         [DataType(DataType.Currency)]
-        public decimal AmountPaid { get; set; } // Sum of all successful payments
+        public decimal AmountPaid { get; set; }
 
-        // Logic to check if they owe money
         public decimal BalanceDue => FinalAmount - AmountPaid;
 
         public string PaymentStatus
@@ -307,9 +331,4 @@ namespace FlyEase.Data
         }
         public string BookingStatus { get; set; } = string.Empty;
     }
-
-
-
-
-
-} 
+}

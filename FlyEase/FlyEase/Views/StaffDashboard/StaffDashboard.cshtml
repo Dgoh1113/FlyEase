@@ -1,8 +1,7 @@
-﻿
+﻿@model FlyEase.ViewModels.StaffDashboardVM
 @{
-    @model FlyEase.ViewModels.StaffDashboardVM
-    ViewData["Title"] = "Manage Packages";
-    Layout = "~/Views/Shared/_StaffLayout.cshtml"; // <--- CHANGE THIS
+    ViewData["Title"] = "Staff Dashboard";
+    Layout = "~/Views/Shared/_StaffLayout.cshtml";
 }
 
 <div class="container-fluid py-4">
@@ -44,7 +43,18 @@
     </div>
 
     <div class="row">
+
         <div class="col-lg-8 mb-4">
+
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Overall Package Ratings</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="ratingChart" style="max-height: 300px;"></canvas>
+                </div>
+            </div>
+
             <div class="card shadow-sm">
                 <div class="card-header bg-white">
                     <h5 class="mb-0">Recent Bookings</h5>
@@ -62,28 +72,27 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach(var item in Model.RecentBookings)
+                            @foreach (var item in Model.RecentBookings)
                             {
-                            var statusClass = item.BookingStatus == "Confirmed" ? "bg-success" :
-                            (item.BookingStatus == "Pending" ? "bg-warning" : "bg-danger");
-                            var textClass = item.BookingStatus == "Pending" ? "text-dark" : "text-white";
-
-                            <tr>
-                                <td>@item.BookingID</td>
-                                <td>@item.User.FullName</td>
-                                <td>@item.Package.PackageName</td>
-                                <td>@item.BookingDate.ToShortDateString()</td>
-                                <td>
-                                    <span class="badge @statusClass @textClass">@item.BookingStatus</span>
-                                </td>
-                                <td>
-                                    <a asp-controller="Staff" asp-action="Bookings" class="btn btn-sm btn-outline-primary">Manage</a>
-                                </td>
-                            </tr>
+                                var statusClass = item.BookingStatus == "Confirmed" ? "bg-success" :
+                                (item.BookingStatus == "Pending" ? "bg-warning" : "bg-danger");
+                                var textClass = item.BookingStatus == "Pending" ? "text-dark" : "text-white";
+                                <tr>
+                                    <td>@item.BookingID</td>
+                                    <td>@item.User.FullName</td>
+                                    <td>@item.Package.PackageName</td>
+                                    <td>@item.BookingDate.ToShortDateString()</td>
+                                    <td>
+                                        <span class="badge @statusClass @textClass">@item.BookingStatus</span>
+                                    </td>
+                                    <td>
+                                        <a asp-controller="StaffDashboard" asp-action="Bookings" class="btn btn-sm btn-outline-primary">Manage</a>
+                                    </td>
+                                </tr>
                             }
-                            @if(!Model.RecentBookings.Any())
+                            @if (!Model.RecentBookings.Any())
                             {
-                            <tr><td colspan="6" class="text-center p-3">No bookings found.</td></tr>
+                                <tr><td colspan="6" class="text-center p-3">No bookings found.</td></tr>
                             }
                         </tbody>
                     </table>
@@ -97,22 +106,56 @@
                     <h5 class="mb-0">Low Availability Alert</h5>
                 </div>
                 <ul class="list-group list-group-flush">
-                    @foreach(var pack in Model.LowStockPackages)
+                    @foreach (var pack in Model.LowStockPackages)
                     {
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        <div>
-                            <strong>@pack.PackageName</strong><br />
-                            <small class="text-muted">@pack.Destination</small>
-                        </div>
-                        <span class="badge bg-danger rounded-pill">@pack.AvailableSlots left</span>
-                    </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>@pack.PackageName</strong><br />
+                                <small class="text-muted">@pack.Destination</small>
+                            </div>
+                            <span class="badge bg-danger rounded-pill">@pack.AvailableSlots left</span>
+                        </li>
                     }
-                    @if(!Model.LowStockPackages.Any())
+                    @if (!Model.LowStockPackages.Any())
                     {
-                    <li class="list-group-item text-center text-muted">All packages have sufficient stock.</li>
+                        <li class="list-group-item text-center text-muted">All packages have sufficient stock.</li>
                     }
                 </ul>
             </div>
         </div>
     </div>
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        // Serialize C# data to JS arrays
+        var labels = @Html.Raw(Json.Serialize(Model.PackageNames));
+        var dataValues = @Html.Raw(Json.Serialize(Model.PackageRatings));
+
+        var ctx = document.getElementById('ratingChart').getContext('2d');
+        var myChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Average Rating (Stars)',
+                    data: dataValues,
+                    backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 5
+                    }
+                },
+                responsive: true,
+                maintainAspectRatio: false
+            }
+        });
+    });
+</script>

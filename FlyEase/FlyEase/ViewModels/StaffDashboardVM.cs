@@ -12,6 +12,10 @@ namespace FlyEase.ViewModels
         public decimal TotalRevenue { get; set; }
         public List<Booking> RecentBookings { get; set; } = new List<Booking>();
         public List<Package> LowStockPackages { get; set; } = new List<Package>();
+
+        // === NEW: For Chart.js ===
+        public List<string> PackageNames { get; set; } = new List<string>();
+        public List<double> PackageRatings { get; set; } = new List<double>();
     }
 
     // 2. For the Users Management Tab
@@ -28,7 +32,7 @@ namespace FlyEase.ViewModels
         public Booking CurrentBooking { get; set; } = new Booking();
     }
 
-    // 4. For the Packages Management Tab (The one you sent me)
+    // 4. For the Packages Management Tab
     public class PackagesPageVM
     {
         // The List for the Table
@@ -39,6 +43,5 @@ namespace FlyEase.ViewModels
 
         // The Single Object for the Create/Edit Form
         public Package CurrentPackage { get; set; } = new Package();
-
     }
 }

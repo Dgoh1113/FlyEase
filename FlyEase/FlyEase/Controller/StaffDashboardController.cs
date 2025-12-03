@@ -3,12 +3,12 @@ using Microsoft.EntityFrameworkCore;
 using FlyEase.Data;
 using FlyEase.ViewModels;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http; // Required for IFormFile
+using Microsoft.AspNetCore.Http;
+using FlyEase.Services; // Needed to find EmailService
 
 namespace FlyEase.Controllers
 {
     [Route("StaffDashboard")]
-    [Authorize(Roles = "Admin")]
     public class StaffDashboardController : Controller
     {
         private readonly FlyEaseDbContext _context;
@@ -26,14 +26,33 @@ namespace FlyEase.Controllers
         [HttpGet("StaffDashboard")]
         public async Task<IActionResult> StaffDashboard()
         {
+            var totalUsers = await _context.Users.CountAsync();
+            var totalBookings = await _context.Bookings.CountAsync();
+            var pendingBookings = await _context.Bookings.CountAsync(b => b.BookingStatus == "Pending");
+            var totalRevenue = await _context.Payments.Where(p => p.PaymentStatus == "Completed").SumAsync(p => p.AmountPaid);
+
+            var recentBookings = await _context.Bookings
+                .Include(b => b.User).Include(b => b.Package)
+                .OrderByDescending(b => b.BookingDate).Take(5).ToListAsync();
+
+            var lowStock = await _context.Packages.Where(p => p.AvailableSlots < 10).OrderBy(p => p.AvailableSlots).Take(5).ToListAsync();
+
+            var analytics = await _context.Feedbacks
+                .Include(f => f.Booking).ThenInclude(b => b.Package)
+                .GroupBy(f => f.Booking.Package.PackageName)
+                .Select(g => new { Name = g.Key, AvgRating = g.Average(f => (double)f.Rating) })
+                .ToListAsync();
+
             var vm = new StaffDashboardVM
             {
-                TotalUsers = await _context.Users.CountAsync(u => u.Role == "User"),
-                TotalBookings = await _context.Bookings.CountAsync(),
-                PendingBookings = await _context.Bookings.CountAsync(b => b.BookingStatus == "Pending"),
-                TotalRevenue = await _context.Payments.Where(p => p.PaymentStatus == "Completed").SumAsync(p => p.AmountPaid),
-                RecentBookings = await _context.Bookings.Include(b => b.User).Include(b => b.Package).OrderByDescending(b => b.BookingDate).Take(5).ToListAsync(),
-                LowStockPackages = await _context.Packages.Where(p => p.AvailableSlots < 10).OrderBy(p => p.AvailableSlots).Take(5).ToListAsync()
+                TotalUsers = totalUsers,
+                TotalBookings = totalBookings,
+                PendingBookings = pendingBookings,
+                TotalRevenue = totalRevenue,
+                RecentBookings = recentBookings,
+                LowStockPackages = lowStock,
+                PackageNames = analytics.Select(a => a.Name).ToList(),
+                PackageRatings = analytics.Select(a => a.AvgRating).ToList()
             };
             return View(vm);
         }
@@ -67,31 +86,6 @@ namespace FlyEase.Controllers
                 }
             }
             return RedirectToAction(nameof(Users));
-        }
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> UpdateBookingStatus(BookingsPageVM model)
-        {
-            // 1. Find the booking in the database
-            var bookingToUpdate = await _context.Bookings.FindAsync(model.CurrentBooking.BookingID);
-
-            if (bookingToUpdate == null)
-            {
-                TempData["Error"] = "Booking not found.";
-                return RedirectToAction("Bookings");
-            }
-
-            // 2. Update the status
-            bookingToUpdate.BookingStatus = model.CurrentBooking.BookingStatus;
-
-            // 3. (Optional) Logic: If Cancelled, should we free up slots?
-            // If you want to handle slot logic, you would do it here.
-
-            // 4. Save to DB
-            await _context.SaveChangesAsync();
-
-            TempData["Success"] = "Booking updated successfully!";
-            return RedirectToAction("Bookings");
         }
 
         [HttpPost("DeleteUser")]
@@ -143,6 +137,56 @@ namespace FlyEase.Controllers
             return RedirectToAction(nameof(Bookings));
         }
 
+        [HttpPost("UpdateBookingStatus")] // This matches the form in Bookings.cshtml
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> UpdateBookingStatus(BookingsPageVM model)
+        {
+            var input = model.CurrentBooking;
+
+            // 1. Fetch Booking WITH User and Package data 
+            // (We use .Include because we need the Email and Package Name for the message)
+            var booking = await _context.Bookings
+                .Include(b => b.User)
+                .Include(b => b.Package)
+                .FirstOrDefaultAsync(b => b.BookingID == input.BookingID);
+
+            if (booking != null)
+            {
+                // 2. Update Status
+                booking.BookingStatus = input.BookingStatus;
+                await _context.SaveChangesAsync();
+
+                // 3. TRIGGER: Is it "Completed"? -> Send Email
+                if (booking.BookingStatus == "Completed")
+                {
+                    var emailService = new EmailService();
+
+                    // Fire and forget (we don't want the page to freeze if email is slow)
+                    try
+                    {
+                        await emailService.SendReviewInvitation(
+                            booking.User.Email,
+                            booking.User.FullName,
+                            booking.BookingID,
+                            booking.Package.PackageName
+                        );
+                        TempData["Success"] = "Booking marked Completed & Review Email Sent!";
+                    }
+                    catch
+                    {
+                        TempData["Warning"] = "Booking saved, but Email failed to send. Check credentials.";
+                    }
+                }
+                else
+                {
+                    TempData["Success"] = "Booking status updated successfully.";
+                }
+            }
+
+            return RedirectToAction("Bookings");
+        }
+
+
         [HttpPost("DeleteBooking")]
         public async Task<IActionResult> DeleteBooking(int id)
         {
@@ -157,87 +201,84 @@ namespace FlyEase.Controllers
         }
 
         // ==========================================
-        // 4. PACKAGES MANAGEMENT (Single Page Modal)
+        // 4. PACKAGES MANAGEMENT
         // ==========================================
-
-        // GET: StaffDashboard/Packages
-        // Loads the list AND the categories for the "Create" modal dropdown
         [HttpGet("Packages")]
         public async Task<IActionResult> Packages()
         {
+            var packages = await _context.Packages
+                .Include(p => p.Category)
+                .Include(p => p.Bookings).ThenInclude(b => b.Feedbacks)
+                .Include(p => p.Itinerary) // <--- FETCH ITINERARY
+                .OrderByDescending(p => p.PackageID)
+                .ToListAsync();
+
+            // Calculate Ratings
+            foreach (var p in packages)
+            {
+                var feedbacks = p.Bookings.SelectMany(b => b.Feedbacks).ToList();
+                p.AverageRating = feedbacks.Any() ? feedbacks.Average(f => f.Rating) : 0;
+            }
+
             var vm = new PackagesPageVM
             {
-                Packages = await _context.Packages
-                    .Include(p => p.Category)
-                    .OrderByDescending(p => p.PackageID)
-                    .ToListAsync(),
+                Packages = packages,
                 Categories = await _context.PackageCategories.ToListAsync(),
-                CurrentPackage = new Package() // Empty object for the "Create" form
+                CurrentPackage = new Package()
             };
             return View(vm);
         }
 
-        // POST: StaffDashboard/SavePackage
-        // Handles BOTH Creating new packages and Editing existing ones
         [HttpPost("SavePackage")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> SavePackage(PackagesPageVM model)
         {
             var input = model.CurrentPackage;
 
-            // 1. Handle File Uploads
-            // We will build a list of valid image paths
+            // 1. Handle Images
             var imagePaths = new List<string>();
 
-            // If editing, keep existing images (unless they are in the delete list)
+            // Retain existing images if editing
             if (input.PackageID > 0)
             {
                 var existingPkg = await _context.Packages.AsNoTracking().FirstOrDefaultAsync(p => p.PackageID == input.PackageID);
                 if (existingPkg != null && !string.IsNullOrEmpty(existingPkg.ImageURL))
                 {
-                    var currentImages = existingPkg.ImageURL.Split(';').ToList();
-
-                    imagePaths.AddRange(currentImages);
+                    imagePaths.AddRange(existingPkg.ImageURL.Split(';'));
                 }
             }
 
-            // 2. Process New Files
+            // Save new images
             if (input.ImageFiles != null && input.ImageFiles.Count > 0)
             {
                 string uploadsFolder = Path.Combine(_environment.WebRootPath, "img");
-                // Ensure directory exists
                 if (!Directory.Exists(uploadsFolder)) Directory.CreateDirectory(uploadsFolder);
 
                 foreach (var file in input.ImageFiles)
                 {
-                    // Create unique filename
                     string uniqueFileName = Guid.NewGuid().ToString() + Path.GetExtension(file.FileName);
-                    string filePath = Path.Combine(uploadsFolder, uniqueFileName);
-
-                    // Save file to server disk
-                    using (var fileStream = new FileStream(filePath, FileMode.Create))
+                    using (var fileStream = new FileStream(Path.Combine(uploadsFolder, uniqueFileName), FileMode.Create))
                     {
                         await file.CopyToAsync(fileStream);
                     }
-
-                    // Add relative path to our list
                     imagePaths.Add("/img/" + uniqueFileName);
                 }
             }
-
-            // Join all paths back into a single string for the DB
             input.ImageURL = imagePaths.Count > 0 ? string.Join(";", imagePaths) : null;
 
-            // 1. CREATE NEW && Save to database
+            // 2. Save/Update Package Logic
             if (input.PackageID == 0)
             {
+                // Create New: Itinerary list is automatically mapped by MVC
                 _context.Packages.Add(input);
                 TempData["Success"] = "Package created successfully!";
             }
-            // 2. EDIT EXISTING
             else
             {
-                var existing = await _context.Packages.FindAsync(input.PackageID);
+                var existing = await _context.Packages
+                    .Include(p => p.Itinerary) // Load existing itinerary
+                    .FirstOrDefaultAsync(p => p.PackageID == input.PackageID);
+
                 if (existing != null)
                 {
                     existing.PackageName = input.PackageName;
@@ -249,6 +290,24 @@ namespace FlyEase.Controllers
                     existing.AvailableSlots = input.AvailableSlots;
                     existing.Description = input.Description;
                     existing.ImageURL = input.ImageURL;
+                    existing.Latitude = input.Latitude;
+                    existing.Longitude = input.Longitude;
+
+                    // === UPDATE ITINERARY ===
+                    // A. Remove old entries
+                    _context.PackageItineraries.RemoveRange(existing.Itinerary);
+
+                    // B. Add new entries from form
+                    if (input.Itinerary != null)
+                    {
+                        foreach (var day in input.Itinerary)
+                        {
+                            if (!string.IsNullOrWhiteSpace(day.Title))
+                            {
+                                existing.Itinerary.Add(day);
+                            }
+                        }
+                    }
 
                     _context.Packages.Update(existing);
                     TempData["Success"] = "Package updated successfully!";
@@ -259,14 +318,12 @@ namespace FlyEase.Controllers
             return RedirectToAction(nameof(Packages));
         }
 
-        // POST: StaffDashboard/DeletePackage
         [HttpPost("DeletePackage")]
         public async Task<IActionResult> DeletePackage(int id)
         {
             var package = await _context.Packages.FindAsync(id);
             if (package != null)
             {
-                // Prevent deletion if bookings exist
                 if (await _context.Bookings.AnyAsync(b => b.PackageID == id))
                 {
                     TempData["Error"] = "Cannot delete package: Active bookings exist.";

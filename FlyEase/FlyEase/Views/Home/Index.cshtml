@@ -75,54 +75,74 @@
 
     @foreach (var package in Model)
     {
+        var firstImage = package.ImageURL?.Split(';').FirstOrDefault() ?? "/img/default-package.jpg";
         <div class="package-card">
-            <img src="@(package.ImageURL ?? "/img/default-package.jpg")" alt="@package.PackageName" />
+            <a asp-controller="Booking" asp-action="Booking" asp-route-id="@package.PackageID" class="text-decoration-none">
+                <img src="@firstImage" alt="@package.PackageName" />
 
-            <span class="category-badge">@package.Category?.CategoryName</span>
+                <span class="category-badge">@package.Category?.CategoryName</span>
 
-            <div class="package-content">
-                <h3>@package.PackageName</h3>
+                <div class="package-content">
+                    <h3>@package.PackageName</h3>
 
-                <p class="price">RM @package.Price.ToString("N0")</p>
-                <p>@package.Description</p>
-                <p><small><strong>Destination:</strong> @package.Destination</small></p>
-                <p><small><strong>Duration:</strong> @((package.EndDate - package.StartDate).Days) Days</small></p>
-
-                @if (package.AvailableSlots < 5)
-                {
-                    <p style="color:red; font-weight:bold;"><small>Only @package.AvailableSlots slots left!</small></p>
-                }
-                else
-                {
-                    <p><small>Available: @package.AvailableSlots slots</small></p>
-                }
-
-                @if (package.PackageInclusions.Any())
-                {
-                    <div class="inclusions">
-                        <strong>Includes:</strong>
-                        <ul>
-                            @foreach (var inclusion in package.PackageInclusions.Take(2))
-                            {
-                                <li>@inclusion.InclusionItem</li>
-                            }
-                            @if (package.PackageInclusions.Count > 2)
-                            {
-                                <li>+@(package.PackageInclusions.Count - 2) more inclusions</li>
-                            }
-                        </ul>
+                    <div class="mb-2">
+                        @if (package.AverageRating > 0)
+                        {
+                            <div class="text-warning small">
+                                @for (int i = 1; i <= 5; i++)
+                                {
+                                    if (package.AverageRating >= i)
+                                    {
+                                        <i class="fas fa-star"></i>
+                                    }
+                                    else if (package.AverageRating >= i - 0.5)
+                                    {
+                                        <i class="fas fa-star-half-alt"></i>
+                                    }
+                                    else
+                                    {
+                                        <i class="far fa-star"></i>
+                                    }
+                                }
+                                <span class="text-muted ms-1">(@package.AverageRating.ToString("0.0"))</span>
+                            </div>
+                        }
+                        else
+                        {
+                            <small class="text-muted"><i class="far fa-star"></i> New Package</small>
+                        }
                     </div>
-                }
+                    <p class="price">RM @package.Price.ToString("N0")</p>
+                    <p><small><strong>Destination:</strong> @package.Destination</small></p>
+                    <p><small><strong>Duration:</strong> @((package.EndDate - package.StartDate).Days) Days</small></p>
 
-                <div class="mt-3">
-                    <a asp-controller="Payment" asp-action="CustomerInfo"
-                       asp-route-packageId="@package.PackageID"
-                       asp-route-people="1"
-                       class="btn-book">
-                        Book Now
-                    </a>
+                    @if (package.AvailableSlots < 5)
+                    {
+                        <p style="color:red; font-weight:bold;"><small>Only @package.AvailableSlots slots left!</small></p>
+                    }
+                    else
+                    {
+                        <p><small>Available: @package.AvailableSlots slots</small></p>
+                    }
+
+                    @if (package.PackageInclusions.Any())
+                    {
+                        <div class="inclusions">
+                            <strong>Includes:</strong>
+                            <ul>
+                                @foreach (var inclusion in package.PackageInclusions.Take(2))
+                                {
+                                    <li>@inclusion.InclusionItem</li>
+                                }
+                                @if (package.PackageInclusions.Count > 2)
+                                {
+                                    <li>+@(package.PackageInclusions.Count - 2) more inclusions</li>
+                                }
+                            </ul>
+                        </div>
+                    }
                 </div>
-            </div>
+            </a>
         </div>
     }
 </section>
@@ -352,8 +372,7 @@
             color: white;
         }
 
-    /* Mobile Responsive */
-    /* media (max-width: 768px) {
+    @@media (max-width: 768px) {
         .search-form
 
     {
@@ -371,8 +390,8 @@
     }
 
     .search-section {
-        margin-top: 0; /* Remove overlap on mobile */
+        margin-top: 0;
     }
 
-    } */
+    }
 </style>

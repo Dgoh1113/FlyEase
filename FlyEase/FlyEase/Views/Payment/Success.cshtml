@@ -1,0 +1,47 @@
+﻿@model FlyEase.Data.Payment
+
+@{
+    ViewData["Title"] = "Payment Successful";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container mt-5 text-center">
+    <div class="card shadow-lg border-0 p-5 mx-auto" style="max-width: 600px; border-radius: 15px;">
+        <div class="mb-4">
+            <i class="fas fa-check-circle text-success" style="font-size: 5rem;"></i>
+        </div>
+
+        <h2 class="fw-bold text-success mb-3">Booking Confirmed!</h2>
+        <p class="lead text-muted">Thank you for booking with FlyEase. Your adventure awaits!</p>
+
+        <hr class="my-4">
+
+        <div class="text-start bg-light p-4 rounded">
+            <div class="d-flex justify-content-between mb-2">
+                <span class="fw-bold">Booking ID:</span>
+                <span>#@Model.BookingID</span>
+            </div>
+            <div class="d-flex justify-content-between mb-2">
+                <span class="fw-bold">Package:</span>
+                <span>@Model.Booking.Package.PackageName</span>
+            </div>
+            <div class="d-flex justify-content-between mb-2">
+                <span class="fw-bold">Amount Paid:</span>
+                <span class="text-primary fw-bold">RM @Model.AmountPaid.ToString("N2")</span>
+            </div>
+            <div class="d-flex justify-content-between mb-0">
+                <span class="fw-bold">Date:</span>
+                <span>@Model.PaymentDate.ToString("dd MMM yyyy, hh:mm tt")</span>
+            </div>
+        </div>
+
+        <div class="mt-4 d-grid gap-2">
+            <a asp-controller="Auth" asp-action="Profile" class="btn btn-primary btn-lg fw-bold shadow-sm">
+                <i class="fas fa-user-circle me-2"></i>Go to My Dashboard
+            </a>
+            <a asp-controller="Home" asp-action="Index" class="btn btn-outline-secondary">
+                Back to Home
+            </a>
+        </div>
+    </div>
+</div>
