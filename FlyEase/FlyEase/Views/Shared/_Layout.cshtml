@@ -21,8 +21,8 @@
     <nav class="d-flex align-items-center justify-content-center flex-wrap gap-3 p-3">
         <a asp-controller="Home" asp-action="Index">@Localizer["Home"]</a>
         <a asp-controller="Home" asp-action="Packages">@Localizer["Packages"]</a>
-        
-        @if (User.IsInRole("Admin")) 
+
+        @if (User.IsInRole("Staff" || "Admin")) 
         {
             <a asp-controller="PackageManagement" asp-action="PackageManagement">@Localizer["ManagePackages"]</a>
         }
