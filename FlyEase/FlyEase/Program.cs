@@ -20,7 +20,7 @@ builder.Services.AddDbContext<FlyEaseDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
-builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<IEmailService, ForgetEmailService>();
 // Add session support
 builder.Services.AddSession(options =>
 {
@@ -48,6 +48,21 @@ builder.Services.AddAuthorization();
 builder.Services.AddDistributedMemoryCache();
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    try
+    {
+        // Call the seeder here
+        DbSeeder.Seed(services);
+    }
+    catch (Exception ex)
+    {
+        var logger = services.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "An error occurred seeding the DB.");
+    }
+}
 
 // [Add this in Program.cs after var app = builder.Build();]
 using (var scope = app.Services.CreateScope())

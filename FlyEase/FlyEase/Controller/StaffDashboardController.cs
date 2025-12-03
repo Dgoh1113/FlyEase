@@ -9,6 +9,7 @@ using FlyEase.Services; // Needed to find EmailService
 namespace FlyEase.Controllers
 {
     [Route("StaffDashboard")]
+    [Authorize(Roles = "Admin")]
     public class StaffDashboardController : Controller
     {
         private readonly FlyEaseDbContext _context;
