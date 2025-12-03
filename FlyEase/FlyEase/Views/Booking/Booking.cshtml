@@ -6,22 +6,22 @@
 
 @section Head {
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
     <link rel="stylesheet" href="~/css/booking.css" />
 
-    <!-- LEAFLET CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 }
 
 <div class="container mt-4 mb-5">
 
-    <!-- Gallery Section -->
     <div class="row mb-4">
         <div class="@(Model.GalleryImages.Any() ? "col-lg-7" : "col-12") h-100 mb-2">
             <div class="gallery-item h-100 position-relative">
                 <img src="@Model.MainImage" class="w-100 rounded-start object-fit-cover main-img-height"
-                     onclick="openGalleryModal(0)" alt="Main Image">
+                     onclick="openGalleryModal(0)" alt="Main Image" style="cursor: pointer; min-height: 400px; object-fit: cover;">
             </div>
         </div>
+
         @if (Model.GalleryImages.Any())
         {
             <div class="col-lg-5 h-100">
@@ -31,7 +31,7 @@
                         <div class="col-6 position-relative">
                             <div class="gallery-item h-100 w-100">
                                 <img src="@Model.GalleryImages[i]" class="w-100 rounded object-fit-cover side-img-height"
-                                     onclick="openGalleryModal(@(i + 1))" alt="Gallery Image">
+                                     onclick="openGalleryModal(@(i + 1))" alt="Gallery Image" style="cursor: pointer; height: 195px; object-fit: cover;">
 
                                 @if (i == 3 && Model.AllImages.Count > 5)
                                 {
@@ -49,20 +49,18 @@
         }
     </div>
 
-    <!-- Main Content Row -->
     <div class="row">
-        <!-- LEFT COLUMN: Details -->
         <div class="col-lg-8">
             <h1 class="fw-bold">@Model.PackageName</h1>
 
             <div class="mt-4 mb-4">
                 <h3>Travel Date</h3>
-                <p><i class="fa-regular fa-calendar"></i> @Model.StartDate.ToString("dd MMM yyyy") - @Model.EndDate.ToString("dd MMM yyyy")</p>
+                <p><i class="fa-regular fa-calendar me-2"></i>@Model.StartDate.ToString("dd MMM yyyy") - @Model.EndDate.ToString("dd MMM yyyy")</p>
             </div>
 
             <div class="mt-4 mb-4">
                 <h3>Destination</h3>
-                <p><i class="fa-solid fa-location-dot"></i> @Model.Destination</p>
+                <p><i class="fa-solid fa-location-dot me-2"></i>@Model.Destination</p>
             </div>
 
             <div class="mt-4 mb-4">
@@ -70,79 +68,40 @@
                 <p>@Model.Description</p>
             </div>
 
-            <!-- === MAP SECTION (NEW) === -->
-            <!-- Only show if coordinates exist (default 0,0 usually implies empty) -->
-            @if (Model.Itinerary != null)
-            {
-                <div class="mt-4 mb-4">
-                    <h3>Location Map</h3>
-                    <div id="bookingMap" style="height: 350px; width: 100%; border-radius: 10px; border: 1px solid #ddd; z-index: 1;"></div>
-                    <div class="mt-2">
-                        <!-- Link to Google Maps -->
-                        @* Assuming Lat/Long are properties of the package model itself, passed through VM *@
-                        @* Note: The PackageDetailsVM doesn't explicitly have Latitude/Longitude properties in your uploaded file. *@
-                        @* Assuming you updated the VM as discussed previously. If not, add them to PackageDetailsVM.cs *@
-                        @* For now, I will use a hidden input logic or assume they are available if added to VM *@
-                    </div>
-                </div>
-            }
-            <!-- ========================= -->
-            <!-- ITINERARY BUTTON -->
+            <div class="mt-4 mb-4">
+                <h3>Location Map</h3>
+                <div id="bookingMap" style="height: 350px; width: 100%; border-radius: 10px; border: 1px solid #ddd; z-index: 1;"></div>
+            </div>
+
             <div class="mt-4 mb-5">
                 <button type="button" class="btn btn-outline-primary w-100 py-3 fw-bold" data-bs-toggle="modal" data-bs-target="#itineraryModal">
                     <i class="fas fa-list-ol me-2"></i>See Trip Process (Itinerary)
                 </button>
             </div>
-
         </div>
 
-        <!-- RIGHT COLUMN: Booking Form -->
         <div class="col-lg-4">
             <div class="card shadow border-0 p-4 sticky-top" style="top: 20px;">
                 <h3 class="text-primary fw-bold">RM @Model.Price.ToString("N0")</h3>
 
                 <form asp-controller="Payment" asp-action="CustomerInfo" method="get" class="mt-3" id="bookingForm">
                     <input type="hidden" name="packageId" value="@Model.PackageID" />
-                    <input type="hidden" name="selectedOption" id="finalSelectedOption" />
-                    <input type="hidden" id="hasAccommodationFlag" value="@(Model.AccommodationList.Any() ? "true" : "false")" />
 
                     <p><i class="fas fa-users me-2"></i>@Model.AvailableSlots slots available</p>
 
-                    @if (Model.AccommodationList.Any())
+                    @if (Model.Inclusions.Count > 0)
                     {
                         <div class="mb-4">
-                            <label class="form-label fw-bold small text-uppercase text-muted">Accommodation</label>
-                            <div class="d-flex flex-column gap-2" id="accommodationContainer">
-                                @for (int i = 0; i < Model.AccommodationList.Count; i++)
-                                {
-                                    var acc = Model.AccommodationList[i];
-                                    <div class="selection-card">
-                                        <input type="radio" class="btn-check option-trigger" name="accSelection"
-                                               id="acc_@i" value="@acc" autocomplete="off"
-                                               @(i == 0 ? "checked" : "")>
-                                        <label class="btn btn-outline-light w-100 text-start p-3 d-flex align-items-center justify-content-between text-dark border" for="acc_@i">
-                                            <span class="fw-medium">@acc</span>
-                                            <i class="bi bi-check-circle-fill text-primary check-icon"></i>
-                                        </label>
-                                    </div>
-                                }
-                            </div>
-                        </div>
-                    }
-
-                    @if (Model.AddOnList.Any())
-                    {
-                        <div class="mb-4">
-                            <label class="form-label fw-bold small text-uppercase text-muted">Add-on Services</label>
+                            <label class="form-label fw-bold small text-uppercase text-muted">Includes</label>
                             <div class="d-flex flex-column gap-2">
-                                @for (int i = 0; i < Model.AddOnList.Count; i++)
+                                @foreach (var item in Model.Inclusions)
                                 {
-                                    var add = Model.AddOnList[i];
                                     <div class="selection-card">
-                                        <input type="checkbox" class="btn-check option-trigger" name="addOnSelection"
-                                               id="add_@i" value="@add" autocomplete="off">
-                                        <label class="btn btn-outline-light w-100 text-start p-3 d-flex align-items-center justify-content-between text-dark border" for="add_@i">
-                                            <span class="fw-medium">@add</span>
+                                        <input type="checkbox" class="btn-check option-trigger" name="selectedInclusions"
+                                               id="inc_@item.Id" value="@item.Id" autocomplete="off">
+
+                                        <label class="btn btn-outline-light w-100 text-start p-3 d-flex align-items-center justify-content-between text-dark border" for="inc_@item.Id">
+                                            <span class="fw-medium">@item.Name</span>
                                             <i class="bi bi-plus-circle text-muted check-icon-unchecked"></i>
                                             <i class="bi bi-check-circle-fill text-success check-icon-checked d-none"></i>
                                         </label>
@@ -150,6 +109,10 @@
                                 }
                             </div>
                         </div>
+                    }
+                    else
+                    {
+                        <p class="text-muted small">No specific inclusions listed.</p>
                     }
 
                     <div class="mb-3">
@@ -176,7 +139,6 @@
     </div>
 </div>
 
-<!-- GALLERY MODAL -->
 <div class="modal fade" id="galleryModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-centered">
         <div class="modal-content bg-transparent border-0 shadow-none">
@@ -194,10 +156,10 @@
                     @if (Model.AllImages.Count > 1)
                     {
                         <button class="carousel-control-prev" type="button" data-bs-target="#carouselGallery" data-bs-slide="prev">
-                            <img src="~/img/left.png" class="prev-icon rounded-circle">
+                            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
                         </button>
                         <button class="carousel-control-next" type="button" data-bs-target="#carouselGallery" data-bs-slide="next">
-                            <img src="~/img/right.png" class="next-icon rounded-circle">
+                            <span class="carousel-control-next-icon" aria-hidden="true"></span>
                         </button>
                     }
                     <div class="text-center mt-3">
@@ -211,7 +173,6 @@
     </div>
 </div>
 
-<!-- ITINERARY MODAL -->
 <div class="modal fade" id="itineraryModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content">
@@ -220,7 +181,7 @@
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body bg-light">
-                @if (Model.Itinerary != null && Model.Itinerary.Any())
+                @if (Model.Itinerary != null && Model.Itinerary.Count > 0)
                 {
                     <div class="timeline p-2">
                         @foreach (var day in Model.Itinerary)
@@ -251,25 +212,19 @@
     </div>
 </div>
 
-<!-- LEAFLET JS -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="~/js/booking.js"></script>
 
-<!-- INITIALIZE MAP SCRIPT -->
 <script>
     document.addEventListener("DOMContentLoaded", function() {
-        // IMPORTANT: Ensure your PackageDetailsVM has Latitude and Longitude properties.
-        // If not, you need to add them to ViewModels/PackageDetailsVM.cs first.
-        // Assuming defaults if 0 to prevent errors
-        // Note: Using dynamic or viewbag for now if model property missing,
-        // BUT ideally you should add `public double Latitude { get; set; }` to PackageDetailsVM.
+        // --- MAP LOGIC ---
+        var lat = @Model.Latitude;
+        var lng = @Model.Longitude;
 
-        // I'll try to access from Model if present, else fallback
-        var lat = @(Model.GetType().GetProperty("Latitude") != null ? Model.GetType().GetProperty("Latitude").GetValue(Model) : 3.1390);
-        var lng = @(Model.GetType().GetProperty("Longitude") != null ? Model.GetType().GetProperty("Longitude").GetValue(Model) : 101.6869);
-
-        // If coordinates are essentially 0,0 (unset), maybe default to Kuala Lumpur
-        if(lat === 0 && lng === 0) { lat = 3.1390; lng = 101.6869; }
+        if(lat === 0 && lng === 0) {
+            lat = 3.1390;
+            lng = 101.6869;
+        }
 
         var map = L.map('bookingMap').setView([lat, lng], 13);
 
@@ -280,5 +235,32 @@
         L.marker([lat, lng]).addTo(map)
             .bindPopup("<b>@Model.PackageName</b><br>@Model.Destination")
             .openPopup();
+
+        // Gallery Counter
+        var myCarousel = document.getElementById('carouselGallery');
+        if(myCarousel){
+            myCarousel.addEventListener('slide.bs.carousel', function (e) {
+                 document.getElementById('carousel-counter').innerText = (e.to + 1) + " / @Model.AllImages.Count";
+            });
+        }
     });
+
+    function openGalleryModal(index) {
+        var myModal = new bootstrap.Modal(document.getElementById('galleryModal'));
+        var carousel = new bootstrap.Carousel(document.getElementById('carouselGallery'));
+        carousel.to(index);
+        myModal.show();
+    }
+
+    function updatePax(change) {
+        var input = document.getElementById('paxInput');
+        var newVal = parseInt(input.value) + change;
+        if(newVal >= 1 && newVal <= 10) {
+            input.value = newVal;
+        }
+    }
+
+    function validateAndSubmit() {
+        document.getElementById('bookingForm').submit();
+    }
 </script>

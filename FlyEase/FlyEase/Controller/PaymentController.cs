@@ -1,36 +1,34 @@
-﻿// [file name]: PaymentController.cs
-
-
-using FlyEase.Data;
+﻿using FlyEase.Data;
 using FlyEase.ViewModels;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration; // REQUIRED for accessing Env Variables
+using Stripe;
 using System;
 using System.Linq;
 using System.Security.Claims;
-using Microsoft.AspNetCore.Http;
+using System.Threading.Tasks;
 
 namespace FlyEase.Controllers
 {
     public class PaymentController : Controller
     {
         private readonly FlyEaseDbContext _context;
+        private readonly IConfiguration _configuration; // Inject Configuration
 
-        public PaymentController(FlyEaseDbContext context)
+        public PaymentController(FlyEaseDbContext context, IConfiguration configuration)
         {
             _context = context;
+            _configuration = configuration;
         }
 
-        // STEP 1: Customer Information
+        // ... [CustomerInfo GET/POST remain exactly the same as your original file] ...
         [HttpGet]
         public async Task<IActionResult> CustomerInfo(int packageId, int? people = 1)
         {
             var package = await _context.Packages.FindAsync(packageId);
-            if (package == null)
-            {
-                return NotFound();
-            }
+            if (package == null) return NotFound();
 
             var vm = new BookingViewModel
             {
@@ -42,12 +40,8 @@ namespace FlyEase.Controllers
                 BasePrice = package.Price * (people ?? 1)
             };
 
-            // Calculate initial discounts
             CalculateDiscounts(vm);
-
-            // Store in session for multi-step process
             HttpContext.Session.SetObject("BookingData", vm);
-
             return View(vm);
         }
 
@@ -55,20 +49,12 @@ namespace FlyEase.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CustomerInfo(BookingViewModel model)
         {
-            Console.WriteLine($"Session ID: {HttpContext.Session.Id}");
-            Console.WriteLine($"Session data exists: {HttpContext.Session.GetObject<BookingViewModel>("BookingData") != null}");
-
             if (ModelState.IsValid)
             {
-                // Get existing booking data from session
                 var bookingData = HttpContext.Session.GetObject<BookingViewModel>("BookingData");
-
                 if (bookingData == null)
                 {
-                    // If no session data, create new from model
                     bookingData = model;
-
-                    // Reload package info
                     var package = await _context.Packages.FindAsync(model.PackageID);
                     if (package != null)
                     {
@@ -76,25 +62,22 @@ namespace FlyEase.Controllers
                         bookingData.PackagePrice = package.Price;
                         bookingData.BasePrice = package.Price * model.NumberOfPeople;
                     }
-
-                    // Recalculate discounts with updated travel date
                     bookingData.TravelDate = model.TravelDate;
                     CalculateDiscounts(bookingData);
                 }
 
-                // Update customer information
                 bookingData.FullName = model.FullName;
                 bookingData.Email = model.Email;
                 bookingData.Phone = model.Phone;
                 bookingData.SpecialRequests = model.SpecialRequests;
                 bookingData.TravelDate = model.TravelDate;
+                bookingData.NumberOfPeople = model.NumberOfPeople;
 
                 HttpContext.Session.SetObject("BookingData", bookingData);
-
                 return RedirectToAction("PaymentDetails");
             }
 
-            // Reload package data if validation fails
+            // Reload package data on error
             var packageReload = await _context.Packages.FindAsync(model.PackageID);
             if (packageReload != null)
             {
@@ -103,7 +86,6 @@ namespace FlyEase.Controllers
                 model.BasePrice = packageReload.Price * model.NumberOfPeople;
                 CalculateDiscounts(model);
             }
-
             return View(model);
         }
 
@@ -117,35 +99,34 @@ namespace FlyEase.Controllers
                 TempData["Error"] = "Please complete customer information first";
                 return RedirectToAction("Index", "Home");
             }
-
             return View(bookingData);
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> PaymentDetails(BookingViewModel model)
+        public IActionResult PaymentDetails(BookingViewModel model)
         {
             var bookingData = HttpContext.Session.GetObject<BookingViewModel>("BookingData");
-            if (bookingData == null)
+            if (bookingData == null) return RedirectToAction("Index", "Home");
+
+            if (string.IsNullOrWhiteSpace(model.CardHolderName))
             {
-                return RedirectToAction("Index", "Home");
+                ModelState.AddModelError("CardHolderName", "Card Holder Name is required.");
+                return View(bookingData);
             }
 
-            if (ModelState.IsValid)
-            {
-                // Update payment details in session
-                bookingData.PaymentMethod = model.PaymentMethod;
-                bookingData.CardNumber = model.CardNumber;
-                bookingData.CardHolderName = model.CardHolderName;
-                bookingData.ExpiryDate = model.ExpiryDate;
-                bookingData.CVV = model.CVV;
+            // Update session with payment info
+            bookingData.PaymentMethod = model.PaymentMethod;
+            bookingData.CardHolderName = model.CardHolderName;
+            bookingData.StripeToken = model.StripeToken;
 
-                HttpContext.Session.SetObject("BookingData", bookingData);
+            // === ADD THIS LINE ===
+            // Save the last 4 digits (passed safely from frontend) to the session
+            bookingData.CardNumber = model.CardNumber;
 
-                return RedirectToAction("Confirmation");
-            }
+            HttpContext.Session.SetObject("BookingData", bookingData);
 
-            return View(bookingData);
+            return RedirectToAction("Confirmation");
         }
 
         // STEP 3: Confirmation
@@ -153,12 +134,7 @@ namespace FlyEase.Controllers
         public IActionResult Confirmation()
         {
             var bookingData = HttpContext.Session.GetObject<BookingViewModel>("BookingData");
-            if (bookingData == null || string.IsNullOrEmpty(bookingData.FullName) || string.IsNullOrEmpty(bookingData.PaymentMethod))
-            {
-                TempData["Error"] = "Please complete all booking steps first";
-                return RedirectToAction("Index", "Home");
-            }
-
+            if (bookingData == null) return RedirectToAction("Index", "Home");
             return View(bookingData);
         }
 
@@ -167,24 +143,48 @@ namespace FlyEase.Controllers
         public async Task<IActionResult> ProcessBooking()
         {
             var bookingData = HttpContext.Session.GetObject<BookingViewModel>("BookingData");
-            if (bookingData == null)
-            {
-                return RedirectToAction("Index", "Home");
-            }
+            if (bookingData == null) return RedirectToAction("Index", "Home");
 
             try
             {
-                var userId = GetCurrentUserId();
-                if (userId == null)
+                if (bookingData.PaymentMethod == "Credit Card")
                 {
-                    // For demo, create a temporary user or redirect to login
-                    userId = 1; // Demo user ID
+                    // ---------------------------------------------------------
+                    // SECURE IMPLEMENTATION: Read Key from Environment/UserSecrets
+                    // ---------------------------------------------------------
+                    var secretKey = _configuration["Stripe:SecretKey"];
+                    // Safety Check: Ensure key exists and isn't the dummy text
+                    if (string.IsNullOrEmpty(secretKey) || secretKey.Contains("SET_IN_ENVIRONMENT"))
+                    {
+                        throw new Exception("Stripe Secret Key is missing. Please check your Environment Variables or User Secrets.");
+                    }
+
+                    StripeConfiguration.ApiKey = secretKey;
+
+                    var options = new ChargeCreateOptions
+                    {
+                        Amount = (long)(bookingData.FinalAmount * 100),
+                        Currency = "myr",
+                        Description = $"FlyEase Booking: {bookingData.PackageName}",
+                        Source = bookingData.StripeToken,
+                        ReceiptEmail = bookingData.Email,
+                    };
+
+                    var service = new ChargeService();
+                    Charge charge = service.Create(options);
+
+                    if (charge.Status != "succeeded")
+                    {
+                        throw new Exception($"Payment failed: {charge.FailureMessage}");
+                    }
                 }
 
-                // Create booking
+                // Database Saving Logic
+                var userId = GetCurrentUserId() ?? 1;
+
                 var booking = new Booking
                 {
-                    UserID = userId.Value,
+                    UserID = userId,
                     PackageID = bookingData.PackageID,
                     BookingDate = DateTime.Now,
                     TravelDate = bookingData.TravelDate,
@@ -198,7 +198,6 @@ namespace FlyEase.Controllers
                 _context.Bookings.Add(booking);
                 await _context.SaveChangesAsync();
 
-                // Create payment
                 var payment = new Payment
                 {
                     BookingID = booking.BookingID,
@@ -211,7 +210,7 @@ namespace FlyEase.Controllers
 
                 _context.Payments.Add(payment);
 
-                // Update package availability
+                // Update Slots
                 var package = await _context.Packages.FindAsync(bookingData.PackageID);
                 if (package != null)
                 {
@@ -219,15 +218,9 @@ namespace FlyEase.Controllers
                 }
 
                 await _context.SaveChangesAsync();
-
-                // Clear session
                 HttpContext.Session.Remove("BookingData");
 
-                return RedirectToAction("Success", new
-                {
-                    bookingId = booking.BookingID,
-                    paymentId = payment.PaymentID
-                });
+                return RedirectToAction("Success", new { bookingId = booking.BookingID, paymentId = payment.PaymentID });
             }
             catch (Exception ex)
             {
@@ -236,42 +229,23 @@ namespace FlyEase.Controllers
             }
         }
 
-        // STEP 4: Success Page
         [HttpGet]
         public async Task<IActionResult> Success(int bookingId, int paymentId)
         {
             var payment = await _context.Payments
-                .Include(p => p.Booking)
-                    .ThenInclude(b => b.Package)
-                .Include(p => p.Booking)
-                    .ThenInclude(b => b.User)
+                .Include(p => p.Booking).ThenInclude(b => b.Package)
+                .Include(p => p.Booking).ThenInclude(b => b.User)
                 .FirstOrDefaultAsync(p => p.PaymentID == paymentId && p.BookingID == bookingId);
 
-            if (payment == null)
-            {
-                return NotFound();
-            }
-
+            if (payment == null) return NotFound();
             return View(payment);
         }
 
-        // Helper Methods
         private void CalculateDiscounts(BookingViewModel model)
         {
             decimal discount = 0;
-
-            // Early Bird Discount (30 days in advance)
-            if ((model.TravelDate - DateTime.Now).TotalDays >= 30)
-            {
-                discount += model.BasePrice * 0.10m; // 10% discount
-            }
-
-            // Bulk Discount (5+ people)
-            if (model.NumberOfPeople >= 5)
-            {
-                discount += model.BasePrice * 0.15m; // 15% discount
-            }
-
+            if ((model.TravelDate - DateTime.Now).TotalDays >= 30) discount += model.BasePrice * 0.10m;
+            if (model.NumberOfPeople >= 5) discount += model.BasePrice * 0.15m;
             model.DiscountAmount = discount;
             model.FinalAmount = model.BasePrice - discount;
         }
@@ -283,7 +257,6 @@ namespace FlyEase.Controllers
         }
     }
 
-    // Session extension methods
     public static class SessionExtensions
     {
         public static void SetObject(this ISession session, string key, object value)
