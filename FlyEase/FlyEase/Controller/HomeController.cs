@@ -26,6 +26,8 @@ namespace FlyEase.Controllers
             var query = _context.Packages
                 .Include(p => p.Category)
                 .Include(p => p.PackageInclusions)
+                .Include(p => p.Bookings)         // <--- NEW
+                .ThenInclude(b => b.Feedbacks)    // <--- NEW: Load the ratings
                 .Where(p => p.AvailableSlots > 0);
 
             // 2. Apply Filters (Logically based on your Db.cs)
@@ -74,6 +76,22 @@ namespace FlyEase.Controllers
             // Note: I removed .Take(6) so the user can see all results when searching
             var packages = await query.OrderByDescending(p => p.PackageID).ToListAsync();
 
+            // 5. === CALCULATE RATINGS ===
+            foreach (var p in packages)
+            {
+                // Get all ratings for this package
+                var ratings = p.Bookings.SelectMany(b => b.Feedbacks).Select(f => f.Rating);
+
+                // Calculate Average (if any exist)
+                if (ratings.Any())
+                {
+                    p.AverageRating = ratings.Average();
+                }
+                else
+                {
+                    p.AverageRating = 0;
+                }
+            }
             return View(packages);
         }
 

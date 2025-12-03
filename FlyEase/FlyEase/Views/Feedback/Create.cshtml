@@ -1,0 +1,42 @@
+﻿@model FlyEase.Data.Booking
+
+<div class="container mt-5">
+    <div class="card shadow-sm" style="max-width: 600px; margin: auto;">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0">Rate Your Trip</h4>
+        </div>
+        <div class="card-body">
+            <h5>@Model.Package.PackageName</h5>
+            <p class="text-muted">Travel Date: @Model.TravelDate.ToString("dd MMM yyyy")</p>
+            <hr />
+
+            <form asp-action="Create" method="post">
+                <input type="hidden" name="bookingId" value="@Model.BookingID" />
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Rate your experience:</label>
+                    <div class="rating-group">
+                        <select name="rating" class="form-select" required>
+                            <option value="" disabled selected>Select a Rating...</option>
+                            <option value="5">⭐⭐⭐⭐⭐ (Excellent)</option>
+                            <option value="4">⭐⭐⭐⭐ (Good)</option>
+                            <option value="3">⭐⭐⭐ (Average)</option>
+                            <option value="2">⭐⭐ (Poor)</option>
+                            <option value="1">⭐ (Terrible)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Your Comments:</label>
+                    <textarea name="comment" class="form-control" rows="4" placeholder="What did you like or dislike?"></textarea>
+                </div>
+
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-success">Submit Review</button>
+                    <a asp-controller="Auth" asp-action="Profile" class="btn btn-secondary">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

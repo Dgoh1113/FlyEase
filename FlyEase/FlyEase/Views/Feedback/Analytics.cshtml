@@ -1,0 +1,109 @@
+﻿@model List<FlyEase.Controllers.FeedbackAnalyticsVM>
+
+@{
+    ViewData["Title"] = "Customer Sentiment Analysis";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold text-primary"><i class="fas fa-chart-pie me-2"></i>Feedback Analytics</h2>
+            <p class="text-muted">Analyze customer preferences and package performance.</p>
+        </div>
+        <div>
+            <a asp-controller="Feedback" asp-action="Index" class="btn btn-outline-secondary">
+                <i class="fas fa-list me-2"></i>View All Comments
+            </a>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card bg-primary text-white shadow-sm h-100">
+                <div class="card-body text-center">
+                    <h1 class="display-4 fw-bold">@Model.Sum(x => x.TotalReviews)</h1>
+                    <p class="lead mb-0">Total Reviews Received</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-success text-white shadow-sm h-100">
+                <div class="card-body text-center">
+                    <h1 class="display-4 fw-bold">
+                        @if (Model.Any())
+                        {
+                            @Model.Average(x => x.AverageRating).ToString("0.0")
+                            ;
+                        }
+                        else
+                        {
+
+                            <text>0</text>
+                        }
+                    </h1>
+                    <p class="lead mb-0">Overall Company Rating</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-info text-white shadow-sm h-100">
+                <div class="card-body text-center">
+                    <h1 class="display-4 fw-bold">@Model.FirstOrDefault()?.PackageName</h1>
+                    <p class="lead mb-0">🏆 Most Popular Package</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-header bg-white py-3">
+            <h5 class="mb-0 fw-bold">Package Performance Leaderboard</h5>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width: 5%;">Rank</th>
+                        <th style="width: 35%;">Package Name</th>
+                        <th style="width: 20%;">Average Rating</th>
+                        <th style="width: 15%;">Total Reviews</th>
+                        <th style="width: 25%;">Sentiment Breakdown</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @{
+                        int rank = 1;
+                    }
+                    @foreach (var item in Model)
+                    {
+                        <tr>
+                            <td class="fw-bold text-muted">#@(rank++)</td>
+                            <td class="fw-bold">@item.PackageName</td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <span class="h5 mb-0 me-2 fw-bold text-warning">@item.AverageRating.ToString("0.0")</span>
+                                    <small class="text-muted">/ 5.0</small>
+                                </div>
+                            </td>
+                            <td>@item.TotalReviews reviews</td>
+                            <td>
+                                <div class="d-flex align-items-center small">
+                                    <span class="me-2 text-success">5★: @item.FiveStarCount</span>
+                                    <span class="me-2 text-danger">1★: @item.OneStarCount</span>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        @if (!Model.Any())
+        {
+            <div class="p-5 text-center text-muted">
+                <i class="fas fa-comment-slash fa-3x mb-3"></i>
+                <p>No analytics data available yet. Wait for customers to submit reviews.</p>
+            </div>
+        }
+    </div>
+</div>
