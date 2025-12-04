@@ -16,14 +16,11 @@
                             <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Total Revenue</div>
                             <div class="h5 mb-0 font-weight-bold text-gray-800">$@Model.TotalRevenue.ToString("N0")</div>
                         </div>
-                        <div class="col-auto">
-                            <i class="fas fa-dollar-sign fa-2x text-gray-300"></i>
-                        </div>
+                        <div class="col-auto"><i class="fas fa-dollar-sign fa-2x text-gray-300"></i></div>
                     </div>
                 </div>
             </div>
         </div>
-
         <div class="col-md-3 mb-3">
             <div class="card border-0 shadow-sm h-100 py-2" style="border-left: 5px solid #1cc88a;">
                 <div class="card-body">
@@ -32,14 +29,11 @@
                             <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Total Bookings</div>
                             <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.TotalBookings</div>
                         </div>
-                        <div class="col-auto">
-                            <i class="fas fa-calendar-check fa-2x text-gray-300"></i>
-                        </div>
+                        <div class="col-auto"><i class="fas fa-calendar-check fa-2x text-gray-300"></i></div>
                     </div>
                 </div>
             </div>
         </div>
-
         <div class="col-md-3 mb-3">
             <div class="card border-0 shadow-sm h-100 py-2" style="border-left: 5px solid #f6c23e;">
                 <div class="card-body">
@@ -48,14 +42,11 @@
                             <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Pending Actions</div>
                             <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.PendingBookings</div>
                         </div>
-                        <div class="col-auto">
-                            <i class="fas fa-clipboard-list fa-2x text-gray-300"></i>
-                        </div>
+                        <div class="col-auto"><i class="fas fa-clipboard-list fa-2x text-gray-300"></i></div>
                     </div>
                 </div>
             </div>
         </div>
-
         <div class="col-md-3 mb-3">
             <div class="card border-0 shadow-sm h-100 py-2" style="border-left: 5px solid #36b9cc;">
                 <div class="card-body">
@@ -64,9 +55,7 @@
                             <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Registered Users</div>
                             <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.TotalUsers</div>
                         </div>
-                        <div class="col-auto">
-                            <i class="fas fa-users fa-2x text-gray-300"></i>
-                        </div>
+                        <div class="col-auto"><i class="fas fa-users fa-2x text-gray-300"></i></div>
                     </div>
                 </div>
             </div>
@@ -86,7 +75,6 @@
                 </div>
             </div>
         </div>
-
         <div class="col-lg-4">
             <div class="card shadow-sm mb-4">
                 <div class="card-header py-3 bg-white">
@@ -104,12 +92,8 @@
     <div class="row">
         <div class="col-lg-8 mb-4">
             <div class="card shadow-sm">
-
-                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                <div class="card-header bg-white py-3">
                     <h6 class="m-0 fw-bold text-primary">Recent Bookings</h6>
-                    <button onclick="window.location.reload()" class="btn btn-sm btn-light border" title="Refresh Data">
-                        <i class="fas fa-sync-alt text-secondary"></i>
-                    </button>
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
@@ -130,13 +114,11 @@
                                     string badgeClass;
                                     switch (item.BookingStatus)
                                     {
-                                        case "Completed": badgeClass = "bg-success"; break;          // Green
-                                                                                                     // REMOVED "Confirmed" CASE
-                                        case "Pending": badgeClass = "bg-warning text-dark"; break; // Yellow
-                                        case "Cancelled": badgeClass = "bg-danger"; break;           // Red
-                                        default: badgeClass = "bg-secondary"; break;        // Grey
+                                        case "Completed": badgeClass = "bg-success"; break;
+                                        case "Pending": badgeClass = "bg-warning text-dark"; break;
+                                        case "Cancelled": badgeClass = "bg-danger"; break;
+                                        default: badgeClass = "bg-secondary"; break;
                                     }
-                                
 
                                     <tr>
                                         <td><strong>#@item.BookingID</strong></td>
@@ -147,44 +129,15 @@
                                             </div>
                                         </td>
                                         <td>@item.Package.PackageName</td>
-                                        <td>@item.BookingDate.ToString("MMM dd")</td>
-
+                                        <td>@item.BookingDate.ToString("MMM dd, yyyy")</td>
                                         <td><span class="badge @badgeClass">@item.BookingStatus</span></td>
-
                                         <td>
-                                            <div class="dropdown">
-                                                <button class="btn btn-sm btn-light border dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                                                    <i class="fas fa-cog text-secondary"></i>
-                                                </button>
-                                                <ul class="dropdown-menu dropdown-menu-end shadow border-0">
-                                                    <li><h6 class="dropdown-header">Actions</h6></li>
-                                                    <li>
-                                                        <a asp-controller="StaffDashboard" asp-action="Bookings" class="dropdown-item">
-                                                            <i class="fas fa-edit me-2 text-primary"></i> Manage Details
-                                                        </a>
-                                                    </li>
-                                                    @if (item.BookingStatus != "Completed" && item.BookingStatus != "Cancelled")
-                                                    {
-                                                        <li><hr class="dropdown-divider"></li>
-                                                        <li>
-                                                            <form asp-action="UpdateBookingStatus" method="post">
-                                                                <input type="hidden" name="CurrentBooking.BookingID" value="@item.BookingID" />
-                                                                <input type="hidden" name="CurrentBooking.BookingStatus" value="Completed" />
-                                                                @Html.AntiForgeryToken()
-                                                                <button type="submit" class="dropdown-item text-success fw-bold">
-                                                                    <i class="fas fa-check-circle me-2"></i> Mark Completed
-                                                                </button>
-                                                            </form>
-                                                        </li>
-                                                    }
-                                                </ul>
-                                            </div>
+                                            <button class="btn btn-sm btn-outline-primary"
+                                                    onclick="openBookingModal(@item.BookingID, '@item.User.FullName', '@item.BookingStatus')">
+                                                Manage
+                                            </button>
                                         </td>
                                     </tr>
-                                }
-                                @if (!Model.RecentBookings.Any())
-                                {
-                                    <tr><td colspan="6" class="text-center p-3 text-muted">No bookings found.</td></tr>
                                 }
                             </tbody>
                         </table>
@@ -192,7 +145,6 @@
                 </div>
             </div>
         </div>
-
         <div class="col-lg-4 mb-4">
             <div class="card shadow-sm border-0 h-100">
                 <div class="card-header bg-danger text-white py-3">
@@ -202,18 +154,14 @@
                     @foreach (var pack in Model.LowStockPackages)
                     {
                         <li class="list-group-item d-flex justify-content-between align-items-center">
-                            <div>
-                                <strong>@pack.PackageName</strong><br />
-                                <small class="text-muted">@pack.Destination</small>
-                            </div>
+                            <div><strong>@pack.PackageName</strong><br /><small class="text-muted">@pack.Destination</small></div>
                             <span class="badge bg-danger rounded-pill">@pack.AvailableSlots left</span>
                         </li>
                     }
                     @if (!Model.LowStockPackages.Any())
                     {
                         <li class="list-group-item text-center text-muted py-4">
-                            <i class="fas fa-check-circle text-success mb-2" style="font-size: 2rem;"></i><br>
-                            All packages have sufficient stock.
+                            <i class="fas fa-check-circle text-success mb-2" style="font-size: 2rem;"></i><br>All packages have sufficient stock.
                         </li>
                     }
                 </ul>
@@ -222,10 +170,56 @@
     </div>
 </div>
 
-<script>
-    document.addEventListener("DOMContentLoaded", function() {
+<div class="modal fade" id="bookingModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">Manage Booking</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form asp-action="UpdateBookingStatus" method="post">
+                <div class="modal-body">
+                    <input type="hidden" id="b_id" name="CurrentBooking.BookingID" />
 
-        // 1. REVENUE CHART
+                    <div class="mb-3">
+                        <label class="form-label">Customer Name</label>
+                        <input type="text" class="form-control" id="displayCustomerName" readonly disabled />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Booking Status</label>
+                        <select id="b_status" name="CurrentBooking.BookingStatus" class="form-select">
+                            <option value="Pending">Pending</option>
+                            <option value="Completed">Completed</option>
+                            <option value="Cancelled">Cancelled</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // 1. Function to open Modal
+    function openBookingModal(id, customerName, currentStatus) {
+        document.getElementById('b_id').value = id;
+        document.getElementById('displayCustomerName').value = customerName;
+
+        // Map 'Confirmed' to 'Pending' if it exists in DB
+        if(currentStatus == 'Confirmed') currentStatus = 'Pending';
+        document.getElementById('b_status').value = currentStatus;
+
+        new bootstrap.Modal(document.getElementById('bookingModal')).show();
+    }
+
+    // 2. Initialize Charts
+    document.addEventListener("DOMContentLoaded", function() {
         var ctxRevenue = document.getElementById("revenueChart");
         if (ctxRevenue) {
             new Chart(ctxRevenue, {
@@ -239,54 +233,14 @@
                         borderColor: "rgba(78, 115, 223, 1)",
                         pointRadius: 3,
                         pointBackgroundColor: "rgba(78, 115, 223, 1)",
-                        pointBorderColor: "rgba(78, 115, 223, 1)",
-                        pointHoverRadius: 3,
-                        pointHoverBackgroundColor: "rgba(78, 115, 223, 1)",
-                        pointHoverBorderColor: "rgba(78, 115, 223, 1)",
-                        pointHitRadius: 10,
-                        pointBorderWidth: 2,
+                        borderColor: "rgba(78, 115, 223, 1)",
                         data: @Html.Raw(Json.Serialize(Model.RevenueValues)),
                     }],
                 },
-                options: {
-                    maintainAspectRatio: false,
-                    layout: { padding: { left: 10, right: 25, top: 25, bottom: 0 } },
-                    scales: {
-                        x: { grid: { display: false, drawBorder: false }, ticks: { maxTicksLimit: 7 } },
-                        y: {
-                            ticks: { maxTicksLimit: 5, padding: 10, callback: function(value) { return '$' + value; } },
-                            grid: { color: "rgb(234, 236, 244)", zeroLineColor: "rgb(234, 236, 244)", drawBorder: false, borderDash: [2], zeroLineBorderDash: [2] }
-                        },
-                    },
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: {
-                            backgroundColor: "rgb(255,255,255)",
-                            bodyColor: "#858796",
-                            titleMarginBottom: 10,
-                            titleColor: '#6e707e',
-                            titleFont: { size: 14 },
-                            borderColor: '#dddfeb',
-                            borderWidth: 1,
-                            xPadding: 15,
-                            yPadding: 15,
-                            displayColors: false,
-                            intersect: false,
-                            mode: 'index',
-                            caretPadding: 10,
-                            callbacks: {
-                                label: function(context) {
-                                    var label = context.dataset.label || '';
-                                    return label + ': $' + context.parsed.y.toLocaleString();
-                                }
-                            }
-                        }
-                    }
-                }
+                options: { maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false } } } }
             });
         }
 
-        // 2. STATUS CHART
         var ctxStatus = document.getElementById("statusChart");
         if (ctxStatus) {
             new Chart(ctxStatus, {
@@ -296,27 +250,9 @@
                     datasets: [{
                         data: [@Model.CompletedBookingsCount, @Model.PendingBookingsCount, @Model.CancelledBookingsCount],
                         backgroundColor: ['#1cc88a', '#f6c23e', '#e74a3b'],
-                        hoverBackgroundColor: ['#17a673', '#dda20a', '#be2617'],
-                        hoverBorderColor: "rgba(234, 236, 244, 1)",
                     }],
                 },
-                options: {
-                    maintainAspectRatio: false,
-                    cutout: '75%',
-                    plugins: {
-                        legend: { position: 'bottom' },
-                        tooltip: {
-                            backgroundColor: "rgb(255,255,255)",
-                            bodyColor: "#858796",
-                            borderColor: '#dddfeb',
-                            borderWidth: 1,
-                            xPadding: 15,
-                            yPadding: 15,
-                            displayColors: false,
-                            caretPadding: 10,
-                        }
-                    }
-                }
+                options: { maintainAspectRatio: false, cutout: '75%', plugins: { legend: { position: 'bottom' } } }
             });
         }
     });

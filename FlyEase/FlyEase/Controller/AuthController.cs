@@ -124,6 +124,7 @@ namespace FlyEase.Controllers
                     // 3. Create Claims
                     var claims = new List<Claim>
                     {
+                        new Claim(ClaimTypes.NameIdentifier,user.UserID.ToString()),
                         new Claim(ClaimTypes.Name, user.FullName),  
                         new Claim(ClaimTypes.Email, user.Email),
                         new Claim(ClaimTypes.Role, user.Role ?? "User")
@@ -183,7 +184,6 @@ namespace FlyEase.Controllers
 
             if (user == null) return RedirectToAction("Login");
 
-            // Strip +60 for display
             var displayPhone = user.Phone?.StartsWith("+60") == true ? user.Phone.Substring(3) : user.Phone;
 
             var model = new ProfileViewModel
@@ -193,9 +193,10 @@ namespace FlyEase.Controllers
                 Phone = displayPhone ?? "",
                 Address = user.Address,
 
-                // --- FETCH REAL DATA ---
+                // === FIXED QUERY ===
                 MyBookings = _context.Bookings
                     .Include(b => b.Package)
+                    .Include(b => b.Feedbacks) // <--- CRITICAL ADDITION: Ensures we know if it's reviewed
                     .Where(b => b.UserID == user.UserID)
                     .OrderByDescending(b => b.BookingDate)
                     .Select(b => new BookingDisplayModel
@@ -204,8 +205,10 @@ namespace FlyEase.Controllers
                         PackageTitle = b.Package.PackageName,
                         BookingDate = b.BookingDate,
                         Status = b.BookingStatus,
-                        TotalAmount = b.FinalAmount
+                        TotalAmount = b.FinalAmount,
+                        IsReviewed = b.Feedbacks.Any() // Now this will definitely work
                     }).ToList(),
+                // ===================
 
                 PaymentHistory = _context.Payments
                     .Include(p => p.Booking)
@@ -248,7 +251,36 @@ namespace FlyEase.Controllers
             return View(model);
         }
 
-        
+        // 2. ADD THIS MISSING METHOD (Fixes the Refresh Button)
+        [HttpGet]
+        public IActionResult RefreshBookings()
+        {
+            var userEmail = User.FindFirst(ClaimTypes.Email)?.Value;
+            var user = _context.Users.FirstOrDefault(u => u.Email == userEmail);
+
+            if (user == null) return NotFound();
+
+            // Re-fetch only the bookings
+            var myBookings = _context.Bookings
+                .Include(b => b.Package)
+                .Include(b => b.Feedbacks) // <--- Don't forget it here too!
+                .Where(b => b.UserID == user.UserID)
+                .OrderByDescending(b => b.BookingDate)
+                .Select(b => new BookingDisplayModel
+                {
+                    BookingID = b.BookingID,
+                    PackageTitle = b.Package.PackageName,
+                    BookingDate = b.BookingDate,
+                    Status = b.BookingStatus,
+                    TotalAmount = b.FinalAmount,
+                    IsReviewed = b.Feedbacks.Any()
+                }).ToList();
+
+            // Return ONLY the rows, not the whole page
+            return PartialView("_BookingRows", myBookings);
+        }
+
+
 
         // ==========================================
         // FORGOT PASSWORD

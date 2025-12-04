@@ -336,11 +336,28 @@ namespace FlyEase.Controllers
         }
 
         // ========== HELPER METHODS ==========
+        // [file]: Controllers/PaymentController.cs
+
         private async Task<User> GetCurrentUserAsync()
         {
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (userId == null) return null;
-            return await _context.Users.FindAsync(int.Parse(userId));
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (string.IsNullOrEmpty(userIdClaim)) return null;
+
+            if (int.TryParse(userIdClaim, out int userId))
+            {
+                var user = await _context.Users.FindAsync(userId);
+
+                // === FIX: If Cookie exists but User is gone (DB Reset), force Logout ===
+                if (user == null)
+                {
+                    await Microsoft.AspNetCore.Authentication.AuthenticationHttpContextExtensions.SignOutAsync(HttpContext, Microsoft.AspNetCore.Authentication.Cookies.CookieAuthenticationDefaults.AuthenticationScheme);
+                }
+
+                return user;
+            }
+
+            return null;
         }
 
         private void CalculateDiscounts(CustomerInfoViewModel model)
