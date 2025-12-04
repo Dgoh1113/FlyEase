@@ -7,7 +7,7 @@
     var itineraryJson = JsonSerializer.Serialize(Model.Itinerary.OrderBy(i => i.DayNumber).Select(i => new { i.DayNumber, i.Title, i.ActivityDescription }));
 }
 
-<div class="card h-100 shadow-sm package-card">
+<a asp-action="PackageDetails" asp-controller="PackageDetails" asp-route-id="@Model.PackageID" style="text-decoration:none" class="card h-100 shadow-sm package-card">
     <div class="position-relative">
         <img src="@firstImg" class="card-img-top package-img-top" alt="@Model.PackageName">
         <div class="position-absolute top-0 end-0 m-2">
@@ -25,8 +25,6 @@
                 <small class="text-muted">@Model.AvailableSlots slots</small>
             </div>
 
-            <a asp-controller="PackageDetails" asp-action="PackageDetails" asp-route-id="@Model.PackageID" class="btn btn-primary btn-sm w-100 mb-2">Book Now</a>
-
         </div>
     </div>
-</div>
+</a>
