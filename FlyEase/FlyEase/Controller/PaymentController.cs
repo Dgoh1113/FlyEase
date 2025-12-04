@@ -5,6 +5,8 @@ using Microsoft.EntityFrameworkCore;
 using Stripe;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Authentication; // Required for SignOutAsync
+using Microsoft.AspNetCore.Authentication.Cookies; // Required for CookieAuthenticationDefaults
 
 namespace FlyEase.Controllers
 {
@@ -22,7 +24,9 @@ namespace FlyEase.Controllers
             StripeConfiguration.ApiKey = _configuration["Stripe:SecretKey"];
         }
 
-        // ========== STEP 1: CUSTOMER INFO ==========
+        // =========================================================
+        // STEP 1: CUSTOMER INFO
+        // =========================================================
         [HttpGet]
         public async Task<IActionResult> CustomerInfo(int packageId, int people = 1)
         {
@@ -69,39 +73,61 @@ namespace FlyEase.Controllers
             return RedirectToAction("PaymentMethod");
         }
 
-        // ========== STEP 2: PAYMENT METHOD ==========
+
+
+        // ✅ CORRECT: This sends the data to the view
         [HttpGet]
         public IActionResult PaymentMethod()
         {
             var customerInfo = HttpContext.Session.GetCustomerInfo();
+
+            // 1. Safety Check
             if (customerInfo == null)
             {
                 TempData["Error"] = "Please complete customer info";
                 return RedirectToAction("CustomerInfo", new { packageId = 1 });
             }
 
-            ViewBag.PackageName = customerInfo.PackageName;
-            ViewBag.FinalAmount = customerInfo.FinalAmount;
-            return View();
+            // 2. Create the Model
+            var model = new PaymentMethodViewModel
+            {
+                PackageName = customerInfo.PackageName,
+                FinalAmount = customerInfo.FinalAmount,
+                SelectedMethod = "Credit Card" // Default selection
+            };
+
+            // 3. Pass Model to View
+            return View(model);
         }
 
         [HttpPost]
-        public IActionResult PaymentMethod(string paymentMethod)
+        public IActionResult PaymentMethod(PaymentMethodViewModel model)
         {
-            if (string.IsNullOrEmpty(paymentMethod))
+            // === FIX 2: Handle Model Binding from View ===
+            if (string.IsNullOrEmpty(model.SelectedMethod))
             {
-                TempData["Error"] = "Please select payment method";
-                return RedirectToAction("PaymentMethod");
+                TempData["Error"] = "Please select a payment method";
+                // Reload data needed for the view
+                var customerInfo = HttpContext.Session.GetCustomerInfo();
+                if (customerInfo != null)
+                {
+                    model.PackageName = customerInfo.PackageName;
+                    model.FinalAmount = customerInfo.FinalAmount;
+                }
+                return View(model);
             }
 
-            HttpContext.Session.SetPaymentMethod(paymentMethod);
+            HttpContext.Session.SetPaymentMethod(model.SelectedMethod);
 
-            return paymentMethod == "card"
+            // Redirect based on selection
+            return model.SelectedMethod == "Credit Card"
                 ? RedirectToAction("CardPayment")
-                : RedirectToAction("ManualPayment", new { method = paymentMethod });
+                : RedirectToAction("ManualPayment", new { method = model.SelectedMethod });
         }
 
-        // ========== STEP 3A: CARD PAYMENT ==========
+        // =========================================================
+        // STEP 3A: CARD PAYMENT
+        // =========================================================
         [HttpGet]
         public IActionResult CardPayment()
         {
@@ -151,8 +177,8 @@ namespace FlyEase.Controllers
                 // 2. GET INTENT ID
                 string realStripeId = paymentIntent.Id;
 
-                // 3. PROCESS PAYMENT
-                return await ProcessBooking("card", realStripeId);
+                // 3. PROCESS PAYMENT (Use specific string for Card)
+                return await ProcessBooking("Credit Card", realStripeId);
             }
             catch (StripeException ex)
             {
@@ -166,7 +192,9 @@ namespace FlyEase.Controllers
             }
         }
 
-        // ========== STEP 3B: MANUAL PAYMENT ==========
+        // =========================================================
+        // STEP 3B: MANUAL PAYMENT
+        // =========================================================
         [HttpGet]
         public IActionResult ManualPayment(string method)
         {
@@ -188,14 +216,18 @@ namespace FlyEase.Controllers
             if (string.IsNullOrEmpty(reference))
             {
                 TempData["Error"] = "Please enter reference number";
-                return RedirectToAction("ManualPayment");
+                // Need to redirect back to ManualPayment with the stored method
+                var storedMethod = HttpContext.Session.GetPaymentMethod() ?? "Bank Transfer";
+                return RedirectToAction("ManualPayment", new { method = storedMethod });
             }
 
             var method = HttpContext.Session.GetPaymentMethod();
             return await ProcessBooking(method, reference);
         }
 
-        // ========== PROCESS BOOKING ==========
+        // =========================================================
+        // PROCESS BOOKING (FINAL SAVE)
+        // =========================================================
         private async Task<IActionResult> ProcessBooking(string paymentMethod, string transactionId)
         {
             var customerInfo = HttpContext.Session.GetCustomerInfo();
@@ -208,13 +240,15 @@ namespace FlyEase.Controllers
             }
 
             var package = await _context.Packages.FindAsync(customerInfo.PackageID);
+
+            // 1. Safety Check: Check slots BEFORE saving anything
             if (package == null || package.AvailableSlots < customerInfo.NumberOfPeople)
             {
-                TempData["Error"] = "Package not available";
+                TempData["Error"] = "Package not available (Sold Out)";
                 return RedirectToAction("Index", "Home");
             }
 
-            // Create booking
+            // 2. Create Booking
             var booking = new Booking
             {
                 UserID = userId,
@@ -225,27 +259,24 @@ namespace FlyEase.Controllers
                 TotalBeforeDiscount = customerInfo.BasePrice,
                 TotalDiscountAmount = customerInfo.DiscountAmount,
                 FinalAmount = customerInfo.FinalAmount,
-                // === CHANGE 1: Always Pending ===
-                BookingStatus = "Pending"
+                BookingStatus = "Pending" // All starts as pending until admin confirms (or auto-confirm for card)
             };
 
             _context.Bookings.Add(booking);
-            await _context.SaveChangesAsync();
+            await _context.SaveChangesAsync(); // Save to generate BookingID
 
-            // Create payment
+            // 3. Create Payment Record
             string paymentMethodText = GetPaymentMethodName(paymentMethod);
 
-            if (paymentMethod == "card")
+            if (paymentMethod == "Credit Card")
             {
-                if (transactionId.StartsWith("pi_"))
-                {
-                    paymentMethodText = $"Credit Card (Stripe: {transactionId})";
-                }
-                else
-                {
-                    paymentMethodText = $"Credit Card (Ref: {transactionId})";
-                }
+                paymentMethodText = transactionId.StartsWith("pi_")
+                    ? $"Credit Card (Stripe)"
+                    : $"Credit Card";
             }
+
+            // Determine Status: Cards are Completed immediately. Manual methods are Pending check.
+            string status = (paymentMethod == "Credit Card" || paymentMethod == "DevBypass") ? "Completed" : "Pending";
 
             var payment = new Payment
             {
@@ -254,25 +285,26 @@ namespace FlyEase.Controllers
                 AmountPaid = customerInfo.FinalAmount,
                 IsDeposit = false,
                 PaymentDate = DateTime.Now,
-                PaymentStatus = paymentMethod == "card" ? "Completed" : "Pending"
+                PaymentStatus = status
             };
 
             _context.Payments.Add(payment);
 
-            // Only reduce slots for confirmed/paid payments
-            if (paymentMethod == "card")
-            {
-                package.AvailableSlots -= customerInfo.NumberOfPeople;
-            }
+            // === FIX 3: Reduce slots for ALL bookings ===
+            // Logic: Even if they pay by Cash later, the seat is reserved now.
+            package.AvailableSlots -= customerInfo.NumberOfPeople;
 
             await _context.SaveChangesAsync();
 
+            // Clear Session
             HttpContext.Session.ClearPaymentSession();
 
             return RedirectToAction("Success", new { bookingId = booking.BookingID });
         }
 
-        // ========== SUCCESS PAGE ==========
+        // =========================================================
+        // SUCCESS PAGE
+        // =========================================================
         [HttpGet]
         public async Task<IActionResult> Success(int bookingId)
         {
@@ -286,7 +318,7 @@ namespace FlyEase.Controllers
         }
 
         // =========================================================
-        // === DEVELOPER BYPASS (UPDATED TO PENDING) ===
+        // DEVELOPER BYPASS
         // =========================================================
         [HttpGet("Payment/DevQuickBook")]
         public async Task<IActionResult> DevQuickBook(int packageId)
@@ -308,7 +340,6 @@ namespace FlyEase.Controllers
                 TotalBeforeDiscount = package.Price,
                 TotalDiscountAmount = 0,
                 FinalAmount = package.Price,
-                // === CHANGE 2: Always Pending ===
                 BookingStatus = "Pending"
             };
 
@@ -327,7 +358,7 @@ namespace FlyEase.Controllers
 
             _context.Payments.Add(payment);
 
-            // Decrease slots for dev bypass since payment is "completed"
+            // Decrease slots for dev bypass
             package.AvailableSlots -= 1;
 
             await _context.SaveChangesAsync();
@@ -335,8 +366,9 @@ namespace FlyEase.Controllers
             return RedirectToAction("Success", new { bookingId = booking.BookingID });
         }
 
-        // ========== HELPER METHODS ==========
-        // [file]: Controllers/PaymentController.cs
+        // =========================================================
+        // HELPER METHODS
+        // =========================================================
 
         private async Task<User> GetCurrentUserAsync()
         {
@@ -348,10 +380,10 @@ namespace FlyEase.Controllers
             {
                 var user = await _context.Users.FindAsync(userId);
 
-                // === FIX: If Cookie exists but User is gone (DB Reset), force Logout ===
+                // Safety: If Cookie exists but User deleted from DB, force Logout
                 if (user == null)
                 {
-                    await Microsoft.AspNetCore.Authentication.AuthenticationHttpContextExtensions.SignOutAsync(HttpContext, Microsoft.AspNetCore.Authentication.Cookies.CookieAuthenticationDefaults.AuthenticationScheme);
+                    await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
                 }
 
                 return user;
@@ -373,17 +405,19 @@ namespace FlyEase.Controllers
         {
             return method switch
             {
-                "card" => "Credit Card",
-                "bank_transfer" => "Bank Transfer",
-                "tng_ewallet" => "Touch 'n Go",
-                "grabpay" => "GrabPay",
-                "cash" => "Cash Payment",
+                "Credit Card" => "Credit Card", // Updated to match View Value
+                "Bank Transfer" => "Bank Transfer",
+                "TouchNGo" => "Touch 'n Go",
+                "Cash" => "Cash Payment",
+                "card" => "Credit Card", // Fallback for old code
                 _ => method
             };
         }
     }
 
-    // Session extension methods
+    // =========================================================
+    // SESSION EXTENSIONS
+    // =========================================================
     public static class SessionExtensions
     {
         public static void SetObject(this ISession session, string key, object value)

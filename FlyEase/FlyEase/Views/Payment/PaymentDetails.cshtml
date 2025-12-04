@@ -1,64 +1,99 @@
 ﻿@using Microsoft.Extensions.Configuration
 @inject IConfiguration Configuration
-@model FlyEase.ViewModels.BookingViewModel
+@model FlyEase.ViewModels.PaymentMethodViewModel
 @{
-    ViewData["Title"] = "Payment Details";
+    ViewData["Title"] = "Select Payment Method";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<div class="container mt-4">
+<div class="container mt-4 mb-5">
     <div class="row justify-content-center">
         <div class="col-lg-8">
             <partial name="_BookingProgress" />
 
-            <div class="card shadow-sm">
-                <div class="card-header bg-warning text-dark">
-                    <h4 class="mb-0"><i class="fas fa-credit-card me-2"></i>Payment Details</h4>
+            <div class="card shadow-sm dashboard-card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0"><i class="fas fa-wallet me-2"></i>Select Payment Method</h4>
                 </div>
+
                 <div class="card-body">
-                    <div class="alert alert-success mb-4">
-                        <h6 class="alert-heading">Booking Summary</h6>
+                    <div class="card p-3 mb-4 price-summary-custom bg-light border">
+                        <h6 class="fw-bold mb-2">Booking Summary</h6>
                         <p class="mb-1"><strong>Package:</strong> @Model.PackageName</p>
-                        <p class="mb-0"><strong>Total:</strong> <span class="fw-bold text-primary">RM @Model.FinalAmount.ToString("N2")</span></p>
+                        <p class="mb-0">
+                            <strong>Amount to Pay:</strong>
+                            <span class="text-primary fw-bold">RM @Model.FinalAmount.ToString("N2")</span>
+                        </p>
                     </div>
 
-                    <form asp-action="PaymentDetails" method="post" id="payment-form">
-                        <div class="mb-4">
-                            <label class="form-label fw-bold">Payment Method</label>
-                            <div class="row g-3">
-                                <div class="col-md-4">
-                                    <div class="form-check card h-100">
-                                        <input class="form-check-input" type="radio" name="PaymentMethod" id="cc" value="Credit Card" checked>
-                                        <label class="form-check-label card-body text-center" for="cc">Credit Card</label>
+                    <h5 class="mb-3">Choose payment method:</h5>
+
+                    <form asp-action="ProcessPayment" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" asp-for="BookingID" />
+                        <input type="hidden" asp-for="FinalAmount" />
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <input type="radio" class="btn-check" name="SelectedMethod" id="method_card" value="Credit Card" checked>
+                                <label class="btn w-100 h-100 text-start p-3 payment-card-custom border rounded bg-white" for="method_card">
+                                    <div class="d-flex align-items-center">
+                                        <div class="me-3 text-primary fs-3"><i class="fas fa-credit-card"></i></div>
+                                        <div>
+                                            <h6 class="fw-bold mb-0">Credit/Debit Card</h6>
+                                            <small class="text-muted">Pay with Visa/Mastercard</small>
+                                        </div>
                                     </div>
-                                </div>
-                                <div class="col-md-4">
-                                    <div class="form-check card h-100">
-                                        <input class="form-check-input" type="radio" name="PaymentMethod" id="bank" value="Online Banking">
-                                        <label class="form-check-label card-body text-center" for="bank">Online Banking</label>
+                                </label>
+                            </div>
+
+                            <div class="col-md-6">
+                                <input type="radio" class="btn-check" name="SelectedMethod" id="method_bank" value="Bank Transfer">
+                                <label class="btn w-100 h-100 text-start p-3 payment-card-custom border rounded bg-white" for="method_bank">
+                                    <div class="d-flex align-items-center">
+                                        <div class="me-3 text-success fs-3"><i class="fas fa-university"></i></div>
+                                        <div>
+                                            <h6 class="fw-bold mb-0">Bank Transfer</h6>
+                                            <small class="text-muted">FPX Online Banking</small>
+                                        </div>
                                     </div>
-                                </div>
+                                </label>
+                            </div>
+
+                            <div class="col-md-6">
+                                <input type="radio" class="btn-check" name="SelectedMethod" id="method_tng" value="TouchNGo">
+                                <label class="btn w-100 h-100 text-start p-3 payment-card-custom border rounded bg-white" for="method_tng">
+                                    <div class="d-flex align-items-center">
+                                        <div class="me-3 text-warning fs-3"><i class="fas fa-wallet"></i></div>
+                                        <div>
+                                            <h6 class="fw-bold mb-0">Touch 'n Go</h6>
+                                            <small class="text-muted">eWallet Payment</small>
+                                        </div>
+                                    </div>
+                                </label>
+                            </div>
+
+                            <div class="col-md-6">
+                                <input type="radio" class="btn-check" name="SelectedMethod" id="method_cash" value="Cash">
+                                <label class="btn w-100 h-100 text-start p-3 payment-card-custom border rounded bg-white" for="method_cash">
+                                    <div class="d-flex align-items-center">
+                                        <div class="me-3 text-info fs-3"><i class="fas fa-money-bill-wave"></i></div>
+                                        <div>
+                                            <h6 class="fw-bold mb-0">Cash / Counter</h6>
+                                            <small class="text-muted">Pay at office</small>
+                                        </div>
+                                    </div>
+                                </label>
                             </div>
                         </div>
-
-                        <div id="stripe-section">
-                            <div class="mb-3">
-                                <label asp-for="CardHolderName" class="form-label">Card Holder Name</label>
-                                <input asp-for="CardHolderName" class="form-control" placeholder="Name on card">
-                                <span asp-validation-for="CardHolderName" class="text-danger"></span>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Card Details</label>
-                                <div id="card-element" class="form-control p-3"></div>
-                                <div id="card-errors" class="text-danger small mt-2" role="alert"></div>
-                            </div>
-                        </div>
-
-                        <input type="hidden" id="StripeToken" name="StripeToken" />
 
                         <div class="d-flex justify-content-between mt-4">
-                            <a asp-action="CustomerInfo" asp-route-packageId="@Model.PackageID" class="btn btn-outline-secondary">Back</a>
-                            <button type="submit" class="btn btn-success">Review & Confirm</button>
+                            <a href="javascript:history.back()" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left me-1"></i>Back
+                            </a>
+                            <button type="submit" class="btn btn-primary fw-bold px-4">
+                                Continue <i class="fas fa-arrow-right ms-1"></i>
+                            </button>
                         </div>
                     </form>
                 </div>
@@ -66,54 +101,3 @@
         </div>
     </div>
 </div>
-
-@section Scripts {
-    <script src="https://js.stripe.com/v3/"></script>
-
-    <script>
-        // 1. SECURELY READ KEY: Gets key from Env Vars or User Secrets
-        var pubKey = '@Configuration["Stripe:PublishableKey"]';
-        // Debugging check (Remove in production)
-        if (!pubKey || pubKey.includes("SET_IN_ENVIRONMENT")) {
-            console.error("Stripe Publishable Key is missing! Check your Env Variables.");
-            alert("Payment System Error: Configuration Missing");
-        }
-
-        var stripe = Stripe(pubKey);
-        var elements = stripe.elements();
-
-        var card = elements.create('card', {
-            style: { base: { fontSize: '16px', color: '#32325d' } }
-        });
-        card.mount('#card-element');
-
-        card.on('change', function(event) {
-            var displayError = document.getElementById('card-errors');
-            displayError.textContent = event.error ? event.error.message : '';
-        });
-
-        var form = document.getElementById('payment-form');
-        form.addEventListener('submit', function(event) {
-            var method = document.querySelector('input[name="PaymentMethod"]:checked').value;
-            if (method === "Credit Card") {
-                event.preventDefault();
-                stripe.createToken(card).then(function(result) {
-                    if (result.error) {
-                        document.getElementById('card-errors').textContent = result.error.message;
-                    } else {
-                        document.getElementById('StripeToken').value = result.token.id;
-                        form.submit();
-                    }
-                });
-            }
-        });
-
-        $('input[name="PaymentMethod"]').change(function() {
-            if($(this).val() === 'Credit Card') {
-                $('#stripe-section').slideDown();
-            } else {
-                $('#stripe-section').slideUp();
-            }
-        });
-    </script>
-}

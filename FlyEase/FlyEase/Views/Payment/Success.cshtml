@@ -4,52 +4,68 @@
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<div class="container mt-4">
+<div class="container mt-5 mb-5">
     <div class="row justify-content-center">
-        <div class="col-lg-8">
-            <div class="card shadow-sm border-0">
-                <div class="card-body text-center py-5">
-                    <div class="mb-4">
-                        <i class="fas fa-check-circle text-success" style="font-size: 4rem;"></i>
+        <div class="col-md-8 text-center">
+            
+            <div class="mb-4">
+                <div class="d-inline-flex align-items-center justify-content-center rounded-circle bg-success bg-opacity-25" style="width: 100px; height: 100px;">
+                    <i class="fas fa-check fa-4x text-success"></i>
+                </div>
+            </div>
+
+            <h2 class="fw-bold text-success mb-3">Booking Confirmed!</h2>
+            <p class="lead text-muted mb-5">Thank you for your booking. Your adventure awaits!</p>
+
+            <div class="card p-4 mb-4 text-start shadow-sm price-summary-custom">
+                <h5 class="fw-bold mb-4 border-bottom pb-2">Booking Details</h5>
+                
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <p class="mb-1 text-muted small text-uppercase fw-bold">Booking ID</p>
+                        <p class="fw-bold mb-3">#@Model.BookingID</p>
+
+                        <p class="mb-1 text-muted small text-uppercase fw-bold">Package</p>
+                        <p class="fw-bold mb-3">@Model.Package.PackageName</p>
+
+                        <p class="mb-1 text-muted small text-uppercase fw-bold">Travel Date</p>
+                        <p class="fw-bold mb-0">@Model.TravelDate.ToString("dd MMM yyyy")</p>
                     </div>
                     
-                    <h1 class="text-success mb-3">Booking Confirmed!</h1>
-                    <p class="lead mb-4">Thank you for your booking. Your adventure awaits!</p>
+                    <div class="col-md-6">
+                        <p class="mb-1 text-muted small text-uppercase fw-bold">Travelers</p>
+                        <p class="fw-bold mb-3">@Model.NumberOfPeople Person(s)</p>
 
-                    <div class="card bg-light mb-4">
-                        <div class="card-body text-start">
-                            <h5 class="card-title">Booking Details</h5>
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <p><strong>Booking ID:</strong> #@Model.BookingID</p>
-                                    <p><strong>Package:</strong> @Model.Package.PackageName</p>
-                                    <p><strong>Travel Date:</strong> @Model.TravelDate.ToString("dd MMM yyyy")</p>
-                                </div>
-                                <div class="col-md-6">
-                                    <p><strong>Travelers:</strong> @Model.NumberOfPeople</p>
-                                    <p><strong>Total Amount:</strong> RM @Model.FinalAmount.ToString("N2")</p>
-                                    <p><strong>Status:</strong> <span class="badge bg-success">@Model.BookingStatus</span></p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                        <p class="mb-1 text-muted small text-uppercase fw-bold">Total Amount</p>
+                        <p class="fw-bold text-primary mb-3 fs-5">RM @Model.FinalAmount.ToString("N2")</p>
 
-                    <div class="alert alert-info">
-                        <h6><i class="fas fa-envelope me-2"></i>What's Next?</h6>
-                        <p class="mb-2">A confirmation email has been sent to your email address.</p>
-                        <p class="mb-0">You can view your booking details in your profile page.</p>
-                    </div>
-
-                    <div class="d-grid gap-2 d-md-flex justify-content-md-center mt-4">
-                        <a asp-controller="Home" asp-action="Index" class="btn btn-primary me-md-2">
-                            <i class="fas fa-home me-1"></i>Back to Home
-                        </a>
-                        <a asp-controller="Auth" asp-action="Profile" class="btn btn-outline-secondary">
-                            <i class="fas fa-user me-1"></i>View My Bookings
-                        </a>
+                        <p class="mb-1 text-muted small text-uppercase fw-bold">Status</p>
+                        @{
+                            string badgeClass = Model.BookingStatus == "Completed" ? "bg-success" : 
+                                                Model.BookingStatus == "Pending" ? "bg-warning text-dark" : "bg-danger";
+                        }
+                        <span class="badge @badgeClass px-3 py-2 rounded-pill">@Model.BookingStatus</span>
                     </div>
                 </div>
             </div>
+
+            <div class="alert alert-info border-0 shadow-sm mb-5" role="alert" style="background-color: rgba(13, 202, 240, 0.15); border-left: 5px solid #0dcaf0 !important;">
+                <h6 class="alert-heading fw-bold"><i class="fas fa-envelope-open-text me-2"></i>What's Next?</h6>
+                <p class="mb-0 small">
+                    A confirmation email has been sent to your email address. 
+                    You can view your booking details in your profile page at any time.
+                </p>
+            </div>
+
+            <div class="d-flex justify-content-center gap-3">
+                <a asp-controller="Home" asp-action="Index" class="btn btn-primary px-4 py-2 fw-bold">
+                    <i class="fas fa-home me-2"></i>Back to Home
+                </a>
+                <a asp-controller="Auth" asp-action="Profile" class="btn btn-outline-secondary px-4 py-2 fw-bold">
+                    <i class="fas fa-user me-2"></i>View My Bookings
+                </a>
+            </div>
+
         </div>
     </div>
 </div>

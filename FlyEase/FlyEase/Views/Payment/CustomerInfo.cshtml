@@ -9,14 +9,13 @@
         <div class="col-lg-8">
             <partial name="_BookingProgress" />
 
-            <div class="card shadow-sm">
+            <div class="card shadow-sm dashboard-card">
                 <div class="card-header bg-primary text-white">
                     <h4 class="mb-0">
                         <i class="fas fa-user me-2"></i>Customer Information
                     </h4>
                 </div>
                 <div class="card-body">
-                    <!-- Package Summary -->
                     <div class="alert alert-info">
                         <h6 class="alert-heading">Booking Summary</h6>
                         <p class="mb-1"><strong>Package:</strong> @Model.PackageName</p>
@@ -31,7 +30,6 @@
                         <input type="hidden" asp-for="PackageName" />
                         <input type="hidden" asp-for="PackagePrice" />
                         <input type="hidden" asp-for="NumberOfPeople" />
-                        <!-- ADD THESE HIDDEN FIELDS FOR PRICES -->
                         <input type="hidden" asp-for="BasePrice" />
                         <input type="hidden" asp-for="DiscountAmount" />
                         <input type="hidden" asp-for="FinalAmount" />
@@ -80,10 +78,9 @@
                                       placeholder="Any special requirements or requests..."></textarea>
                         </div>
 
-                        <!-- Real-time Price Summary -->
-                        <div class="card bg-light mb-4">
+                        <div class="card bg-light mb-4 price-summary-custom">
                             <div class="card-body">
-                                <h6 class="card-title">Price Summary</h6>
+                                <h6 class="card-title fw-bold">Price Summary</h6>
                                 <div class="row">
                                     <div class="col-6">
                                         <small>Base Price (@Model.NumberOfPeople person(s)):</small>
@@ -93,7 +90,6 @@
                                     </div>
                                 </div>
 
-                                <!-- Discount Breakdown -->
                                 @if (Model.DiscountAmount > 0)
                                 {
                                     <div class="row">
@@ -130,17 +126,17 @@
                                         <strong>Total Amount:</strong>
                                     </div>
                                     <div class="col-6 text-end">
-                                        <strong class="text-primary">RM @Model.FinalAmount.ToString("N2")</strong>
+                                        <strong class="text-primary fs-5">RM @Model.FinalAmount.ToString("N2")</strong>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
                         <div class="d-flex justify-content-between">
-                            <a href="@Url.Action("Index", "Home")" class="btn btn-outline-secondary">
+                            <a href="@Url.Action("Packages", "Home")" class="btn btn-outline-secondary">
                                 <i class="fas fa-arrow-left me-1"></i>Cancel
                             </a>
-                            <button type="submit" class="btn btn-primary">
+                            <button type="submit" class="btn btn-primary fw-bold px-4">
                                 Continue to Payment <i class="fas fa-arrow-right ms-1"></i>
                             </button>
                         </div>

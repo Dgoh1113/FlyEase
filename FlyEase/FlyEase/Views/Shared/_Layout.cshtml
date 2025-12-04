@@ -22,10 +22,11 @@
         <a asp-controller="Home" asp-action="Index">@Localizer["Home"]</a>
         <a asp-controller="Home" asp-action="Packages">@Localizer["Packages"]</a>
 
-        @if (User.IsInRole("Staff") || User.IsInRole("Admin")){
+        @if (User.IsInRole("Staff") || User.IsInRole("Admin"))
+        {
             <a asp-controller="PackageManagement" asp-action="PackageManagement">@Localizer["ManagePackages"]</a>
         }
-        
+
         <a asp-controller="Discount" asp-action="Discounts">@Localizer["Discounts"]</a>
         <a asp-controller="Home" asp-action="Contact">@Localizer["Contact"]</a>
 
@@ -35,38 +36,44 @@
             </a>
             <ul class="dropdown-menu dropdown-menu-end shadow border-0" style="min-width: 200px;">
                 <li>
-                    <form asp-controller="Language" asp-action="SetLanguage" method="post">
-                        <input type="hidden" name="culture" value="en" />
-                        <input type="hidden" name="returnUrl" value="@Context.Request.Path" />
-                        <button type="submit" class="dropdown-item d-flex align-items-center py-2">
-                            <img src="https://flagcdn.com/w20/us.png" class="me-3 shadow-sm" style="border-radius: 2px;"> 
-                            <span>English (EN)</span>
-                        </button>
-                    </form>
+                    <a class="dropdown-item d-flex align-items-center py-2"
+                       asp-controller="Language"
+                       asp-action="SetLanguage"
+                       asp-route-culture="en"
+                       asp-route-returnUrl="@Context.Request.Path">
+                        <img src="https://flagcdn.com/w20/us.png" class="me-3 shadow-sm" style="border-radius: 2px;">
+                        <span>English (EN)</span>
+                    </a>
                 </li>
                 <li>
-                    <form asp-controller="Language" asp-action="SetLanguage" method="post">
-                        <input type="hidden" name="culture" value="ms" />
-                        <input type="hidden" name="returnUrl" value="@Context.Request.Path" />
-                        <button type="submit" class="dropdown-item d-flex align-items-center py-2">
-                            <img src="https://flagcdn.com/w20/my.png" class="me-3 shadow-sm" style="border-radius: 2px;"> 
-                            <span>Bahasa Melayu (BM)</span>
-                        </button>
-                    </form>
+                    <a class="dropdown-item d-flex align-items-center py-2"
+                       asp-controller="Language"
+                       asp-action="SetLanguage"
+                       asp-route-culture="ms"
+                       asp-route-returnUrl="@Context.Request.Path">
+                        <img src="https://flagcdn.com/w20/my.png" class="me-3 shadow-sm" style="border-radius: 2px;">
+                        <span>Bahasa Melayu (BM)</span>
+                    </a>
                 </li>
                 <li>
-                    <form asp-controller="Language" asp-action="SetLanguage" method="post">
-                        <input type="hidden" name="culture" value="zh-CN" />
-                        <input type="hidden" name="returnUrl" value="@Context.Request.Path" />
-                        <button type="submit" class="dropdown-item d-flex align-items-center py-2">
-                            <img src="https://flagcdn.com/w20/cn.png" class="me-3 shadow-sm" style="border-radius: 2px;"> 
-                            <span>中文 (CN)</span>
-                        </button>
-                    </form>
+                    <a class="dropdown-item d-flex align-items-center py-2"
+                       asp-controller="Language"
+                       asp-action="SetLanguage"
+                       asp-route-culture="zh-CN"
+                       asp-route-returnUrl="@Context.Request.Path">
+                        <img src="https://flagcdn.com/w20/cn.png" class="me-3 shadow-sm" style="border-radius: 2px;">
+                        <span>中文 (CN)</span>
+                    </a>
                 </li>
             </ul>
+
         </div>
 
+        <button class="btn btn-link text-white text-decoration-none" id="themeToggle" onclick="toggleTheme()" title="Toggle Dark Mode" style="padding: 14px 16px;">
+            <i class="fas fa-moon" id="themeIcon"></i>
+        </button>
+
+        </div>
         @if (User.Identity != null && User.Identity.IsAuthenticated)
         {
             <div class="dropdown d-inline-block">
@@ -109,6 +116,53 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    @RenderSection("Scripts", required: false)
+
+    <partial name="_Chatbot" />
+
+    @await RenderSectionAsync("Scripts", required: false)
+
+    <script>
+        // 1. Initialize Theme on Load
+        document.addEventListener("DOMContentLoaded", function() {
+            // Check localStorage or System Preference
+            const savedTheme = localStorage.getItem('theme');
+            const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+            if (savedTheme === 'dark' || (!savedTheme && systemDark)) {
+                applyTheme('dark');
+            } else {
+                applyTheme('light');
+            }
+        });
+
+        // 2. The Toggle Function
+        function toggleTheme() {
+            const html = document.documentElement;
+            const currentTheme = html.getAttribute('data-bs-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+
+            applyTheme(newTheme);
+            localStorage.setItem('theme', newTheme); // Save preference
+        }
+
+        // 3. Helper to Apply Styles
+        function applyTheme(theme) {
+            const html = document.documentElement;
+            const icon = document.getElementById('themeIcon');
+
+            // Bootstrap 5.3 Magic: This single attribute changes everything
+            html.setAttribute('data-bs-theme', theme);
+
+            // Update Icon
+            if (theme === 'dark') {
+                icon.classList.remove('fa-moon');
+                icon.classList.add('fa-sun');
+            } else {
+                icon.classList.remove('fa-sun');
+                icon.classList.add('fa-moon');
+            }
+        }
+    </script>
+
 </body>
 </html>

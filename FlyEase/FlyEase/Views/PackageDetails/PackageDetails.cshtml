@@ -6,9 +6,7 @@
 
 @section Head {
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
     <link rel="stylesheet" href="~/css/booking.css" />
-
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 }
 
@@ -96,15 +94,9 @@
                             <div class="d-flex flex-column gap-2">
                                 @foreach (var item in Model.Inclusions)
                                 {
-                                    <div class="selection-card">
-                                        <input type="checkbox" class="btn-check option-trigger" name="selectedInclusions"
-                                               id="inc_@item.Id" value="@item.Id" autocomplete="off">
-
-                                        <label class="btn btn-outline-light w-100 text-start p-3 d-flex align-items-center justify-content-between text-dark border" for="inc_@item.Id">
-                                            <span class="fw-medium">@item.Name</span>
-                                            <i class="bi bi-plus-circle text-muted check-icon-unchecked"></i>
-                                            <i class="bi bi-check-circle-fill text-success check-icon-checked d-none"></i>
-                                        </label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fas fa-check text-success"></i></span>
+                                        <input type="text" class="form-control" value="@item.Name" readonly>
                                     </div>
                                 }
                             </div>
@@ -128,7 +120,7 @@
                             @(Model.AvailableSlots == 0 ? "disabled" : "")>
                         <i class="fas fa-calendar-check me-1"></i>
                         @(Model.AvailableSlots > 0 ? "Book Now" : "Sold Out")
-                    </button> 
+                    </button>
                 </form>
 
                 <div class="text-center mt-3">
@@ -227,11 +219,9 @@
         }
 
         var map = L.map('bookingMap').setView([lat, lng], 13);
-
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; OpenStreetMap contributors'
         }).addTo(map);
-
         L.marker([lat, lng]).addTo(map)
             .bindPopup("<b>@Model.PackageName</b><br>@Model.Destination")
             .openPopup();

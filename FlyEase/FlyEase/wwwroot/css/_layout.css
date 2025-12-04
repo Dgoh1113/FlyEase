@@ -1,4 +1,6 @@
-/* ALL YOUR CSS STYLES GO HERE */
+/* =========================================
+   1. GLOBAL RESETS & FONTS
+   ========================================= */
 * {
     margin: 0;
     padding: 0;
@@ -8,9 +10,13 @@
 body {
     font-family: Arial, sans-serif;
     background-color: #f4f4f4;
+    /* Smooth transition for Dark Mode toggling */
+    transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-/* HEADER SECTION - TEAL BLUE GRADIENT */
+/* =========================================
+   2. HEADER & NAVIGATION
+   ========================================= */
 header {
     background: linear-gradient(135deg, #0066a1 0%, #00a3e0 100%);
     text-align: center;
@@ -43,7 +49,6 @@ header {
         color: white;
     }
 
-/* NAVIGATION BAR - DARK TEAL */
 nav {
     display: flex;
     justify-content: center;
@@ -69,7 +74,9 @@ nav {
             color: white;
         }
 
-/* HERO SECTION */
+/* =========================================
+   3. HERO SECTION
+   ========================================= */
 .hero {
     background: linear-gradient(rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.3)), url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e') no-repeat center/cover;
     height: 400px;
@@ -86,7 +93,9 @@ nav {
         text-align: center;
     }
 
-/* PACKAGES - 3 CARDS PER ROW */
+/* =========================================
+   4. PACKAGES & CARDS
+   ========================================= */
 .packages {
     padding: 40px 20px;
     display: grid;
@@ -101,7 +110,7 @@ nav {
     border-radius: 8px;
     overflow: hidden;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    transition: transform 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease;
 }
 
     .package-card:hover {
@@ -124,6 +133,7 @@ nav {
         margin: 0 0 10px 0;
         font-size: 18px;
         color: #333;
+        transition: color 0.3s ease;
     }
 
     .package-content p {
@@ -131,6 +141,7 @@ nav {
         line-height: 1.5;
         color: #666;
         font-size: 14px;
+        transition: color 0.3s ease;
     }
 
 .price {
@@ -138,18 +149,10 @@ nav {
     font-weight: bold;
     font-size: 18px;
     margin-top: 10px;
+    transition: color 0.3s ease;
 }
 
-/* FOOTER */
-footer {
-    background-color: #003d5c;
-    color: white;
-    padding: 20px;
-    text-align: center;
-    margin-top: 40px;
-}
-
-/* INCLUSIONS ADD-ON */
+/* Inclusions Add-on */
 .inclusions {
     margin-top: 10px;
     padding-top: 10px;
@@ -165,6 +168,7 @@ footer {
     .inclusions li {
         margin-bottom: 2px;
         color: #666;
+        transition: color 0.3s ease;
     }
 
 .package-content small {
@@ -172,7 +176,20 @@ footer {
     font-size: 0.85em;
 }
 
-/* RESPONSIVE */
+/* =========================================
+   5. FOOTER
+   ========================================= */
+footer {
+    background-color: #003d5c;
+    color: white;
+    padding: 20px;
+    text-align: center;
+    margin-top: 40px;
+}
+
+/* =========================================
+   6. RESPONSIVE MEDIA QUERIES
+   ========================================= */
 @media (max-width: 768px) {
     .packages {
         grid-template-columns: 1fr;
@@ -190,4 +207,272 @@ footer {
             padding: 6px 12px;
             font-size: 14px;
         }
+}
+
+/* =========================================
+   7. DARK MODE CONFIGURATION (Midnight Purple Style)
+   ========================================= */
+
+/* 1. Global Backgrounds - The "Midnight" Look */
+[data-bs-theme="dark"] body {
+    background-color: #151521; /* Deep dark blue-black */
+    color: #b6b7d5; /* Soft lavender-grey text (easier on eyes than pure white) */
+}
+
+/* 2. Cards & Containers */
+[data-bs-theme="dark"] .card,
+[data-bs-theme="dark"] .dashboard-card,
+[data-bs-theme="dark"] .package-card,
+[data-bs-theme="dark"] .fav-card {
+    background-color: #1e1e2d; /* Lighter midnight grey */
+    border: 1px solid #33344b;
+    box-shadow: 0 4px 24px 0 rgba(0, 0, 0, 0.45); /* Deeper shadow */
+}
+
+/* 3. Typography & Headings */
+[data-bs-theme="dark"] h1,
+[data-bs-theme="dark"] h2,
+[data-bs-theme="dark"] h3,
+[data-bs-theme="dark"] h4,
+[data-bs-theme="dark"] h5,
+[data-bs-theme="dark"] h6,
+[data-bs-theme="dark"] .package-content h3 {
+    color: #e4e6fb; /* Bright white-blue for titles */
+}
+
+[data-bs-theme="dark"] .text-muted,
+[data-bs-theme="dark"] .package-content p,
+[data-bs-theme="dark"] .package-content small {
+    color: #8b8cab !important; /* Muted purple-grey */
+}
+
+/* 4. Form Inputs (Like the Login Screen) */
+[data-bs-theme="dark"] .form-control {
+    background-color: #2b2c40; /* Dark input background */
+    border-color: #434460;
+    color: #e4e6fb;
+}
+
+    [data-bs-theme="dark"] .form-control:focus {
+        background-color: #2b2c40;
+        border-color: #7367f0; /* Purple glow on focus */
+        box-shadow: 0 0 0 0.25rem rgba(115, 103, 240, 0.25);
+        color: #e4e6fb;
+    }
+
+/* 5. Tables (Profile Booking List) */
+[data-bs-theme="dark"] .table {
+    --bs-table-color: #b6b7d5;
+    --bs-table-bg: transparent;
+    --bs-table-border-color: #33344b;
+    --bs-table-hover-bg: #2b2c40;
+}
+
+    [data-bs-theme="dark"] .table thead {
+        background-color: #262638;
+        color: #e4e6fb;
+    }
+
+[data-bs-theme="dark"] .table-light {
+    background-color: #2b2c40; /* Fixes the white header in your screenshot */
+    color: #e4e6fb;
+    border-color: #33344b;
+}
+
+/* 6. Buttons & Accents */
+[data-bs-theme="dark"] .btn-primary {
+    background-color: #7367f0; /* The exact Purple from your image */
+    border-color: #7367f0;
+}
+
+    [data-bs-theme="dark"] .btn-primary:hover {
+        background-color: #685dd8;
+    }
+
+[data-bs-theme="dark"] .btn-outline-secondary {
+    color: #b6b7d5;
+    border-color: #434460;
+}
+
+    [data-bs-theme="dark"] .btn-outline-secondary:hover {
+        background-color: #33344b;
+        color: #fff;
+    }
+
+/* 7. Sidebar Specifics (Profile Page) */
+[data-bs-theme="dark"] .nav-link-custom {
+    color: #b6b7d5;
+}
+
+    [data-bs-theme="dark"] .nav-link-custom:hover,
+    [data-bs-theme="dark"] .nav-link-custom.active {
+        color: #fff;
+        background-color: rgba(115, 103, 240, 0.12); /* Purple tint instead of white */
+        border-left-color: #7367f0; /* Purple active border */
+    }
+
+/* 8. Chatbot Override */
+[data-bs-theme="dark"] #flybot-window {
+    background-color: #1e1e2d;
+    border-color: #33344b;
+}
+
+[data-bs-theme="dark"] .flybot-input-area {
+    background-color: #1e1e2d;
+    border-top-color: #33344b;
+}
+
+[data-bs-theme="dark"] #flybot-input {
+    background-color: #2b2c40;
+    border-color: #434460;
+    color: white;
+}
+
+/* =========================================
+   8. DYNAMIC HERO BANNER (Light & Dark Support)
+   ========================================= */
+
+/* --- A. LIGHT MODE (DEFAULT) --- */
+.hero-banner {
+    background-color: #f8f9fa; /* Light Grey (Bootstrap Default) */
+    padding: 60px 20px;
+    text-align: center;
+    border-bottom: 1px solid #dee2e6;
+    transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+    .hero-banner h1 {
+        color: #212529; /* Dark Black Text */
+        font-size: 3.5rem;
+        font-weight: 700;
+        margin-bottom: 15px;
+        letter-spacing: -0.5px;
+        transition: color 0.3s ease;
+    }
+
+    .hero-banner p {
+        color: #6c757d; /* Muted Grey Text */
+        font-size: 1.2rem;
+        font-weight: 300;
+        transition: color 0.3s ease;
+    }
+
+/* Search Container - Light Mode */
+.search-container-custom {
+    background-color: #ffffff; /* White Box */
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.1); /* Soft Shadow */
+    margin-top: -30px;
+    border: 1px solid #dee2e6;
+    max-width: 900px;
+    margin-left: auto;
+    margin-right: auto;
+    transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* Custom Inputs - Light Mode */
+.form-control-custom,
+.form-select-custom,
+.input-group-text-custom {
+    background-color: #f8f9fa;
+    border: 1px solid #ced4da;
+    color: #212529;
+}
+
+/* --- B. DARK MODE OVERRIDES (The Midnight Purple Look) --- */
+[data-bs-theme="dark"] .hero-banner {
+    background-color: #1e1e2d; /* Midnight Background */
+    border-bottom: 1px solid #33344b;
+}
+
+    [data-bs-theme="dark"] .hero-banner h1 {
+        color: #ffffff !important; /* White Text */
+        text-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    }
+
+    [data-bs-theme="dark"] .hero-banner p {
+        color: #b6b7d5 !important; /* Lavender Text */
+    }
+
+[data-bs-theme="dark"] .search-container-custom {
+    background-color: #2b2c40; /* Dark Box */
+    border-color: #434460;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+}
+
+[data-bs-theme="dark"] .form-control-custom,
+[data-bs-theme="dark"] .form-select-custom,
+[data-bs-theme="dark"] .input-group-text-custom {
+    background-color: #151521 !important; /* Deep Dark Input */
+    border-color: #434460;
+    color: #e4e6fb;
+}
+
+[data-bs-theme="dark"] .input-group-text-custom {
+    background-color: #434460 !important; /* Slightly lighter for "RM" badge */
+}
+
+/* =========================================
+   FIX FOR PRICE SUMMARY BOX (Matches Pic 2)
+   ========================================= */
+
+/* 1. The Container (Dark Grey like inputs) */
+[data-bs-theme="dark"] .price-summary-custom {
+    background-color: #2b2c40 !important; /* Midnight Input Color */
+    border: 1px solid #434460 !important;
+    color: #b6b7d5 !important; /* Lavender Text */
+    box-shadow: none !important;
+}
+
+    /* 2. Headings inside the box (White) */
+    [data-bs-theme="dark"] .price-summary-custom h4,
+    [data-bs-theme="dark"] .price-summary-custom h5,
+    [data-bs-theme="dark"] .price-summary-custom h6,
+    [data-bs-theme="dark"] .price-summary-custom strong {
+        color: #ffffff !important;
+    }
+
+    /* 3. The "Total Amount" (Purple Accent) */
+    [data-bs-theme="dark"] .price-summary-custom .text-primary {
+        color: #7367f0 !important; /* The Magic Purple */
+    }
+
+    /* 4. Remove default white backgrounds if they exist */
+    [data-bs-theme="dark"] .price-summary-custom.bg-white,
+    [data-bs-theme="dark"] .price-summary-custom.bg-light {
+        background-color: #2b2c40 !important;
+    }
+
+/* =========================================
+   FIX FOR PAYMENT METHOD CARDS
+   ========================================= */
+
+/* 1. The Card Label (Default Dark State) */
+[data-bs-theme="dark"] .payment-card-custom {
+    background-color: #2b2c40 !important; /* Midnight Input Color */
+    border: 1px solid #434460;
+    color: #e4e6fb !important; /* Visible Text */
+    transition: all 0.2s ease;
+}
+
+    /* 2. Hover Effect */
+    [data-bs-theme="dark"] .payment-card-custom:hover {
+        border-color: #7367f0; /* Purple border on hover */
+        background-color: #32334a !important;
+    }
+
+/* 3. Selected State (When the radio button is checked) */
+/* This assumes you use the structure: <input class="btn-check"> <label class="payment-card-custom"> */
+[data-bs-theme="dark"] .btn-check:checked + .payment-card-custom {
+    background-color: rgba(115, 103, 240, 0.1) !important; /* Slight Purple Tint */
+    border-color: #7367f0 !important;
+    box-shadow: 0 0 15px rgba(115, 103, 240, 0.2) !important;
+    color: #ffffff !important;
+}
+
+/* 4. Fix for the Description Text (Small text inside card) */
+[data-bs-theme="dark"] .payment-card-custom small,
+[data-bs-theme="dark"] .payment-card-custom .text-muted {
+    color: #b6b7d5 !important; /* Lavender Grey */
 }
