@@ -356,5 +356,16 @@ namespace FlyEase.Controllers
             }
             return RedirectToAction(nameof(Packages));
         }
+
+        // ==========================================
+        // 5. REPORT MANAGEMENT
+        // ==========================================
+
+        [HttpGet("Report")]
+        public IActionResult Report()
+        {
+            return View();
+        }
+
     }
 }
