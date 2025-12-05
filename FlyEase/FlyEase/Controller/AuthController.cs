@@ -154,7 +154,7 @@ namespace FlyEase.Controllers
                         authProperties); // Pass the properties here!
 
                     // 5. Redirect
-                    if (user.Role == "Admin") return RedirectToAction("StaffDashboard", "StaffDashboard");
+                    if (user.Role == "Admin") return RedirectToAction("StaffDashboard", "StaffDashboard");  
                     if (user.Role == "Staff") return RedirectToAction("Dashboard", "Staff");
 
                     return RedirectToAction("Profile", "Auth");
