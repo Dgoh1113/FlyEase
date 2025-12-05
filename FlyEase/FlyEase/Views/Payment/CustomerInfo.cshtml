@@ -4,149 +4,154 @@
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<div class="container mt-4">
-    <div class="row justify-content-center">
-        <div class="col-lg-8">
-            <partial name="_BookingProgress" />
+@section Head {
+    <link rel="stylesheet" href="~/css/profile.css" />
+}
 
-            <div class="card shadow-sm dashboard-card">
-                <div class="card-header bg-primary text-white">
-                    <h4 class="mb-0">
-                        <i class="fas fa-user me-2"></i>Customer Information
-                    </h4>
-                </div>
-                <div class="card-body">
-                    <div class="alert alert-info">
-                        <h6 class="alert-heading">Booking Summary</h6>
-                        <p class="mb-1"><strong>Package:</strong> @Model.PackageName</p>
-                        <p class="mb-1"><strong>Base Price:</strong> RM @Model.PackagePrice.ToString("N2") per person</p>
-                        <p class="mb-0"><strong>Selected People:</strong> @Model.NumberOfPeople</p>
+<div class="dashboard-container">
+    <div class="container mt-4">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <partial name="_BookingProgress" />
+
+                <div class="card shadow-sm dashboard-card">
+                    <div class="card-header booking-header text-white">
+                        <h4 class="mb-0">
+                            <i class="fas fa-user me-2"></i>Customer Information
+                        </h4>
                     </div>
-
-                    <form asp-action="CustomerInfo" method="post">
-                        @Html.AntiForgeryToken()
-
-                        <input type="hidden" asp-for="PackageID" />
-                        <input type="hidden" asp-for="PackageName" />
-                        <input type="hidden" asp-for="PackagePrice" />
-                        <input type="hidden" asp-for="NumberOfPeople" />
-                        <input type="hidden" asp-for="BasePrice" />
-                        <input type="hidden" asp-for="DiscountAmount" />
-                        <input type="hidden" asp-for="FinalAmount" />
-
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label asp-for="FullName" class="form-label">Full Name *</label>
-                                <input asp-for="FullName" class="form-control" placeholder="Enter your full name">
-                                <span asp-validation-for="FullName" class="text-danger small"></span>
-                            </div>
-
-                            <div class="col-md-6 mb-3">
-                                <label asp-for="Email" class="form-label">Email Address *</label>
-                                <input asp-for="Email" type="email" class="form-control" placeholder="your@email.com">
-                                <span asp-validation-for="Email" class="text-danger small"></span>
-                            </div>
+                    <div class="card-body">
+                        <div class="alert alert-info">
+                            <h6 class="alert-heading">Booking Summary</h6>
+                            <p class="mb-1"><strong>Package:</strong> @Model.PackageName</p>
+                            <p class="mb-1"><strong>Base Price:</strong> RM @Model.PackagePrice.ToString("N2") per person</p>
+                            <p class="mb-0"><strong>Selected People:</strong> @Model.NumberOfPeople</p>
                         </div>
 
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label asp-for="Phone" class="form-label">Phone Number *</label>
-                                <div class="input-group">
-                                    <span class="input-group-text">+60</span>
-                                    <input asp-for="Phone" class="form-control" placeholder="123456789">
-                                </div>
-                                <span asp-validation-for="Phone" class="text-danger small"></span>
-                            </div>
+                        <form asp-action="CustomerInfo" method="post">
+                            @Html.AntiForgeryToken()
 
-                            <div class="col-md-6 mb-3">
-                                <label asp-for="TravelDate" class="form-label">Travel Date *</label>
-                                <input asp-for="TravelDate" type="date" class="form-control"
-                                       min="@DateTime.Now.AddDays(1).ToString("yyyy-MM-dd")"
-                                       max="@DateTime.Now.AddYears(1).ToString("yyyy-MM-dd")">
-                                <span asp-validation-for="TravelDate" class="text-danger small"></span>
-                            </div>
-                        </div>
+                            <input type="hidden" asp-for="PackageID" />
+                            <input type="hidden" asp-for="PackageName" />
+                            <input type="hidden" asp-for="PackagePrice" />
+                            <input type="hidden" asp-for="NumberOfPeople" />
+                            <input type="hidden" asp-for="BasePrice" />
+                            <input type="hidden" asp-for="DiscountAmount" />
+                            <input type="hidden" asp-for="FinalAmount" />
 
-                        <div class="mb-3">
-                            <label asp-for="Address" class="form-label">Address</label>
-                            <textarea asp-for="Address" class="form-control" rows="2" placeholder="Your address"></textarea>
-                        </div>
-
-                        <div class="mb-4">
-                            <label asp-for="SpecialRequests" class="form-label">Special Requests</label>
-                            <textarea asp-for="SpecialRequests" class="form-control" rows="3"
-                                      placeholder="Any special requirements or requests..."></textarea>
-                        </div>
-
-                        <div class="card bg-light mb-4 price-summary-custom">
-                            <div class="card-body">
-                                <h6 class="card-title fw-bold">Price Summary</h6>
-                                <div class="row">
-                                    <div class="col-6">
-                                        <small>Base Price (@Model.NumberOfPeople person(s)):</small>
-                                    </div>
-                                    <div class="col-6 text-end">
-                                        <small>RM @Model.BasePrice.ToString("N2")</small>
-                                    </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label asp-for="FullName" class="form-label">Full Name *</label>
+                                    <input asp-for="FullName" class="form-control" placeholder="Enter your full name">
+                                    <span asp-validation-for="FullName" class="text-danger small"></span>
                                 </div>
 
-                                @if (Model.DiscountAmount > 0)
-                                {
+                                <div class="col-md-6 mb-3">
+                                    <label asp-for="Email" class="form-label">Email Address *</label>
+                                    <input asp-for="Email" type="email" class="form-control" placeholder="your@email.com">
+                                    <span asp-validation-for="Email" class="text-danger small"></span>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label asp-for="Phone" class="form-label">Phone Number *</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">+60</span>
+                                        <input asp-for="Phone" class="form-control" placeholder="123456789">
+                                    </div>
+                                    <span asp-validation-for="Phone" class="text-danger small"></span>
+                                </div>
+
+                                <div class="col-md-6 mb-3">
+                                    <label asp-for="TravelDate" class="form-label">Travel Date *</label>
+                                    <input asp-for="TravelDate" type="date" class="form-control"
+                                           min="@DateTime.Now.AddDays(1).ToString("yyyy-MM-dd")"
+                                           max="@DateTime.Now.AddYears(1).ToString("yyyy-MM-dd")">
+                                    <span asp-validation-for="TravelDate" class="text-danger small"></span>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label asp-for="Address" class="form-label">Address</label>
+                                <textarea asp-for="Address" class="form-control" rows="2" placeholder="Your address"></textarea>
+                            </div>
+
+                            <div class="mb-4">
+                                <label asp-for="SpecialRequests" class="form-label">Special Requests</label>
+                                <textarea asp-for="SpecialRequests" class="form-control" rows="3"
+                                          placeholder="Any special requirements or requests..."></textarea>
+                            </div>
+
+                            <div class="card bg-light mb-4 price-summary-custom">
+                                <div class="card-body">
+                                    <h6 class="card-title fw-bold">Price Summary</h6>
                                     <div class="row">
                                         <div class="col-6">
-                                            <small class="text-success">Discounts Applied:</small>
+                                            <small>Base Price (@Model.NumberOfPeople person(s)):</small>
                                         </div>
-                                        <div class="col-6 text-end text-success">
-                                            <small>-RM @Model.DiscountAmount.ToString("N2")</small>
+                                        <div class="col-6 text-end">
+                                            <small>RM @Model.BasePrice.ToString("N2")</small>
                                         </div>
                                     </div>
 
-                                    @if ((Model.TravelDate - DateTime.Now).TotalDays >= 30)
+                                    @if (Model.DiscountAmount > 0)
                                     {
                                         <div class="row">
                                             <div class="col-6">
-                                                <small class="text-muted">• Early Bird (10%)</small>
+                                                <small class="text-success">Discounts Applied:</small>
+                                            </div>
+                                            <div class="col-6 text-end text-success">
+                                                <small>-RM @Model.DiscountAmount.ToString("N2")</small>
                                             </div>
                                         </div>
-                                    }
 
-                                    @if (Model.NumberOfPeople >= 5)
-                                    {
-                                        <div class="row">
-                                            <div class="col-6">
-                                                <small class="text-muted">• Bulk Discount (15%)</small>
+                                        @if ((Model.TravelDate - DateTime.Now).TotalDays >= 30)
+                                        {
+                                            <div class="row">
+                                                <div class="col-6">
+                                                    <small class="text-muted">• Early Bird (10%)</small>
+                                                </div>
                                             </div>
-                                        </div>
-                                    }
-                                }
+                                        }
 
-                                <hr class="my-2">
-                                <div class="row">
-                                    <div class="col-6">
-                                        <strong>Total Amount:</strong>
-                                    </div>
-                                    <div class="col-6 text-end">
-                                        <strong class="text-primary fs-5">RM @Model.FinalAmount.ToString("N2")</strong>
+                                        @if (Model.NumberOfPeople >= 5)
+                                        {
+                                            <div class="row">
+                                                <div class="col-6">
+                                                    <small class="text-muted">• Bulk Discount (15%)</small>
+                                                </div>
+                                            </div>
+                                        }
+                                    }
+
+                                    <hr class="my-2">
+                                    <div class="row">
+                                        <div class="col-6">
+                                            <strong>Total Amount:</strong>
+                                        </div>
+                                        <div class="col-6 text-end">
+                                            <strong class="text-primary fs-5">RM @Model.FinalAmount.ToString("N2")</strong>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
 
-                        <div class="d-flex justify-content-between">
-                            <a href="@Url.Action("Packages", "Home")" class="btn btn-outline-secondary">
-                                <i class="fas fa-arrow-left me-1"></i>Cancel
-                            </a>
-                            <button type="submit" class="btn btn-primary fw-bold px-4">
-                                Continue to Payment <i class="fas fa-arrow-right ms-1"></i>
-                            </button>
-                        </div>
-                    </form>
+                            <div class="d-flex justify-content-between">
+                                <a href="@Url.Action("Packages", "Home")" class="btn btn-outline-secondary">
+                                    <i class="fas fa-arrow-left me-1"></i>Cancel
+                                </a>
+                                <button type="submit" class="btn btn-primary fw-bold px-4">
+                                    Continue to Payment <i class="fas fa-arrow-right ms-1"></i>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
-
 @section Scripts {
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validate/1.19.3/jquery.validate.min.js"></script>

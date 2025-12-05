@@ -9,76 +9,64 @@
     <link rel="stylesheet" href="~/css/auth.css" />
 }
 
-<div class="auth-container">
-    <div class="auth-card fade-in" style="max-width: 450px;">
-        <div class="auth-header">
-            <h2 class="text-white mb-0">Welcome Back</h2>
-            <p class="text-white-50 mb-0">Login to your account</p>
-        </div>
-
-        <div class="auth-body">
-            @if (ViewBag.SuccessMessage != null)
-            {
-                <div class="alert alert-success animate-slide-down">
-                    <i class="fas fa-check-circle"></i> @ViewBag.SuccessMessage
+<div class="container mt-5 mb-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-5">
+            <div class="card shadow-lg border-0 rounded-lg">
+                <div class="card-header booking-header text-white text-center py-4">
+                    <h3 class="font-weight-light my-1">Welcome Back</h3>
+                    <small class="opacity-75">Login to your account</small>
                 </div>
-            }
 
-            <form method="post" id="loginForm" novalidate>
-                @Html.AntiForgeryToken()
-
-                <div class="form-group">
-                    <label class="form-label" for="email">Email Address</label>
-                    <div class="input-with-icon">
-                        <i class="fas fa-envelope input-icon"></i>
-                        <input type="email" id="email" class="form-control" name="Email"
-                               value="@(Model?.Email ?? "")"
-                               placeholder="Enter your email" required>
-                    </div>
-                    @if (ViewData.ModelState["Email"]?.Errors?.Count > 0)
+                <div class="card-body p-4">
+                    @if (ViewBag.SuccessMessage != null)
                     {
-                        <div class="text-danger small mt-1">
-                            @ViewData.ModelState["Email"].Errors[0].ErrorMessage
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            <i class="fas fa-check-circle me-1"></i> @ViewBag.SuccessMessage
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                         </div>
                     }
-                </div>
 
-                <div class="form-group">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <label class="form-label" for="password">Password</label>
-                        <a href="@Url.Action("ForgotPassword", "Auth")" class="auth-link small">Forgot password?</a>
-                    </div>
-                    <div class="input-with-icon">
-                        <i class="fas fa-lock input-icon"></i>
-                        <input type="password" id="password" class="form-control" name="Password"
-                               placeholder="Enter your password" required>
-                        <button type="button" class="password-toggle" tabindex="-1">
-                            <i class="fas fa-eye"></i>
-                        </button>
-                    </div>
-                    @if (ViewData.ModelState["Password"]?.Errors?.Count > 0)
-                    {
-                        <div class="text-danger small mt-1">
-                            @ViewData.ModelState["Password"].Errors[0].ErrorMessage
+                    <form asp-action="Login" method="post" id="loginForm" novalidate>
+                        @Html.AntiForgeryToken()
+
+                        <div class="form-floating mb-3">
+                            <input asp-for="Email" class="form-control" placeholder="name@example.com" />
+                            <label asp-for="Email">Email Address</label>
+                            <span asp-validation-for="Email" class="text-danger small"></span>
                         </div>
-                    }
+
+                        <div class="form-floating mb-3 position-relative">
+                            <input asp-for="Password" class="form-control" type="password" placeholder="Password" id="password" />
+                            <label asp-for="Password">Password</label>
+                            <button type="button" class="btn btn-link position-absolute top-50 end-0 translate-middle-y text-decoration-none me-2 password-toggle" tabindex="-1" style="z-index: 5; color: var(--text-muted);">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <span asp-validation-for="Password" class="text-danger small"></span>
+                        </div>
+
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" asp-for="RememberMe" />
+                            <label class="form-check-label text-muted" asp-for="RememberMe">
+                                Remember Password
+                            </label>
+                        </div>
+
+                        <div class="d-grid gap-2 mt-4 mb-0">
+                            <button type="submit" class="btn btn-primary btn-lg fw-bold">
+                                <i class="fas fa-sign-in-alt me-2"></i>Sign In
+                            </button>
+                        </div>
+                    </form>
                 </div>
 
-                <div class="form-group">
-                    <label class="checkbox-container">
-                        <input type="checkbox" name="RememberMe" value="true" @(Model?.RememberMe == true ? "checked" : "")>
-                        <span class="checkmark"></span>
-                        Remember me
-                    </label>
+                <div class="card-footer text-center py-3">
+                    <div class="small">
+                        <a asp-action="Register" class="text-decoration-none fw-bold">Need an account? Sign up!</a>
+                        <span class="mx-1 text-muted">|</span>
+                        <a asp-action="ForgotPassword" class="text-decoration-none text-muted">Forgot Password?</a>
+                    </div>
                 </div>
-
-                <button type="submit" class="btn-primary">
-                    <i class="fas fa-sign-in-alt"></i> Sign In
-                </button>
-            </form>
-
-            <div class="auth-footer">
-                <p>Don't have an account? <a href="@Url.Action("Register", "Auth")" class="auth-link">Sign up</a></p>
             </div>
         </div>
     </div>
@@ -86,4 +74,5 @@
 
 @section Scripts {
     <script src="~/js/auth.js"></script>
+    <partial name="_ValidationScriptsPartial" />
 }

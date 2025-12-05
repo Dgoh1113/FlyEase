@@ -1,134 +1,46 @@
-﻿/* Scoped Auth Styling */
-.auth-container {
-    /* Adjusted to account for header height approx 150px or auto */
-    min-height: calc(100vh - 160px);
-    background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('[https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=1920&q=80](https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=1920&q=80)');
-    background-size: cover;
-    background-position: center;
-    background-attachment: fixed;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 2rem 1rem;
-    margin-top: 0;
+﻿/* =========================================
+   AUTH PAGE STYLES (Cleaned for Dark Mode)
+   ========================================= */
+
+/* 1. Footer Styling */
+.card-footer {
+    background-color: rgba(0,0,0,0.02) !important;
+    border-top: 1px solid var(--border-color);
 }
 
-.auth-card {
-    background: rgba(255, 255, 255, 0.98);
-    border-radius: 16px;
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-    width: 100%;
-    max-width: 600px;
-    overflow: hidden;
-    position: relative;
-    backdrop-filter: blur(10px);
+/* 2. Floating Label Fixes for Dark Mode */
+[data-bs-theme="dark"] .form-floating label {
+    color: var(--text-muted);
 }
 
-.fade-in {
-    animation: fadeInUp 0.5s ease-out;
+[data-bs-theme="dark"] .form-floating .form-control:focus ~ label {
+    color: var(--text-main);
 }
 
-@keyframes fadeInUp {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+/* 3. Password Toggle Button */
+/* Add this to the bottom of auth.css */
+.password-toggle {
+    z-index: 10; /* Ensures button is ABOVE the label */
+    cursor: pointer;
+    background: transparent;
+    border: none;
 }
 
-.auth-header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    padding: 2rem;
-    text-align: center;
-    color: white;
-}
-
-.auth-body {
-    padding: 2.5rem;
-}
-
-/* Form Elements */
-.form-group {
-    margin-bottom: 1.25rem;
-}
-
-.form-label {
-    font-weight: 600;
-    color: #4a5568;
-    font-size: 0.9rem;
-    margin-bottom: 0.5rem;
-    display: block;
-}
-
-.input-with-icon {
-    position: relative;
-}
-
-.input-icon {
-    position: absolute;
-    left: 1rem;
-    top: 50%;
-    transform: translateY(-50%);
-    color: #a0aec0;
-    z-index: 5;
-}
-
-.form-control {
-    width: 100%;
-    padding: 0.75rem 1rem 0.75rem 2.75rem;
-    border: 2px solid #e2e8f0;
-    border-radius: 10px;
-    font-size: 1rem;
-    transition: all 0.3s;
-}
-
-    .form-control:focus {
-        border-color: #667eea;
-        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
+    .password-toggle:focus {
         outline: none;
     }
 
-/* Button Styling */
-.btn-primary {
-    width: 100%;
-    padding: 0.85rem;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    border: none;
-    border-radius: 10px;
-    font-weight: 600;
-    font-size: 1rem;
-    cursor: pointer;
-    margin-top: 1rem;
-    transition: transform 0.2s;
-}
-
-    .btn-primary:hover {
-        transform: translateY(-2px);
+    .password-toggle:hover {
+        color: var(--accent-primary) !important;
     }
 
-.password-toggle {
-    position: absolute;
-    right: 1rem;
-    top: 50%;
-    transform: translateY(-50%);
-    background: none;
-    border: none;
-    cursor: pointer;
-    color: #a0aec0;
-
-}
-
-/* Strength Meter */
+/* 4. Password Strength Meter */
 .strength-bar {
     height: 4px;
-    background: #edf2f7;
+    background-color: var(--border-color);
     border-radius: 2px;
-    margin: 8px 0;
+    margin: 5px 0;
+    overflow: hidden;
 }
 
 .strength-fill {
@@ -137,85 +49,57 @@
     transition: width 0.3s ease, background-color 0.3s ease;
 }
 
+/* Colors for strength */
 .strength-weak {
-    background-color: #e53e3e;
+    background-color: #dc3545;
 }
-
+/* Red */
 .strength-medium {
-    background-color: #ecc94b;
+    background-color: #ffc107;
 }
-
+/* Yellow */
 .strength-strong {
-    background-color: #38a169;
+    background-color: #198754;
 }
+/* Green */
 
+/* 5. Requirement List Styling */
 .requirement-list {
     list-style: none;
     padding: 0;
-    margin: 5px 0 0 0;
+    margin: 10px 0 0 0;
     font-size: 0.8rem;
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr 1fr; /* Two columns */
     gap: 5px;
 }
 
     .requirement-list li {
-        color: #718096;
+        color: var(--text-muted);
         display: flex;
         align-items: center;
+        transition: color 0.3s ease;
     }
 
+        .requirement-list li i {
+            font-size: 0.4rem; /* Small dot */
+            margin-right: 8px;
+        }
+
+/* When requirement is met */
 .requirement-met {
-    color: #38a169 !important;
+    color: #198754 !important; /* Green */
 }
 
     .requirement-met i {
-        color: #38a169;
-        margin-right: 5px;
+        font-size: 0.9rem !important; /* Larger checkmark */
+        color: #198754;
     }
 
-.requirement-unmet i {
-    color: #cbd5e0;
-    margin-right: 5px;
-}
-
-/* Links */
-.auth-footer {
-    text-align: center;
-    margin-top: 1.5rem;
-    font-size: 0.9rem;
-}
-
-.auth-link {
-    color: #667eea;
-    text-decoration: none;
-    font-weight: 600;
-}
-
-
-/* Forgot Password specific styles */
-.auth-footer.text-center {
-    margin-top: 2rem;
-    padding-top: 1rem;
-    border-top: 1px solid #e9ecef;
-}
-
-.btn-primary:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-}
-
-/* Loading spinner */
-.fa-spinner {
-    animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-    0% {
-        transform: rotate(0deg);
-    }
-
-    100% {
-        transform: rotate(360deg);
-    }
+/* 6. Phone Number Input Group Fix */
+/* Ensures the +60 box and the input look seamless in dark mode */
+[data-bs-theme="dark"] .input-group-text {
+    background-color: var(--bg-input);
+    border-color: var(--border-color);
+    color: var(--text-muted);
 }
