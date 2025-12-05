@@ -4,6 +4,7 @@
 @{
     ViewData["Title"] = "Home";
     Layout = "~/Views/Shared/_Layout.cshtml";
+    <link rel="stylesheet" href="~/css/index.css" />
 
     // Check if user is searching/filtering
     bool isFiltered = !string.IsNullOrEmpty(ViewBag.SearchTerm) ||
@@ -17,81 +18,16 @@
                                .OrderBy(g => g.Key);
 }
 
-<style>
-    /* Hero Section */
-    .hero-section {
-        background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('/img/banner-image.png');
-        background-size: cover;
-        background-position: center;
-        color: white;
-        padding: 80px 0;
-        margin-bottom: 30px;
-        border-radius: 0 0 20px 20px;
-    }
+<div id="hero-banner" class="hero-section">
 
-    /* Package Card Styling */
-    .package-card {
-        border: none;
-        border-radius: 12px;
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
-        height: 100%;
-        background: #fff;
-    }
+    <img src="~/img/mt-fuji-japan-MOSTBEAUTIFUL0921-413f7d67bb4f4539a336ebba14f74ed2.jpg" alt="Travel Banner" class="hero-bg-img">
 
-        .package-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-        }
+    <div class="hero-overlay"></div>
 
-    .package-img-top {
-        height: 180px;
-        object-fit: cover;
-        border-top-left-radius: 12px;
-        border-top-right-radius: 12px;
-    }
-
-    .card-body {
-        display: flex;
-        flex-direction: column;
-    }
-
-    .price-tag {
-        font-size: 1.1rem;
-        font-weight: bold;
-        color: #0d6efd;
-    }
-
-    /* Carousel Controls */
-    .carousel-control-prev, .carousel-control-next {
-        width: 40px;
-        height: 40px;
-        background-color: rgba(0,0,0,0.5);
-        border-radius: 50%;
-        top: 50%;
-        transform: translateY(-50%);
-    }
-
-    .carousel-control-prev {
-        left: -20px;
-    }
-
-    .carousel-control-next {
-        right: -20px;
-    }
-
-    /* Ensure rows inside carousel have padding for shadow */
-    .carousel-inner {
-        padding: 10px;
-    }
-</style>
-
-<!-- HERO & SEARCH BAR -->
-<div class="hero-section text-center">
-    <div class="container">
+    <div class="hero-content container">
         <h1 class="display-4 fw-bold mb-3">Find Your Perfect Getaway</h1>
-        <p class="lead mb-4">Discover amazing places at exclusive deals</p>
+        <p class="lead mb-4 fw-normal">Discover amazing places at exclusive deals</p>
 
-       
     </div>
 </div>
 
