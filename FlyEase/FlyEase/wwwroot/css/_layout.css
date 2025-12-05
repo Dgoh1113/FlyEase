@@ -1,369 +1,222 @@
 /* =========================================
-   1. THEME CONTROL CENTER (VARIABLES)
+   1. THEME CONTROL CENTER
    ========================================= */
 :root {
-    /* --- LIGHT MODE PALETTE (Default) --- */
-    --bg-body: #f4f4f4;
+    /* --- COLORS --- */
+    --bg-body: #f0f2f5;
     --bg-card: #ffffff;
     --bg-input: #f8f9fa;
-    --text-main: #212529;
-    --text-muted: #6c757d;
+    --text-main: #2d3436;
+    --text-muted: #636e72;
     --text-inverse: #ffffff;
-    --border-color: #dee2e6;
-    --shadow-color: rgba(0, 0, 0, 0.1);
-    /* Brand Colors */
-    --accent-primary: #0066a1; /* FlyEase Blue */
-    --accent-hover: #00a3e0; /* Lighter Blue */
-    --accent-secondary: #ff9f43; /* Orange/Warning */
-    /* Gradients */
-    --grad-header-start: #0066a1;
-    --grad-header-end: #00a3e0;
-    /* Navigation Specifics */
-    --nav-bg: #004d7a;
-    --nav-item-hover: #00a3e0;
-    --nav-active-border: #ffffff;
-    /* Footer */
-    --bg-footer: #003d5c;
-}
-
-/* --- DARK MODE PALETTE (Midnight Purple) --- */
-[data-bs-theme="dark"] {
-    --bg-body: #151521; /* Deep dark blue-black */
-    --bg-card: #1e1e2d; /* Lighter midnight grey */
-    --bg-input: #2b2c40; /* Dark input background */
-
-    --text-main: #e4e6fb; /* Bright white-blue */
-    --text-muted: #b6b7d5; /* Lavender-grey */
-    --text-inverse: #ffffff;
-    --border-color: #33344b;
-    --shadow-color: rgba(0, 0, 0, 0.45);
-    /* Brand Colors (Purple Theme) */
-    --accent-primary: #7367f0; /* Magic Purple */
-    --accent-hover: #685dd8;
+    --accent-primary: #0066a1;
+    --accent-hover: #00a3e0;
     --accent-secondary: #ff9f43;
-    /* Gradients */
-    --grad-header-start: #2b2c40; /* Matches sidebar header */
-    --grad-header-end: #1e1e2d;
-    /* Navigation Specifics */
-    --nav-bg: #1e1e2d;
-    --nav-item-hover: rgba(115, 103, 240, 0.1);
-    --nav-active-border: #7367f0; /* Purple border */
-    /* Footer */
-    --bg-footer: #1e1e2d;
+    /* --- MODERN UI VARIABLES --- */
+    --border-radius-card: 24px;
+    --border-radius-btn: 50px;
+    --border-radius-input: 16px;
+    --shadow-soft: 0 10px 40px -10px rgba(0,0,0,0.08);
+    --shadow-hover: 0 20px 50px -10px rgba(0,0,0,0.15);
+    --grad-header: linear-gradient(135deg, #0066a1 0%, #00a3e0 100%);
+}
+
+[data-bs-theme="dark"] {
+    --bg-body: #121212;
+    --bg-card: #1e1e1e;
+    --bg-input: #2c2c2c;
+    --text-main: #e0e0e0;
+    --text-muted: #a0a0a0;
+    --shadow-soft: 0 10px 40px -10px rgba(0,0,0,0.5);
 }
 
 /* =========================================
-   2. GLOBAL RESETS & FONTS
+   2. GLOBAL RESET & TYPOGRAPHY
    ========================================= */
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
-
 body {
-    font-family: Arial, sans-serif;
+    font-family: 'Poppins', sans-serif !important;
     background-color: var(--bg-body);
-    color: var(--text-main);
-    /* Smooth transition for Dark Mode toggling */
-    transition: background-color 0.3s ease, color 0.3s ease;
+    color: black;
+    line-height: 1.6;
+}
+
+a {
+    text-decoration: none;
 }
 
 /* =========================================
-   3. HEADERS, NAV & FOOTER
+   3. MODERN CARDS
    ========================================= */
-header,
-.booking-header,
-.sidebar-header {
-    background: linear-gradient(135deg, var(--grad-header-start) 0%, var(--grad-header-end) 100%) !important;
-    text-align: center;
-    padding: 20px 20px;
-    color: var(--text-inverse);
-    border-bottom: 1px solid var(--border-color);
-}
-
-    header h1 {
-        font-size: 42px;
-        font-weight: bold;
-        margin: 0 0 5px 0;
-        letter-spacing: 1px;
-        color: var(--text-inverse);
-    }
-
-        header h1 a {
-            color: var(--text-inverse);
-            text-decoration: none;
-        }
-
-            header h1 a:hover {
-                color: #f0f8ff;
-            }
-
-    header p {
-        font-size: 16px;
-        margin: 0;
-        font-weight: 300;
-        letter-spacing: 0.5px;
-        color: var(--text-inverse);
-    }
-
-/* Navigation Bar */
-nav {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 30px;
-    padding: 15px 20px;
-    background-color: var(--nav-bg);
-    flex-wrap: wrap;
-    transition: background-color 0.3s ease;
-}
-
-    nav a {
-        color: var(--text-inverse); /* Usually keeps white in nav */
-        text-decoration: none;
-        font-size: 15px;
-        font-weight: 500;
-        padding: 8px 15px;
-        transition: all 0.3s ease;
-        border-radius: 4px;
-    }
-
-        nav a:hover {
-            background-color: var(--nav-item-hover);
-            color: var(--text-inverse);
-        }
-
-/* Footer */
-footer {
-    background-color: var(--bg-footer);
-    color: var(--text-inverse);
-    padding: 20px;
-    text-align: center;
-    margin-top: 40px;
-    border-top: 1px solid var(--border-color);
-}
-
-/* =========================================
-   4. COMPONENTS: CARDS, INPUTS, BUTTONS
-   ========================================= */
-
-/* Cards (Applies to Profile, Packages, Booking, etc.) */
 .card,
-.dashboard-card,
 .package-card,
-.fav-card,
-.search-container-custom,
-.price-summary-custom,
-.payment-card-custom {
-    background-color: var(--bg-card) !important;
-    border: 1px solid var(--border-color) !important;
-    box-shadow: 0 4px 15px var(--shadow-color) !important;
-    color: var(--text-main);
-    border-radius: 8px;
+.dashboard-card,
+.search-container-custom {
+    background-color: var(--bg-card);
+    border: none !important;
+    border-radius: var(--border-radius-card) !important;
+    box-shadow: var(--shadow-soft) !important;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
     overflow: hidden;
-    transition: transform 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease;
+    margin-bottom: 24px;
 }
 
-    .package-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 8px 25px var(--shadow-color);
-        cursor: pointer;
+    .card:hover, .package-card:hover {
+        transform: translateY(-8px);
+        box-shadow: var(--shadow-hover) !important;
     }
 
-/* Inputs & Forms */
+.card-body {
+    padding: 2rem !important;
+}
+
+/* =========================================
+   4. HEADER & NAVIGATION
+   ========================================= */
+header.fixed-top {
+    background: rgba(255, 255, 255, 0.01) !important; /* Almost invisible background */
+    backdrop-filter: blur(20px);
+    border-bottom: none !important;
+    height: 80px;
+}
+
+[data-bs-theme="dark"] header.fixed-top {
+    background: rgba(18, 18, 18, 0.5) !important;
+}
+.container-fluid.d-flex.align-items-center {
+    background-color: slategrey;
+
+
+}
+.navbar-brand, .btn-hamburger {
+    /*color: white !important;*/ /* White text so it's readable */
+    /* Make the background bigger */
+    padding: 12px 24px !important;
+    border-radius: 12px; /* Rounded corners */
+    /* Ensure they stand out */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 15px;
+    transition: transform 0.2s ease, background-color 0.2s ease;
+}
+ 
+/* Brand Logo */
+.navbar-brand {
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    /* Removed width: 100% because it breaks layout */
+}
+
+/* --- UPDATED HAMBURGER BUTTON --- */
+/* Completely blends in, no background box */
+.btn-hamburger {
+    border: none !important;
+    box-shadow: none !important;
+    height:10%;
+}
+
+
+    .btn-hamburger:hover {
+        color: var(--accent-primary) !important;
+        transform: scale(1.1); /* Subtle zoom effect instead of a box */
+        background: transparent !important;
+    }
+
+/* =========================================
+   5. SIDEBAR (Updated Width)
+   ========================================= */
+.offcanvas {
+    border-radius: 0 30px 30px 0; /* More rounded edge */
+    border: none;
+    background-color: var(--bg-card);
+    width: 380px !important; /* MADE WIDER (Was ~300px) */
+}
+
+.list-group-item {
+    border: none;
+    margin-bottom: 8px;
+    border-radius: 12px !important;
+    padding: 14px 24px; /* More padding for wider look */
+    font-weight: 500;
+    color: black;
+}
+
+    .list-group-item:hover,
+    .list-group-item.active {
+        background-color: rgba(0, 102, 161, 0.08);
+        color:black;
+    }
+
+    .list-group-item i {
+        width: 30px; /* Wider icon spacing */
+        color: black;
+    }
+
+/* =========================================
+   6. INPUTS & BUTTONS
+   ========================================= */
 .form-control,
-.form-control-custom,
-.form-select,
-.form-select-custom,
-textarea {
-    background-color: var(--bg-input) !important;
-    border: 1px solid var(--border-color) !important;
-    color: var(--text-main) !important;
+.form-select {
+    background-color: var(--bg-input);
+    border: 1px solid transparent;
+    border-radius: var(--border-radius-input);
+    padding: 12px 20px;
+    font-size: 0.95rem;
+    transition: all 0.3s;
 }
 
     .form-control:focus {
+        background-color: var(--bg-card);
         border-color: var(--accent-primary);
-        box-shadow: 0 0 0 0.25rem rgba(115, 103, 240, 0.25); /* Keeps the glow generic or purple based on theme if needed, but here hardcoded to generic style or we can use variable */
+        box-shadow: 0 0 0 4px rgba(0, 102, 161, 0.1);
     }
 
-/* Input Group Text (e.g. "+60" or "RM") */
-.input-group-text,
-.input-group-text-custom {
-    background-color: var(--border-color) !important; /* Slightly darker than input */
-    border: 1px solid var(--border-color);
-    color: var(--text-main);
+.btn {
+    border-radius: var(--border-radius-btn);
+    padding: 10px 24px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    box-shadow: 0 4px 15px rgba(0, 102, 161, 0.2);
+    border: none;
 }
 
-/* Buttons */
 .btn-primary {
-    background-color: var(--accent-primary);
-    border-color: var(--accent-primary);
-    color: #fff;
+    background: var(--grad-header);
 }
 
     .btn-primary:hover {
-        background-color: var(--accent-hover);
-        border-color: var(--accent-hover);
-    }
-
-.btn-outline-secondary {
-    color: var(--text-muted);
-    border-color: var(--border-color);
-}
-
-    .btn-outline-secondary:hover {
-        background-color: var(--border-color);
-        color: var(--text-main);
+        box-shadow: 0 6px 20px rgba(0, 102, 161, 0.4);
+        transform: translateY(-1px);
     }
 
 /* =========================================
-   5. SPECIFIC PAGE STYLES (Refactored)
+   7. EXTRAS
    ========================================= */
-
-/* Hero Section (Image Background) */
-.hero {
-    background: linear-gradient(rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.3)), url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e') no-repeat center/cover;
-    height: 400px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    text-shadow: 2px 2px 10px rgba(0, 0, 0, 0.7);
+.package-card .card-img-wrapper {
+    border-radius: var(--border-radius-card);
+    margin: 10px;
+    overflow: hidden;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
 }
 
-    .hero h1 {
-        font-size: 48px;
-        font-weight: bold;
-        text-align: center;
-    }
-
-/* Hero Banner (Text Only Version) */
-.hero-banner {
-    background-color: var(--bg-body); /* Follows theme */
-    padding: 60px 20px;
-    text-align: center;
-    border-bottom: 1px solid var(--border-color);
+.price-badge {
+    border-radius: 20px 0 20px 0;
+    padding: 8px 16px;
+    background: var(--accent-secondary);
+    box-shadow: 0 4px 10px rgba(255, 159, 67, 0.4);
 }
 
-    .hero-banner h1 {
-        color: var(--text-main);
-        font-size: 3.5rem;
-        font-weight: 700;
-    }
-
-    .hero-banner p {
-        color: var(--text-muted);
-    }
-
-/* Package Content */
-.package-content h3 {
-    color: var(--text-main);
-}
-
-.package-content p,
-.package-content li,
-.text-muted {
-    color: var(--text-muted) !important;
-}
-
-.price {
-    color: var(--accent-primary) !important;
-    font-weight: bold;
-    font-size: 18px;
-    margin-top: 10px;
-}
-
-/* Inclusions */
-.inclusions {
-    margin-top: 10px;
-    padding-top: 10px;
-    border-top: 1px solid var(--border-color);
-}
-
-/* Profile Sidebar Links */
-.nav-link-custom {
-    color: var(--text-muted);
-    cursor: pointer;
-    padding: 10px;
-    display: block;
-    border-left: 4px solid transparent;
-}
-
-    .nav-link-custom:hover {
-        background-color: var(--bg-input);
-        color: var(--accent-primary);
-    }
-
-    .nav-link-custom.active {
-        background-color: var(--bg-input); /* Or tint variable */
-        color: var(--accent-primary);
-        border-left: 4px solid var(--nav-active-border);
-        font-weight: bold;
-    }
-
-/* Tables */
-.table {
-    --bs-table-color: var(--text-main);
-    --bs-table-bg: transparent;
-    --bs-table-border-color: var(--border-color);
-    --bs-table-hover-bg: var(--bg-input);
-}
-
-    .table thead,
-    .table-light,
-    .table-light th {
-        background-color: var(--bg-input) !important;
-        color: var(--text-main) !important;
-        border-color: var(--border-color);
-    }
-
-/* Price Summary Specifics */
-.price-summary-custom h4,
-.price-summary-custom h5,
-.price-summary-custom h6,
-.price-summary-custom strong {
-    color: var(--text-main);
-}
-
-.price-summary-custom .text-primary {
-    color: var(--accent-primary) !important;
-}
-
-/* Chatbot Fixes */
 #flybot-window {
-    background-color: var(--bg-card) !important;
-    border-color: var(--border-color) !important;
+    border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.2) !important;
+    border: none !important;
+    overflow: hidden;
 }
 
-.flybot-input-area {
-    background-color: var(--bg-card) !important;
-    border-top-color: var(--border-color) !important;
-}
-
-#flybot-input {
-    background-color: var(--bg-input) !important;
-    color: var(--text-main) !important;
-}
-
-/* =========================================
-   6. RESPONSIVE
-   ========================================= */
-@media (max-width: 768px) {
-    .packages {
-        grid-template-columns: 1fr;
-    }
-
-    header h1 {
-        font-size: 32px;
-    }
-
-    nav {
-        gap: 15px;
-    }
-
-        nav a {
-            padding: 6px 12px;
-            font-size: 14px;
-        }
+#flybot-header {
+    background: var(--grad-header);
+    border-radius: 20px 20px 0 0;
 }
