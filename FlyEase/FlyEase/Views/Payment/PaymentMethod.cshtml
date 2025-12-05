@@ -4,18 +4,23 @@
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
+@section Head {
+    <link rel="stylesheet" href="~/css/booking.css" />
+}
+
 <div class="container mt-4 mb-5">
     <div class="row justify-content-center">
         <div class="col-lg-8">
             <partial name="_BookingProgress" />
 
             <div class="card shadow-sm dashboard-card">
-                <div class="card-header bg-primary text-white">
+                <div class="card-header booking-header text-white">
                     <h4 class="mb-0"><i class="fas fa-wallet me-2"></i>Select Payment Method</h4>
                 </div>
 
                 <div class="card-body">
-                    <div class="card p-3 mb-4 price-summary-custom bg-light border">
+
+                    <div class="card p-3 mb-4 price-summary-custom border">
                         <h6 class="fw-bold mb-2">Booking Summary</h6>
                         <p class="mb-1"><strong>Package:</strong> @Model.PackageName</p>
                         <p class="mb-0">
@@ -40,7 +45,7 @@
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <input type="radio" class="btn-check" asp-for="SelectedMethod" id="method_card" value="Credit Card">
-                                <label class="btn w-100 h-100 text-start p-3 payment-card-custom border rounded bg-white" for="method_card">
+                                <label class="btn w-100 h-100 text-start p-3 payment-card-custom border rounded" for="method_card">
                                     <div class="d-flex align-items-center">
                                         <div class="me-3 text-primary fs-3"><i class="fas fa-credit-card"></i></div>
                                         <div>
@@ -53,7 +58,7 @@
 
                             <div class="col-md-6">
                                 <input type="radio" class="btn-check" asp-for="SelectedMethod" id="method_bank" value="Bank Transfer">
-                                <label class="btn w-100 h-100 text-start p-3 payment-card-custom border rounded bg-white" for="method_bank">
+                                <label class="btn w-100 h-100 text-start p-3 payment-card-custom border rounded" for="method_bank">
                                     <div class="d-flex align-items-center">
                                         <div class="me-3 text-success fs-3"><i class="fas fa-university"></i></div>
                                         <div>
@@ -66,7 +71,7 @@
 
                             <div class="col-md-6">
                                 <input type="radio" class="btn-check" asp-for="SelectedMethod" id="method_tng" value="TouchNGo">
-                                <label class="btn w-100 h-100 text-start p-3 payment-card-custom border rounded bg-white" for="method_tng">
+                                <label class="btn w-100 h-100 text-start p-3 payment-card-custom border rounded" for="method_tng">
                                     <div class="d-flex align-items-center">
                                         <div class="me-3 text-warning fs-3"><i class="fas fa-wallet"></i></div>
                                         <div>
@@ -79,7 +84,7 @@
 
                             <div class="col-md-6">
                                 <input type="radio" class="btn-check" asp-for="SelectedMethod" id="method_cash" value="Cash">
-                                <label class="btn w-100 h-100 text-start p-3 payment-card-custom border rounded bg-white" for="method_cash">
+                                <label class="btn w-100 h-100 text-start p-3 payment-card-custom border rounded" for="method_cash">
                                     <div class="d-flex align-items-center">
                                         <div class="me-3 text-info fs-3"><i class="fas fa-money-bill-wave"></i></div>
                                         <div>

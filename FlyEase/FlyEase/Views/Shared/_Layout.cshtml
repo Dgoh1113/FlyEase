@@ -10,6 +10,21 @@
     <link rel="stylesheet" href="~/css/_layout.css" />
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+
+    <script>
+        (function() {
+            const savedTheme = localStorage.getItem('theme');
+            const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+            // If saved is 'dark', or no save exists but system is dark -> Apply Dark
+            if (savedTheme === 'dark' || (!savedTheme && systemDark)) {
+                document.documentElement.setAttribute('data-bs-theme', 'dark');
+            } else {
+                document.documentElement.setAttribute('data-bs-theme', 'light');
+            }
+        })();
+    </script>
+
     @RenderSection("Head", required: false)
 </head>
 <body>
@@ -66,14 +81,12 @@
                     </a>
                 </li>
             </ul>
-
         </div>
 
         <button class="btn btn-link text-white text-decoration-none" id="themeToggle" onclick="toggleTheme()" title="Toggle Dark Mode" style="padding: 14px 16px;">
             <i class="fas fa-moon" id="themeIcon"></i>
         </button>
 
-        </div>
         @if (User.Identity != null && User.Identity.IsAuthenticated)
         {
             <div class="dropdown d-inline-block">
@@ -122,38 +135,30 @@
     @await RenderSectionAsync("Scripts", required: false)
 
     <script>
-        // 1. Initialize Theme on Load
+        // 2. Update the ICON only after page loads (Theme is already set by head script)
         document.addEventListener("DOMContentLoaded", function() {
-            // Check localStorage or System Preference
-            const savedTheme = localStorage.getItem('theme');
-            const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-
-            if (savedTheme === 'dark' || (!savedTheme && systemDark)) {
-                applyTheme('dark');
-            } else {
-                applyTheme('light');
-            }
+            const html = document.documentElement;
+            const currentTheme = html.getAttribute('data-bs-theme');
+            updateIcon(currentTheme);
         });
 
-        // 2. The Toggle Function
+        // 3. The Toggle Function
         function toggleTheme() {
             const html = document.documentElement;
             const currentTheme = html.getAttribute('data-bs-theme');
             const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
 
-            applyTheme(newTheme);
-            localStorage.setItem('theme', newTheme); // Save preference
+            // Apply immediately
+            html.setAttribute('data-bs-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            updateIcon(newTheme);
         }
 
-        // 3. Helper to Apply Styles
-        function applyTheme(theme) {
-            const html = document.documentElement;
+        // 4. Helper to Update Icon
+        function updateIcon(theme) {
             const icon = document.getElementById('themeIcon');
+            if (!icon) return;
 
-            // Bootstrap 5.3 Magic: This single attribute changes everything
-            html.setAttribute('data-bs-theme', theme);
-
-            // Update Icon
             if (theme === 'dark') {
                 icon.classList.remove('fa-moon');
                 icon.classList.add('fa-sun');
