@@ -4,10 +4,11 @@ using FlyEase.Data;
 namespace FlyEase.ViewModels
 {
     // 1. For the Main Home Dashboard
-    public class StaffDashboardVM
+    public class AdminDashboardVM
     {
         public int TotalUsers { get; set; }
         public int TotalBookings { get; set; }
+
         public int PendingBookings { get; set; }
         public decimal TotalRevenue { get; set; }
         public List<Booking> RecentBookings { get; set; } = new List<Booking>();

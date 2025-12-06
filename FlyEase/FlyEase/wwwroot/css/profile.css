@@ -1,167 +1,67 @@
-﻿/* --- Dashboard Core Layout --- */
+﻿/* =========================================
+   PROFILE PAGE STYLES (Cleaned for Dark Mode)
+   ========================================= */
+
+/* 1. Dashboard Layout */
 .dashboard-container {
-    padding: 2rem 0;
-    background-color: #f8f9fa;
     min-height: 80vh;
 }
 
-.dashboard-card {
-    background: white;
-    border-radius: 12px;
-    box-shadow: 0 5px 20px rgba(0,0,0,0.05);
-    overflow: hidden;
-    height: 100%;
-    border: 1px solid #eee;
-}
-
-/* --- Sidebar & Navigation --- */
-.sidebar-header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    padding: 2rem 1.5rem;
-    text-align: center;
-    color: white;
-}
-
-.profile-img {
-    width: 90px;
-    height: 90px;
-    border-radius: 50%;
-    border: 3px solid rgba(255,255,255,0.4);
-    object-fit: cover;
-    margin-bottom: 0.8rem;
-}
-
+/* 2. Sidebar Navigation */
 .nav-link-custom {
-    display: block;
-    padding: 1rem 1.5rem;
-    color: #555;
-    text-decoration: none;
-    font-weight: 500;
+    padding: 12px 15px;
+    color: var(--text-muted);
     cursor: pointer;
-    border-left: 3px solid transparent;
-    transition: all 0.2s;
+    transition: all 0.2s ease;
+    border-radius: 6px;
+    margin-bottom: 2px;
+    display: flex;
+    align-items: center;
 }
 
-    .nav-link-custom:hover {
-        background-color: #f4f6f8;
-        color: #667eea;
-    }
+/* Hover Effect */
+.nav-link-custom:hover {
+    background-color: var(--bg-input); /* Uses global variable */
+    color: var(--accent-primary);
+}
 
-    .nav-link-custom.active {
-        background-color: #eef2ff;
-        color: #667eea;
-        border-left-color: #667eea;
-        font-weight: 600;
-    }
+/* Active State */
+.nav-link-custom.active {
+    background-color: var(--bg-input); /* Darker in dark mode, light gray in light mode */
+    color: var(--accent-primary);
+    font-weight: 600;
+    box-shadow: 0 2px 4px var(--shadow-color);
+}
 
-    .nav-link-custom i {
-        width: 25px; /* Fixed width for alignment */
-        text-align: center;
-    }
-
-/* --- Tab Content --- */
+/* 3. Tab Content Animation */
 .tab-pane {
-    display: none;
-    padding: 2rem;
+    display: none; /* Hidden by default */
+    animation: fadeIn 0.3s ease-in-out;
 }
 
-    .tab-pane.active {
-        display: block;
-        animation: fadeIn 0.4s;
-    }
-
-/* --- INPUT FIELDS WITH ICONS (The Fix) --- */
-/* Reusing logic from auth.css but enforcing structure here */
-.input-with-icon {
-    position: relative;
-    width: 100%;
-}
-
-    /* Left Icon */
-    .input-with-icon .input-icon {
-        position: absolute;
-        left: 1rem;
-        top: 50%;
-        transform: translateY(-50%);
-        color: #a0aec0;
-        z-index: 5;
-        pointer-events: none; /* Click passes through to input */
-    }
-
-    /* The Input Field */
-    .input-with-icon .form-control {
-        padding-left: 2.8rem; /* Space for Left Icon */
-        padding-right: 1rem;
-        border-radius: 0.5rem;
-    }
-
-        /* Focus State - The "Outline" Effect */
-        .input-with-icon .form-control:focus {
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
-            outline: none;
-        }
-
-            /* Color left icon on focus */
-            .input-with-icon .form-control:focus + .input-icon,
-            .input-with-icon:focus-within .input-icon {
-                color: #667eea;
-            }
-
-    /* --- PASSWORD FIELD SPECIFICS (Right Icon) --- */
-    /* Add extra padding on right for the eye icon */
-    .input-with-icon .password-input {
-        padding-right: 3rem !important;
-    }
-
-/* The Eye Toggle Button */
-.password-toggle {
-    position: absolute;
-    right: 0.8rem;
-    top: 50%;
-    transform: translateY(-50%);
-    background: transparent;
-    border: none;
-    color: #a0aec0;
-    cursor: pointer;
-    z-index: 10;
-    padding: 5px;
-    transition: color 0.2s;
-}
-
-    .password-toggle:hover {
-        color: #667eea;
-    }
-
-/* --- Favorites Card --- */
-.fav-card {
-    border: none;
-    border-radius: 12px;
-    transition: transform 0.2s;
-    overflow: hidden;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
-    height: 100%;
-}
-
-    .fav-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-    }
-
-.fav-img {
-    height: 160px;
-    object-fit: cover;
-    width: 100%;
+.tab-pane.active {
+    display: block;
 }
 
 @keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(5px);
-    }
+    from { opacity: 0; transform: translateY(5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
 
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+/* 4. Table Adjustments */
+/* Ensures tables look good inside the card */
+.table th {
+    font-weight: 600;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.table td {
+    vertical-align: middle;
+}
+
+/* 5. Avatar Icon in Sidebar */
+.fa-user-circle {
+    color: rgba(255, 255, 255, 0.8);
 }

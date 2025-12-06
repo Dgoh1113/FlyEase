@@ -8,40 +8,9 @@
 @section Head {
     <link rel="stylesheet" href="~/css/auth.css" />
     <link rel="stylesheet" href="~/css/profile.css" />
-    <style>
-        /* Essential styles to ensure tabs work even if css file is missing */
-        .tab-pane {
-            display: none;
-        }
-
-            .tab-pane.active {
-                display: block;
-                animation: fadeIn 0.3s;
-            }
-
-        .nav-link-custom {
-            cursor: pointer;
-        }
-
-            .nav-link-custom.active {
-                background-color: rgba(255,255,255,0.1);
-                font-weight: bold;
-                border-left: 4px solid #fff;
-            }
-
-        @@keyframes fadeIn {
-            from {
-                opacity: 0;
-            }
-
-            to {
-                opacity: 1;
-            }
-        }
-    </style>
 }
 
-<div class="dashboard-container">
+<div class="dashboard-container my-5">
     <div class="container">
 
         @if (TempData["SuccessMessage"] != null)
@@ -54,306 +23,214 @@
 
         <div class="row g-4">
             <div class="col-lg-3 col-md-4">
-                <div class="dashboard-card p-0">
-                    <div class="sidebar-header">
-                        <h5 class="mb-0 text-white">@Model.FullName</h5>
-                        <small class="text-white-50">@Model.Email</small>
+                <div class="card shadow-sm dashboard-card p-0 h-100">
+                    <div class="card-header sidebar-header text-white p-4 text-center">
+                        <div class="mb-2">
+                            <i class="fas fa-user-circle fa-4x"></i>
+                        </div>
+                        <h5 class="mb-0 fw-bold">@Model.FullName</h5>
+                        <small class="opacity-75">@Model.Email</small>
                     </div>
-                    <div class="py-2">
-                        <a id="link-bookings" class="nav-link-custom active" onclick="switchTab('bookings')">
-                            <i class="fas fa-ticket-alt me-2"></i> My Bookings
-                        </a>
-                        <a id="link-reviews" class="nav-link-custom" onclick="switchTab('reviews')">
-                            <i class="fas fa-star me-2"></i> My Reviews
-                        </a>
-                        <a id="link-payments" class="nav-link-custom" onclick="switchTab('payments')">
-                            <i class="fas fa-credit-card me-2"></i> Payments
-                        </a>
-                        <div class="border-top my-2"></div>
-                        <a id="link-details" class="nav-link-custom" onclick="switchTab('details')">
-                            <i class="fas fa-user-edit me-2"></i> Edit Profile
-                        </a>
-                        <a id="link-security" class="nav-link-custom" onclick="switchTab('security')">
-                            <i class="fas fa-shield-alt me-2"></i> Password
-                        </a>
-                        <div class="border-top my-2"></div>
-                        <form asp-controller="Auth" asp-action="Logout" method="post" class="m-0">
-                            <button type="submit" class="nav-link-custom w-100 text-start border-0 bg-transparent text-danger">
-                                <i class="fas fa-sign-out-alt me-2"></i> Logout
-                            </button>
-                        </form>
+                    <div class="card-body p-0 py-2">
+                        <div class="list-group list-group-flush">
+                            <a id="link-bookings" class="nav-link-custom active" onclick="switchTab('bookings')">
+                                <i class="fas fa-ticket-alt me-3"></i> My Bookings
+                            </a>
+                            <a id="link-reviews" class="nav-link-custom" onclick="switchTab('reviews')">
+                                <i class="fas fa-star me-3"></i> My Reviews
+                            </a>
+                            <a id="link-payments" class="nav-link-custom" onclick="switchTab('payments')">
+                                <i class="fas fa-credit-card me-3"></i> Payments
+                            </a>
+                            <div class="border-top my-2 mx-3"></div>
+                            <a id="link-details" class="nav-link-custom" onclick="switchTab('details')">
+                                <i class="fas fa-user-edit me-3"></i> Edit Profile
+                            </a>
+                            <a id="link-security" class="nav-link-custom" onclick="switchTab('security')">
+                                <i class="fas fa-shield-alt me-3"></i> Password
+                            </a>
+                            <div class="border-top my-2 mx-3"></div>
+                            <form asp-controller="Auth" asp-action="Logout" method="post" class="m-0">
+                                <button type="submit" class="nav-link-custom w-100 text-start border-0 bg-transparent text-danger">
+                                    <i class="fas fa-sign-out-alt me-3"></i> Logout
+                                </button>
+                            </form>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <div class="col-lg-9 col-md-8">
-                <div class="dashboard-card">
+                <div class="card shadow-sm dashboard-card h-100">
+                    <div class="card-body p-4">
+                        
+                        <div id="bookings-tab" class="tab-pane active">
+                            <div class="d-flex justify-content-between align-items-center mb-4">
+                                <h3 class="mb-0 fw-light">My Bookings</h3>
+                                <button onclick="refreshBookings()" id="refreshBtn" class="btn btn-outline-secondary btn-sm">
+                                    <i class="fas fa-sync-alt me-1"></i> Refresh
+                                </button>
+                            </div>
 
-                    <div id="bookings-tab" class="tab-pane active">
-                        <div class="d-flex justify-content-between align-items-center mb-4">
-                            <h3 class="mb-0">My Bookings</h3>
-                            <button onclick="refreshBookings()" id="refreshBtn" class="btn btn-outline-secondary btn-sm shadow-sm">
-                                <i class="fas fa-sync-alt me-1"></i> Refresh
-                            </button>
-                        </div>
-
-                        <div class="table-responsive">
-                            <table class="table table-hover align-middle">
-                                <thead class="table-light"><tr><th>ID</th><th>Package</th><th>Date</th><th>Amount</th><th>Status</th><th>Action</th></tr></thead>
-                                <tbody id="bookingTableBody">
-                                    @if (Model.MyBookings.Any())
-                                    {
-                                        @foreach (var b in Model.MyBookings)
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle">
+                                    <thead class="table-light"><tr><th>ID</th><th>Package</th><th>Date</th><th>Amount</th><th>Status</th><th>Action</th></tr></thead>
+                                    <tbody id="bookingTableBody">
+                                        @if (Model.MyBookings.Any())
                                         {
-                                            // 1. FORCE "Confirmed" to look and act like "Pending"
-                                            var displayStatus = (b.Status == "Confirmed") ? "Pending" : b.Status;
-
-                                            // 2. Color Logic based on the NEW displayStatus
-                                            string statusClass = "bg-secondary";
-                                            switch (displayStatus)
+                                            @foreach (var b in Model.MyBookings)
                                             {
-                                                case "Completed": statusClass = "bg-success"; break;           // Green
-                                                case "Pending": statusClass = "bg-warning text-dark"; break; // Yellow
-                                                case "Cancelled": statusClass = "bg-danger"; break;            // Red
+                                                var displayStatus = (b.Status == "Confirmed") ? "Pending" : b.Status;
+                                                string statusClass = displayStatus switch { "Completed" => "bg-success", "Pending" => "bg-warning text-dark", "Cancelled" => "bg-danger", _ => "bg-secondary" };
+
+                                                <tr>
+                                                    <td class="text-muted small">#@b.BookingID</td>
+                                                    <td class="fw-bold">@b.PackageTitle</td>
+                                                    <td>@b.BookingDate.ToString("dd MMM yyyy")</td>
+                                                    <td>RM @b.TotalAmount.ToString("N2")</td>
+                                                    <td><span class="badge @statusClass">@displayStatus</span></td>
+                                                    <td>
+                                                        @if (displayStatus == "Completed")
+                                                        {
+                                                            @if (b.IsReviewed) {
+                                                                <a asp-controller="Feedback" asp-action="Edit" asp-route-bookingId="@b.BookingID" class="btn btn-sm btn-outline-secondary"><i class="fas fa-edit"></i> Edit</a>
+                                                            } else {
+                                                                <a asp-controller="Feedback" asp-action="Create" asp-route-bookingId="@b.BookingID" class="btn btn-sm btn-outline-warning"><i class="fas fa-star"></i> Rate</a>
+                                                            }
+                                                        }
+                                                    </td>
+                                                </tr>
                                             }
-
-                                            <tr>
-                                                <td class="text-muted small">#@b.BookingID</td>
-                                                <td class="fw-bold">@b.PackageTitle</td>
-                                                <td>@b.BookingDate.ToString("dd MMM yyyy")</td>
-                                                <td>RM @b.TotalAmount.ToString("N2")</td>
-
-                                                <td><span class="badge @statusClass">@displayStatus</span></td>
-
-                                                <td>
-                                                    @if (displayStatus == "Completed")
-                                                    {
-                                                        @if (b.IsReviewed)
-                                                        {
-                                                            <a asp-controller="Feedback" asp-action="Edit" asp-route-bookingId="@b.BookingID"
-                                                               class="btn btn-sm btn-outline-secondary" title="Edit your review">
-                                                                <i class="fas fa-edit me-1"></i> Edit
-                                                            </a>
-                                                        }
-                                                        else
-                                                        {
-                                                            <a asp-controller="Feedback" asp-action="Create" asp-route-bookingId="@b.BookingID"
-                                                               class="btn btn-sm btn-outline-warning">
-                                                                <i class="fas fa-star me-1"></i> Rate
-                                                            </a>
-                                                        }
-                                                    }
-                                                </td>
-                                            </tr>
                                         }
-                                    }
-                                    else
-                                    {
-                                        <tr><td colspan="6" class="text-center py-5 text-muted">No bookings found.</td></tr>
-                                    }
-                                </tbody>
-                            </table>
+                                        else
+                                        {
+                                            <tr><td colspan="6" class="text-center py-5 text-muted">No bookings found.</td></tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
-                    </div>
 
-                    <div id="reviews-tab" class="tab-pane">
-                        <h3 class="mb-4">My Reviews</h3>
-                        @if (Model.MyReviews.Any())
-                        {
-                            @foreach (var r in Model.MyReviews)
+                        <div id="reviews-tab" class="tab-pane">
+                            <h3 class="mb-4 fw-light">My Reviews</h3>
+                            @if (Model.MyReviews.Any())
                             {
-                                <div class="card mb-3 border-0 shadow-sm bg-light" style="cursor: default;">
-                                    <div class="card-body">
-                                        <div class="d-flex justify-content-between align-items-start mb-2">
-                                            <div>
+                                @foreach (var r in Model.MyReviews)
+                                {
+                                    <div class="card mb-3 border bg-transparent">
+                                        <div class="card-body">
+                                            <div class="d-flex justify-content-between">
                                                 <h6 class="fw-bold mb-1">@r.PackageTitle</h6>
-                                                <div class="text-warning small">
-                                                    @for (int i = 0; i < 5; i++)
-                                                    {
-                                                        <i class="@(i < r.Rating ? "fas" : "far") fa-star"></i>
-                                                    }
-                                                </div>
+                                                <small class="text-muted">@r.CreatedDate.ToString("dd/MM/yyyy")</small>
                                             </div>
-                                            <small class="text-muted">@r.CreatedDate.ToString("dd/MM/yyyy")</small>
+                                            <div class="text-warning small mb-2">
+                                                @for (int i = 0; i < 5; i++) { <i class="@(i < r.Rating ? "fas" : "far") fa-star"></i> }
+                                            </div>
+                                            <p class="mb-0 text-muted fst-italic">"@r.Comment"</p>
                                         </div>
-                                        <p class="mb-0 text-secondary small fst-italic">"@r.Comment"</p>
                                     </div>
+                                }
+                            }
+                            else
+                            {
+                                <div class="text-center py-5 text-muted">No reviews yet.</div>
+                            }
+                        </div>
+
+                        <div id="payments-tab" class="tab-pane">
+                            <h3 class="mb-4 fw-light">Payment History</h3>
+                            @if (Model.PaymentHistory.Any())
+                            {
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead class="table-light"><tr><th>Date</th><th>Method</th><th>Amount</th><th>Status</th></tr></thead>
+                                        <tbody>
+                                            @foreach (var p in Model.PaymentHistory)
+                                            {
+                                                <tr>
+                                                    <td>@p.PaymentDate.ToString("dd/MM/yyyy")</td>
+                                                    <td>@p.PaymentMethod</td>
+                                                    <td class="fw-bold">RM @p.AmountPaid.ToString("N2")</td>
+                                                    <td class="text-success fw-bold">@p.PaymentStatus</td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
                                 </div>
                             }
-                        }
-                        else
-                        {
-                            <div class="text-center py-5 text-muted">No reviews yet.</div>
-                        }
-                    </div>
+                            else
+                            {
+                                <div class="text-center py-5 text-muted">No payments found.</div>
+                            }
+                        </div>
 
-                    <div id="payments-tab" class="tab-pane">
-                        <h3 class="mb-4">Payment History</h3>
-                        @if (Model.PaymentHistory.Any())
-                        {
-                            <table class="table table-hover">
-                                <thead><tr><th>Date</th><th>Method</th><th>Amount</th><th>Status</th></tr></thead>
-                                <tbody>
-                                    @foreach (var p in Model.PaymentHistory)
-                                    {
-                                        <tr>
-                                            <td>@p.PaymentDate.ToString("dd/MM/yyyy")</td>
-                                            <td>@p.PaymentMethod</td>
-                                            <td class="fw-bold">RM @p.AmountPaid.ToString("N2")</td>
-                                            <td class="text-success fw-bold">@p.PaymentStatus</td>
-                                        </tr>
-                                    }
-                                </tbody>
-                            </table>
-                        }
-                        else
-                        {
-                            <div class="text-center py-5 text-muted">No payments found.</div>
-                        }
-                    </div>
+                        <div id="details-tab" class="tab-pane">
+                            <h3 class="mb-4 fw-light">Edit Profile</h3>
+                            <form asp-action="UpdateProfile" method="post">
+                                @Html.AntiForgeryToken()
+                                <div class="form-floating mb-3">
+                                    <input asp-for="FullName" class="form-control" placeholder="Name" />
+                                    <label>Full Name</label>
+                                </div>
+                                <div class="form-floating mb-3">
+                                    <input asp-for="Phone" class="form-control" placeholder="Phone" />
+                                    <label>Phone Number</label>
+                                </div>
+                                <div class="form-floating mb-3">
+                                    <textarea asp-for="Address" class="form-control" style="height: 100px" placeholder="Address"></textarea>
+                                    <label>Address</label>
+                                </div>
+                                <button type="submit" class="btn btn-primary"><i class="fas fa-save me-2"></i> Save Changes</button>
+                            </form>
+                        </div>
 
-                    <div id="details-tab" class="tab-pane">
-                        <h3 class="mb-4">Edit Profile</h3>
-                        <form asp-action="UpdateProfile" method="post">
-                            @Html.AntiForgeryToken()
-                            <div class="mb-3">
-                                <label class="form-label text-muted small fw-bold">FULL NAME</label>
-                                <div class="input-with-icon">
-                                    <i class="fas fa-user input-icon"></i>
-                                    <input asp-for="FullName" class="form-control" />
+                        <div id="security-tab" class="tab-pane">
+                            <h3 class="mb-4 fw-light">Change Password</h3>
+                            <form asp-action="ChangePassword" method="post">
+                                @Html.AntiForgeryToken()
+                                <div class="form-floating mb-3">
+                                    <input asp-for="CurrentPassword" type="password" class="form-control" placeholder="Current" />
+                                    <label>Current Password</label>
                                 </div>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label text-muted small fw-bold">PHONE</label>
-                                <div class="input-with-icon">
-                                    <i class="fas fa-phone input-icon"></i>
-                                    <input asp-for="Phone" class="form-control" />
+                                <div class="form-floating mb-3">
+                                    <input asp-for="NewPassword" type="password" class="form-control" placeholder="New" />
+                                    <label>New Password</label>
                                 </div>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label text-muted small fw-bold">ADDRESS</label>
-                                <div class="input-with-icon">
-                                    <i class="fas fa-map-marker-alt input-icon" style="top: 1.5rem;"></i>
-                                    <textarea asp-for="Address" class="form-control" rows="3"></textarea>
+                                <div class="form-floating mb-3">
+                                    <input asp-for="ConfirmNewPassword" type="password" class="form-control" placeholder="Confirm" />
+                                    <label>Confirm Password</label>
                                 </div>
-                            </div>
-                            <button type="submit" class="btn btn-primary px-4"><i class="fas fa-save me-2"></i> Save Changes</button>
-                        </form>
-                    </div>
+                                <button type="submit" class="btn btn-danger"><i class="fas fa-key me-2"></i> Update Password</button>
+                            </form>
+                        </div>
 
-                    <div id="security-tab" class="tab-pane">
-                        <h3 class="mb-4">Change Password</h3>
-                        <form asp-action="ChangePassword" method="post">
-                            @Html.AntiForgeryToken()
-                            <div class="mb-3">
-                                <label class="form-label small fw-bold text-muted">Current Password</label>
-                                <div class="input-with-icon">
-                                    <i class="fas fa-lock input-icon"></i>
-                                    <input asp-for="CurrentPassword" type="password" class="form-control" />
-                                </div>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label small fw-bold text-muted">New Password</label>
-                                <div class="input-with-icon">
-                                    <i class="fas fa-key input-icon"></i>
-                                    <input asp-for="NewPassword" type="password" class="form-control" />
-                                </div>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label small fw-bold text-muted">Confirm Password</label>
-                                <div class="input-with-icon">
-                                    <i class="fas fa-check-circle input-icon"></i>
-                                    <input asp-for="ConfirmNewPassword" type="password" class="form-control" />
-                                </div>
-                            </div>
-                            <button type="submit" class="btn btn-danger px-4"><i class="fas fa-key me-2"></i> Update Password</button>
-                        </form>
                     </div>
-
                 </div>
             </div>
         </div>
-
-        @if (Model.FavoritePackages.Any())
-        {
-            <div class="mt-5 pt-4 border-top">
-                <h3 class="fw-bold mb-4">Travelers' Favorite Choices</h3>
-                <div class="row g-4">
-                    @foreach (var pkg in Model.FavoritePackages)
-                    {
-                        <div class="col-md-3 col-sm-6">
-                            <div class="fav-card bg-white h-100 border rounded">
-                                <img src="@pkg.ImageUrl" class="w-100" style="height:150px; object-fit:cover;" alt="@pkg.Title">
-                                <div class="p-3">
-                                    <h6 class="text-truncate mb-1">@pkg.Title</h6>
-                                    <div class="d-flex justify-content-between small text-muted">
-                                        <span>@pkg.Duration</span><span class="fw-bold text-primary">RM @pkg.Price.ToString("N0")</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    }
-                </div>
-            </div>
-        }
     </div>
 </div>
 
 @section Scripts {
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="~/js/profile.js"></script>
     <script>
-        // 1. ROBUST TAB SWITCHING LOGIC
+        // Simple Tab Switcher (Backup if js file fails)
         function switchTab(tabId) {
-            document.querySelectorAll('.tab-pane').forEach(el => {
-                el.style.display = 'none';
-                el.classList.remove('active');
-            });
-            document.querySelectorAll('.nav-link-custom').forEach(el => {
-                el.classList.remove('active');
-            });
-
-            const selectedPane = document.getElementById(tabId + '-tab');
-            if(selectedPane) {
-                selectedPane.style.display = 'block';
-                selectedPane.classList.add('active');
+            document.querySelectorAll('.tab-pane').forEach(el => el.style.display = 'none');
+            document.querySelectorAll('.nav-link-custom').forEach(el => el.classList.remove('active'));
+            
+            const pane = document.getElementById(tabId + '-tab');
+            if(pane) {
+                pane.style.display = 'block';
+                pane.classList.add('active');
             }
-
+            
             const link = document.getElementById('link-' + tabId);
             if(link) link.classList.add('active');
         }
-
-        // 2. AJAX REFRESH LOGIC
-        function refreshBookings() {
-            const btn = document.getElementById('refreshBtn');
-            const icon = btn.querySelector('i');
-            icon.classList.add('fa-spin');
-
-            fetch('/Auth/RefreshBookings')
-                .then(response => response.text())
-                .then(html => {
-                    document.getElementById('bookingTableBody').innerHTML = html;
-                    setTimeout(() => icon.classList.remove('fa-spin'), 500);
-                })
-                .catch(err => {
-                    console.error('Error refreshing bookings:', err);
-                    icon.classList.remove('fa-spin');
-                });
-        }
-
-        // 3. POPUP LOGIC
+        
         document.addEventListener("DOMContentLoaded", function() {
-            switchTab('bookings');
-
-            var errorMsg = '@TempData["ErrorMessage"]';
-            if (errorMsg && errorMsg.trim() !== '') {
-                Swal.fire({
-                    icon: 'info',
-                    title: 'Notice',
-                    text: errorMsg,
-                    confirmButtonColor: '#0066a1',
-                    confirmButtonText: 'Got it'
-                });
-            }
+            switchTab('bookings'); // Default tab
         });
     </script>
 }

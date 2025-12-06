@@ -1,0 +1,160 @@
+﻿
+
+    /* Hero Section */
+    .hero-section {
+        background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('/img/banner-image.png');
+        background-size: cover;
+        background-position: center;
+        color: white;
+        padding: 80px 0;
+        margin-bottom: 30px;
+        border-radius: 0 0 20px 20px;
+    }
+
+    /* Package Card Styling */
+    .package-card {
+        border: none;
+        border-radius: 12px;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        height: 100%;
+        background: #fff;
+    }
+
+        .package-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+
+    .package-img-top {
+        object-fit: cover;
+        border-top-left-radius: 12px;
+        border-top-right-radius: 12px;
+    }
+
+    .card-body {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .price-tag {
+        font-size: 1.1rem;
+        font-weight: bold;
+        color: #0d6efd;
+    }
+.category-title {
+    font-family: 'Poppins', sans-serif !important;
+    color:black !important; /* <--- This was Blue */
+    font-size: 1.75rem;
+    letter-spacing: 0.5px;
+    margin-bottom: 0;
+}
+    /* Carousel Controls */
+    .carousel-control-prev, .carousel-control-next {
+        width: 40px;
+        height: 40px;
+        background-color: rgba(0,0,0,0.5);
+        border-radius: 50%;
+        top: 50%;
+        transform: translateY(-50%);
+    }
+
+    .carousel-control-prev {
+        left: -20px;
+    }
+
+    .carousel-control-next {
+        right: -20px;
+    }
+
+    /* Ensure rows inside carousel have padding for shadow */
+    .carousel-inner {
+        padding: 10px;
+    }
+/* =========================================
+   HERO BANNER FIXES
+   ========================================= */
+#hero-banner {
+    position: relative;
+    width: 100%;
+    /* CHANGE 1: Use 'vh' for screen height, not % */
+    height: 65vh;
+    min-height: 400px; /* Safety: Won't get too small on phones */
+
+    overflow: hidden;
+    margin-bottom: 30px;
+    border-radius: 0 0 10px 10px;
+    /* Flexbox centers the text vertically and horizontally */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.hero-bg-img {
+    /* CHANGE 2: This is crucial! It takes the image out of the flow */
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* Ensures image covers the area nicely */
+    z-index: 0; /* Puts it at the bottom layer */
+}
+
+/* Keep these as they were */
+.hero-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 1;
+}
+
+.hero-content {
+    position: relative;
+    z-index: 2; /* Ensures text sits on top of everything */
+    color: white;
+    text-align: center;
+}
+.package-card {
+    background-color: var(--bg-card);
+    border: none !important;
+    border-radius: 24px !important; /* Smooth corners */
+    box-shadow: 0 10px 40px -10px rgba(0,0,0,0.08) !important; /* Soft shadow */
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    overflow: hidden;
+    margin-bottom: 24px;
+}
+
+    .package-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 20px 50px -10px rgba(0,0,0,0.15) !important;
+    }
+
+.card-img-wrapper {
+    height: 220px;
+    position: relative;
+    margin: 10px; /* Floating image look */
+    border-radius: 20px;
+    overflow: hidden;
+}
+
+
+
+.price-badge {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    background: var(--accent-primary) !important; /* BLUE color */
+    color: white;
+    padding: 6px 14px;
+    border-radius: 15px 0 15px 0;
+    font-weight: bold;
+    font-size: 0.9rem;
+    z-index: 2;
+    box-shadow: 0 4px 10px rgba(0, 102, 161, 0.3);
+}
+
+
+ 

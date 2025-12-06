@@ -1,9 +1,27 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <root>
 	<xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+		<xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
 		<xsd:element name="root" msdata:IsDataSet="true">
 			<xsd:complexType>
 				<xsd:choice maxOccurs="unbounded">
+					<xsd:element name="metadata">
+						<xsd:complexType>
+							<xsd:sequence>
+								<xsd:element name="value" type="xsd:string" minOccurs="0" />
+							</xsd:sequence>
+							<xsd:attribute name="name" use="required" type="xsd:string" />
+							<xsd:attribute name="type" type="xsd:string" />
+							<xsd:attribute name="mimetype" type="xsd:string" />
+							<xsd:attribute ref="xml:space" />
+						</xsd:complexType>
+					</xsd:element>
+					<xsd:element name="assembly">
+						<xsd:complexType>
+							<xsd:attribute name="alias" type="xsd:string" />
+							<xsd:attribute name="name" type="xsd:string" />
+						</xsd:complexType>
+					</xsd:element>
 					<xsd:element name="data">
 						<xsd:complexType>
 							<xsd:sequence>
@@ -41,20 +59,47 @@
 		<value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
 	</resheader>
 
-	<data name="Home" xml:space="preserve">
-    <value>Utama</value>
+	<data name="Action" xml:space="preserve">
+    <value>Tindakan</value>
   </data>
-	<data name="Packages" xml:space="preserve">
-    <value>Pakej</value>
+	<data name="Address" xml:space="preserve">
+    <value>Alamat</value>
   </data>
-	<data name="ManagePackages" xml:space="preserve">
-    <value>Urus Pakej</value>
+	<data name="Amount" xml:space="preserve">
+    <value>Jumlah</value>
   </data>
-	<data name="Discounts" xml:space="preserve">
-    <value>Promosi</value>
+	<data name="ConfirmPass" xml:space="preserve">
+    <value>Sahkan Kata Laluan</value>
   </data>
 	<data name="Contact" xml:space="preserve">
-    <value>Hubungi</value>
+    <value>Hubungi Kami</value>
+  </data>
+	<data name="CurrentPass" xml:space="preserve">
+    <value>Kata Laluan Semasa</value>
+  </data>
+	<data name="Date" xml:space="preserve">
+    <value>Tarikh</value>
+  </data>
+	<data name="Discounts" xml:space="preserve">
+    <value>Diskaun</value>
+  </data>
+	<data name="Duration" xml:space="preserve">
+    <value>Tempoh</value>
+  </data>
+	<data name="Edit" xml:space="preserve">
+    <value>Edit</value>
+  </data>
+	<data name="EditProfile" xml:space="preserve">
+    <value>Kemaskini Profil</value>
+  </data>
+	<data name="FavPackages" xml:space="preserve">
+    <value>Pilihan Popular</value>
+  </data>
+	<data name="FullName" xml:space="preserve">
+    <value>Nama Penuh</value>
+  </data>
+	<data name="Home" xml:space="preserve">
+    <value>Laman Utama</value>
   </data>
 	<data name="Login" xml:space="preserve">
     <value>Log Masuk</value>
@@ -62,10 +107,49 @@
 	<data name="Logout" xml:space="preserve">
     <value>Log Keluar</value>
   </data>
+	<data name="ManagePackages" xml:space="preserve">
+    <value>Urus Pakej</value>
+  </data>
 	<data name="MyBookings" xml:space="preserve">
     <value>Tempahan Saya</value>
   </data>
+	<data name="MyReviews" xml:space="preserve">
+    <value>Ulasan Saya</value>
+  </data>
+	<data name="NewPass" xml:space="preserve">
+    <value>Kata Laluan Baru</value>
+  </data>
+	<data name="Packages" xml:space="preserve">
+    <value>Pakej</value>
+  </data>
+	<data name="Password" xml:space="preserve">
+    <value>Kata Laluan</value>
+  </data>
+	<data name="Payments" xml:space="preserve">
+    <value>Pembayaran</value>
+  </data>
+	<data name="Phone" xml:space="preserve">
+    <value>No. Telefon</value>
+  </data>
+	<data name="Rate" xml:space="preserve">
+    <value>Nilai</value>
+  </data>
+	<data name="Refresh" xml:space="preserve">
+    <value>Muat Semula</value>
+  </data>
+	<data name="Register" xml:space="preserve">
+    <value>Daftar</value>
+  </data>
+	<data name="SaveChanges" xml:space="preserve">
+    <value>Simpan Perubahan</value>
+  </data>
+	<data name="Status" xml:space="preserve">
+    <value>Status</value>
+  </data>
+	<data name="UpdatePass" xml:space="preserve">
+    <value>Kemaskini Kata Laluan</value>
+  </data>
 	<data name="Welcome" xml:space="preserve">
-    <value>Gerbang Anda ke Pengembaraan Menakjubkan</value>
+    <value>Selamat Datang ke FlyEase</value>
   </data>
 </root>

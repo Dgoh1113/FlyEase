@@ -9,14 +9,14 @@ using Microsoft.AspNetCore.Authorization; // <--- Add this
 
 namespace FlyEase.Controllers
 {
-    [Route("StaffDashboard")]
+    [Route("AdminDashboard")]
     [Authorize(Roles = "Admin,Staff")] // <--- Allow Admin AND Staff here
-    public class StaffDashboardController : Controller
+    public class AdminDashboardController : Controller
     {
         private readonly FlyEaseDbContext _context;
         private readonly IWebHostEnvironment _environment;
 
-        public StaffDashboardController(FlyEaseDbContext context, IWebHostEnvironment environment)
+        public AdminDashboardController(FlyEaseDbContext context, IWebHostEnvironment environment)
         {
             _context = context;
             _environment = environment;
@@ -25,8 +25,8 @@ namespace FlyEase.Controllers
         // ==========================================
         // 1. MAIN DASHBOARD SUMMARY (FIXED SQL QUERY)
         // ==========================================
-        [HttpGet("StaffDashboard")]
-        public async Task<IActionResult> StaffDashboard()
+        [HttpGet("AdminDashboard")]
+        public async Task<IActionResult> AdminDashboard()
         {
             // --- BASIC STATS ---
             var totalUsers = await _context.Users.CountAsync();
@@ -73,7 +73,7 @@ namespace FlyEase.Controllers
                 .ToListAsync();
 
             // --- 3. POPULATE VIEWMODEL ---
-            var vm = new StaffDashboardVM
+            var vm = new AdminDashboardVM
             {
                 TotalUsers = totalUsers,
                 TotalBookings = totalBookings,
