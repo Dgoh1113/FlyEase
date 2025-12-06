@@ -1,0 +1,336 @@
+﻿@model FlyEase.Controllers.ContactViewModel
+@{
+    ViewData["Title"] = "Contact Us - FlyEase Travel";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="contact-page">
+    <!-- Hero Section -->
+    <div class="contact-hero bg-primary text-white py-5 mb-5">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-8 mx-auto text-center">
+                    <h1 class="display-5 fw-bold mb-3">Get in Touch</h1>
+                    <p class="lead mb-0">Have questions about our travel packages? We're here to help!</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Success/Error Messages -->
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <i class="fas fa-check-circle me-2"></i> @TempData["SuccessMessage"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="fas fa-exclamation-circle me-2"></i> @TempData["ErrorMessage"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+
+        <div class="row">
+            <!-- Contact Form -->
+            <div class="col-lg-7 mb-5">
+                <div class="card shadow-sm border-0">
+                    <div class="card-header bg-white border-0 pt-4">
+                        <h2 class="card-title h4 mb-0">
+                            <i class="fas fa-envelope me-2 text-primary"></i>Send us a Message
+                        </h2>
+                    </div>
+                    <div class="card-body p-4">
+                        <form method="post" asp-action="SubmitContact" id="contactForm">
+                            @Html.AntiForgeryToken()
+
+                            <!-- Add this after the form opening tag -->
+                            <div id="form-status" class="alert alert-info" style="display: none;">
+                                <i class="fas fa-spinner fa-spin me-2"></i>Sending your message...
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label asp-for="Name" class="form-label">Full Name *</label>
+                                    <input asp-for="Name" class="form-control" placeholder="Your full name">
+                                    <span asp-validation-for="Name" class="text-danger small"></span>
+                                </div>
+
+                                <div class="col-md-6 mb-3">
+                                    <label asp-for="Email" class="form-label">Email Address *</label>
+                                    <input asp-for="Email" type="email" class="form-control" placeholder="your@email.com">
+                                    <span asp-validation-for="Email" class="text-danger small"></span>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label asp-for="Phone" class="form-label">Phone Number (Optional)</label>
+                                <input asp-for="Phone" class="form-control" placeholder="+60 123456789">
+                                <span asp-validation-for="Phone" class="text-danger small"></span>
+                            </div>
+
+                            <div class="mb-3">
+                                <label asp-for="Subject" class="form-label">Subject *</label>
+                                <input asp-for="Subject" class="form-control" placeholder="What is this regarding?">
+                                <span asp-validation-for="Subject" class="text-danger small"></span>
+                            </div>
+
+                            <div class="mb-4">
+                                <label asp-for="Message" class="form-label">Message *</label>
+                                <textarea asp-for="Message" class="form-control" rows="6"
+                                          placeholder="Tell us about your travel needs, questions, or feedback..."></textarea>
+                                <span asp-validation-for="Message" class="text-danger small"></span>
+                                <div class="form-text">Maximum 5000 characters</div>
+                            </div>
+
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-primary btn-lg">
+                                    <i class="fas fa-paper-plane me-2"></i>Send Message
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contact Information -->
+            <div class="col-lg-5">
+                <div class="card shadow-sm border-0 mb-4">
+                    <div class="card-header bg-white border-0 pt-4">
+                        <h3 class="card-title h4 mb-0">
+                            <i class="fas fa-info-circle me-2 text-primary"></i>Contact Information
+                        </h3>
+                    </div>
+                    <div class="card-body p-4">
+                        <div class="contact-info">
+                            <!-- Address -->
+                            <div class="d-flex mb-4">
+                                <div class="contact-icon bg-light-primary rounded-circle p-3 me-3">
+                                    <i class="fas fa-map-marker-alt text-primary fa-lg"></i>
+                                </div>
+                                <div>
+                                    <h5 class="h6 mb-1">Our Office</h5>
+                                    <p class="mb-0 text-muted">
+                                        Level 23, Menara<br>
+                                        Kuala Lumpur City Centre<br>
+                                        50088 Kuala Lumpur, Malaysia
+                                    </p>
+                                </div>
+                            </div>
+
+                            <!-- Phone -->
+                            <div class="d-flex mb-4">
+                                <div class="contact-icon bg-light-primary rounded-circle p-3 me-3">
+                                    <i class="fas fa-phone text-primary fa-lg"></i>
+                                </div>
+                                <div>
+                                    <h5 class="h6 mb-1">Call Us</h5>
+                                    <p class="mb-0">
+                                        <a href="tel:+60312345678" class="text-decoration-none">+60 3-1234 5678</a><br>
+                                        <small class="text-muted">Mon-Fri, 9am-6pm</small>
+                                    </p>
+                                </div>
+                            </div>
+
+                            <!-- Email -->
+                            <div class="d-flex mb-4">
+                                <div class="contact-icon bg-light-primary rounded-circle p-3 me-3">
+                                    <i class="fas fa-envelope text-primary fa-lg"></i>
+                                </div>
+                                <div>
+                                    <h5 class="h6 mb-1">Email Us</h5>
+                                    <p class="mb-0">
+                                        <a href="mailto:info@flyease.com" class="text-decoration-none">info@flyease.com</a><br>
+                                        <a href="mailto:support@flyease.com" class="text-decoration-none">support@flyease.com</a>
+                                    </p>
+                                </div>
+                            </div>
+
+                            <!-- Social Media -->
+                            <div class="d-flex">
+                                <div class="contact-icon bg-light-primary rounded-circle p-3 me-3">
+                                    <i class="fas fa-hashtag text-primary fa-lg"></i>
+                                </div>
+                                <div>
+                                    <h5 class="h6 mb-2">Follow Us</h5>
+                                    <div class="social-links">
+                                        <a href="https://facebook.com" class="text-decoration-none me-3">
+                                            <i class="fab fa-facebook fa-2x text-primary"></i>
+                                        </a>
+                                        <a href="https://instagram.com" class="text-decoration-none me-3">
+                                            <i class="fab fa-instagram fa-2x text-danger"></i>
+                                        </a>
+                                        <a href="https://twitter.com" class="text-decoration-none me-3">
+                                            <i class="fab fa-twitter fa-2x text-info"></i>
+                                        </a>
+                                        <a href="https://whatsapp.com" class="text-decoration-none">
+                                            <i class="fab fa-whatsapp fa-2x text-success"></i>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- FAQ Section -->
+                <div class="card shadow-sm border-0">
+                    <div class="card-header bg-white border-0 pt-4">
+                        <h3 class="card-title h4 mb-0">
+                            <i class="fas fa-question-circle me-2 text-primary"></i>Frequently Asked Questions
+                        </h3>
+                    </div>
+                    <div class="card-body p-4">
+                        <div class="accordion" id="faqAccordion">
+                            <!-- FAQ 1 -->
+                            <div class="accordion-item border-0 mb-2">
+                                <h2 class="accordion-header" id="faq1">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse1">
+                                        How do I change or cancel my booking?
+                                    </button>
+                                </h2>
+                                <div id="collapse1" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                    <div class="accordion-body">
+                                        You can modify or cancel your booking by logging into your account and visiting "My Bookings". For assistance, contact our support team.
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- FAQ 2 -->
+                            <div class="accordion-item border-0 mb-2">
+                                <h2 class="accordion-header" id="faq2">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse2">
+                                        What payment methods do you accept?
+                                    </button>
+                                </h2>
+                                <div id="collapse2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                    <div class="accordion-body">
+                                        We accept credit/debit cards, bank transfers, Touch 'n Go, and cash payments at our office.
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- FAQ 3 -->
+                            <div class="accordion-item border-0">
+                                <h2 class="accordion-header" id="faq3">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse3">
+                                        What is your response time for inquiries?
+                                    </button>
+                                </h2>
+                                <div id="collapse3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                    <div class="accordion-body">
+                                        We aim to respond to all inquiries within 24 hours during business days. Urgent matters will be prioritized.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mt-4 text-center">
+                            <a href="#" class="text-decoration-none">
+                                <i class="fas fa-book me-1"></i> View all FAQs
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Map Section -->
+        <div class="row mt-5">
+            <div class="col-12">
+                <div class="card shadow-sm border-0">
+                    <div class="card-header bg-white border-0 pt-4">
+                        <h3 class="card-title h4 mb-0">
+                            <i class="fas fa-map-marked-alt me-2 text-primary"></i>Find Our Office
+                        </h3>
+                    </div>
+                    <div class="card-body p-0">
+                        <!-- Google Maps Embed -->
+                        <div class="map-container" style="height: 400px; background: #f8f9fa;">
+                            <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3983.775382838917!2d101.7122350758314!3d3.153637753314463!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x31cc37d12d669c1f%3A0x9e3afdd17c8a9056!2sPETRONAS%20Twin%20Towers!5e0!3m2!1sen!2smy!4v1700000000000!5m2!1sen!2smy"
+                                    width="100%"
+                                    height="400"
+                                    style="border:0;"
+                                    allowfullscreen=""
+                                    loading="lazy"
+                                    referrerpolicy="no-referrer-when-downgrade">
+                            </iframe>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Custom CSS for Contact Page -->
+<style>
+    .contact-hero {
+        background: linear-gradient(135deg, #0d6efd 0%, #198754 100%);
+    }
+
+    .contact-icon {
+        width: 60px;
+        height: 60px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .bg-light-primary {
+        background-color: rgba(13, 110, 253, 0.1);
+    }
+
+    .social-links a {
+        transition: transform 0.3s;
+    }
+
+        .social-links a:hover {
+            transform: translateY(-3px);
+        }
+
+    .accordion-button:not(.collapsed) {
+        background-color: rgba(13, 110, 253, 0.1);
+        color: #0d6efd;
+    }
+
+    .map-container {
+        border-radius: 0 0 0.375rem 0.375rem;
+        overflow: hidden;
+    }
+
+    .card {
+        border-radius: 15px;
+    }
+
+    .card-header {
+        border-radius: 15px 15px 0 0 !important;
+    }
+</style>
+
+@section Scripts {
+    <!-- Client-side validation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validate/1.19.3/jquery.validate.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validation-unobtrusive/3.2.12/jquery.validate.unobtrusive.min.js"></script>
+
+    <script>
+        document.getElementById('contactForm')?.addEventListener('submit', function(e) {
+            const submitButton = this.querySelector('button[type="submit"]');
+            const formStatus = document.getElementById('form-status');
+
+            if (submitButton && formStatus) {
+                // Show processing status
+                formStatus.style.display = 'block';
+                submitButton.disabled = true;
+                submitButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Sending...';
+
+                // Scroll to status message
+                formStatus.scrollIntoView({ behavior: 'smooth' });
+            }
+        });
+    </script>
+}
