@@ -9,138 +9,106 @@
     <link rel="stylesheet" href="~/css/auth.css" />
 }
 
-<div class="auth-container">
-    <div class="auth-card fade-in">
-        <div class="auth-header">
-            <h2 class="mb-0 text-white">Create Account</h2>
-            <p class="mb-0 text-white-50">Join our community</p>
-        </div>
+<div class="container mt-5 mb-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow-lg border-0 rounded-lg">
 
-        <div class="auth-body">
-            <!-- Global Error Message -->
-            @if (!ViewData.ModelState.IsValid && ViewData.ModelState[string.Empty]?.Errors?.Count > 0)
-            {
-                <div class="alert alert-danger">
-                    @foreach (var error in ViewData.ModelState[string.Empty].Errors)
-                    {
-                        <div><i class="fas fa-exclamation-circle"></i> @error.ErrorMessage</div>
-                    }
-                </div>
-            }
-
-            <form method="post" id="registerForm" novalidate>
-                @Html.AntiForgeryToken()
-
-                <!-- Full Name -->
-                <div class="form-group">
-                    <label class="form-label">Full Name</label>
-                    <div class="input-with-icon">
-                        <i class="fas fa-user input-icon"></i>
-                        <input type="text" class="form-control" name="FullName"
-                               value="@(Model?.FullName ?? "")"
-                               placeholder="Enter your full name" required>
-                    </div>
-                    @if (ViewData.ModelState["FullName"]?.Errors?.Count > 0)
-                    {
-                        <div class="text-danger small mt-1">
-                            @ViewData.ModelState["FullName"].Errors[0].ErrorMessage
-                        </div>
-                    }
+                <div class="card-header booking-header text-center py-4">
+                    <h3 class="font-weight-light my-1">Create Account</h3>
+                    <small class="opacity-75">Join our community today</small>
                 </div>
 
-                <div class="row">
-                    <!-- Email -->
-                    <div class="col-md-6 form-group">
-                        <label class="form-label">Email</label>
-                        <div class="input-with-icon">
-                            <i class="fas fa-envelope input-icon"></i>
-                            <input type="email" class="form-control" name="Email"
-                                   value="@(Model?.Email ?? "")"
-                                   placeholder="name@example.com" required>
+                <div class="card-body p-4">
+                    <form asp-action="Register" method="post" id="registerForm" novalidate>
+                        @Html.AntiForgeryToken()
+
+                        <div asp-validation-summary="ModelOnly" class="text-danger mb-3 small"></div>
+
+                        <div class="form-floating mb-3">
+                            <input asp-for="FullName" class="form-control" placeholder="Enter your full name" id="fullName" />
+                            <label asp-for="FullName">Full Name</label>
+                            <span asp-validation-for="FullName" class="text-danger small"></span>
                         </div>
-                        @if (ViewData.ModelState["Email"]?.Errors?.Count > 0)
-                        {
-                            <div class="text-danger small mt-1">
-                                @ViewData.ModelState["Email"].Errors[0].ErrorMessage
+
+                        <div class="form-floating mb-3">
+                            <input asp-for="Email" class="form-control" placeholder="name@example.com" id="email" />
+                            <label asp-for="Email">Email Address</label>
+                            <span asp-validation-for="Email" class="text-danger small"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="input-group">
+                                <span class="input-group-text" style="border-right: 0;">+60</span>
+                                <div class="form-floating">
+                                    <input asp-for="Phone" class="form-control" placeholder="123456789" id="phone" style="border-left: 0; border-top-left-radius: 0; border-bottom-left-radius: 0;" />
+                                    <label asp-for="Phone">Phone Number</label>
+                                </div>
                             </div>
-                        }
-                    </div>
-
-                    <!-- Phone with Fixed +60 -->
-                    <div class="col-md-6 form-group">
-                        <label class="form-label">Phone Number</label>
-                        <div class="input-group">
-                            <!-- The fixed +60 part -->
-                            <span class="input-group-text bg-light text-muted" style="border: 2px solid #e2e8f0; border-right: 0;">+60</span>
-
-                            <!-- The user input part (only digits) -->
-                            <input type="tel" class="form-control border-start-0" name="Phone"
-                                   value="@(Model?.Phone ?? "")"
-                                   placeholder="123456789"
-                                   pattern="\d*" maxlength="11"
-                                   style="border-left: 0;" required>
+                            <span asp-validation-for="Phone" class="text-danger small"></span>
                         </div>
-                    </div>
-                </div>
 
-                <!-- Password -->
-                <div class="form-group">
-                    <label class="form-label">Password</label>
-                    <div class="input-with-icon">
-                        <i class="fas fa-lock input-icon"></i>
-                        <input type="password" id="password" class="form-control" name="Password"
-                               placeholder="Create a password" required>
-                        <button type="button" class="password-toggle" tabindex="-1">
-                            <i class="fas fa-eye"></i>
-                        </button>
-                    </div>
+                        <div class="row mb-2">
+                            <div class="col-md-6">
+                                <div class="form-floating mb-3 mb-md-0 position-relative">
+                                    <input asp-for="Password" class="form-control" type="password" placeholder="Create a password" id="password" />
+                                    <label asp-for="Password">Password</label>
 
-                    <!-- Strength Meter -->
-                    <div class="password-strength mt-2">
-                        <div class="strength-bar">
-                            <div class="strength-fill" id="strengthFill"></div>
+                                    <button type="button" class="btn btn-link position-absolute top-50 end-0 translate-middle-y text-decoration-none me-2 password-toggle" tabindex="-1" style="z-index: 10; color: var(--text-muted);">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </div>
+                                <span asp-validation-for="Password" class="text-danger small"></span>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="form-floating mb-3 mb-md-0">
+                                    <input asp-for="ConfirmPassword" class="form-control" type="password" placeholder="Confirm password" id="confirmPassword" />
+                                    <label asp-for="ConfirmPassword">Confirm Password</label>
+                                </div>
+                                <span asp-validation-for="ConfirmPassword" class="text-danger small"></span>
+                            </div>
                         </div>
-                        <ul class="requirement-list">
-                            <li id="reqLength"><i class="fas fa-circle"></i> 6+ characters</li>
-                            <li id="reqUpper"><i class="fas fa-circle"></i> Uppercase Letter</li>
-                            <li id="reqLower"><i class="fas fa-circle"></i> Lowercase Letter</li>
-                            <li id="reqNumber"><i class="fas fa-circle"></i> Number</li>
-                            <li id="reqSpecial"><i class="fas fa-circle"></i> Special Char (!@("$%^&*/"))</li>
-                        </ul>
-                    </div>
+
+                        <div class="mb-4">
+                            <div class="strength-meter">
+                                <div class="d-flex justify-content-between mb-1">
+                                    <small id="strengthText" class="text-muted" style="font-size: 0.75rem;">Password Strength</small>
+                                </div>
+                                <div class="strength-bar">
+                                    <div class="strength-fill" id="strengthFill"></div>
+                                </div>
+                            </div>
+
+                            <ul class="requirement-list mt-2">
+                                <li id="req-length"><i class="fas fa-circle me-2"></i> At least 8 characters</li>
+                                <li id="req-number"><i class="fas fa-circle me-2"></i> At least one number</li>
+                                <li id="req-special"><i class="fas fa-circle me-2"></i> At least one special char</li>
+                                <li id="req-upper"><i class="fas fa-circle me-2"></i> At least one uppercase letter</li>
+                            </ul>
+                            <div id="passwordMatch"></div>
+                        </div>
+
+                        <div class="form-check mb-4">
+                            <input class="form-check-input" type="checkbox" id="agreeTerms" name="AgreeToTerms" value="true" required>
+                            <label class="form-check-label text-muted small" for="agreeTerms">
+                                I agree to the <a href="#" class="text-decoration-none">Terms</a> and <a href="#" class="text-decoration-none">Privacy Policy</a>
+                            </label>
+                        </div>
+
+                        <div class="d-grid gap-2 mb-0">
+                            <button type="submit" class="btn btn-primary btn-lg fw-bold">
+                                <i class="fas fa-user-plus me-2"></i>Create Account
+                            </button>
+                        </div>
+                    </form>
                 </div>
 
-                <!-- Confirm Password -->
-                <div class="form-group">
-                    <label class="form-label">Confirm Password</label>
-                    <div class="input-with-icon">
-                        <i class="fas fa-lock input-icon"></i>
-                        <input type="password" id="confirmPassword" class="form-control" name="ConfirmPassword"
-                               placeholder="Confirm your password" required>
-                        <button type="button" class="password-toggle" tabindex="-1">
-                            <i class="fas fa-eye"></i>
-                        </button>
-                    </div>
-                    <div id="passwordMatch"></div>
-                </div>
-
-                <!-- Terms -->
-                <div class="form-group mt-3">
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" id="agreeTerms" name="AgreeToTerms" value="true" required>
-                        <label class="form-check-label" for="agreeTerms">
-                            I agree to the <a href="#" class="auth-link">Terms</a> and <a href="#" class="auth-link">Privacy Policy</a>
-                        </label>
+                <div class="card-footer text-center py-3">
+                    <div class="small">
+                        <a asp-action="Login" class="text-decoration-none">Already have an account? Sign in</a>
                     </div>
                 </div>
-
-                <button type="submit" class="btn-primary">
-                    <i class="fas fa-user-plus"></i> Create Account
-                </button>
-            </form>
-
-            <div class="auth-footer">
-                <p>Already have an account? <a href="@Url.Action("Login", "Auth")" class="auth-link">Sign in</a></p>
             </div>
         </div>
     </div>
@@ -148,4 +116,5 @@
 
 @section Scripts {
     <script src="~/js/auth.js"></script>
+    <partial name="_ValidationScriptsPartial" />
 }

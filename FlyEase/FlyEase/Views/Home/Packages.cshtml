@@ -35,43 +35,51 @@
     }
 </style>
 
-<div class="bg-light py-5 mb-5">
-    <div class="container text-center">
-        <h1 class="display-5 fw-bold mb-3">Explore All Packages</h1>
-        <p class="lead mb-4">Find your next adventure</p>
+<div class="hero-banner">
+    <div class="container">
+        <h1>Explore All Packages</h1>
+        <p>Find your next adventure</p>
+    </div>
+</div>
 
-        <!-- SEARCH & FILTER BAR -->
-        <div class="card p-4 shadow-sm border-0 mx-auto" style="max-width: 900px; border-radius: 15px;">
-            <form method="get" asp-action="Packages">
-                <div class="row g-2">
-                    <div class="col-md-4">
-                        <input type="text" name="searchTerm" class="form-control border-0 bg-light" placeholder="Search destinations..." value="@ViewBag.SearchTerm" />
-                    </div>
-                    <div class="col-md-3">
-                        <select name="categoryId" class="form-select border-0 bg-light">
-                            <option value="">All Categories</option>
-                            @if (ViewBag.Categories != null)
-                            {
-                                foreach (var cat in ViewBag.Categories)
-                                {
-                                    bool selected = ViewBag.CategoryId != null && (int)ViewBag.CategoryId == cat.CategoryID;
-                                    <option value="@cat.CategoryID" selected="@selected">@cat.CategoryName</option>
-                                }
-                            }
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="input-group">
-                            <span class="input-group-text border-0 bg-light">RM</span>
-                            <input type="number" name="maxPrice" class="form-control border-0 bg-light" placeholder="Max Budget" value="@ViewBag.MaxPrice" />
-                        </div>
-                    </div>
-                    <div class="col-md-2">
-                        <button type="submit" class="btn btn-primary w-100 fw-bold">Filter</button>
-                    </div>
+<div class="container mt-4 mb-5">
+    <div class="search-container-custom p-4 rounded">
+        <form asp-action="Packages" method="get" class="row g-3 align-items-center">
+
+            <div class="col-md-4">
+                <input type="text" name="searchTerm" class="form-control form-control-custom"
+                       placeholder="Search destinations..." value="@ViewBag.SearchTerm">
+            </div>
+
+            <div class="col-md-3">
+                <select name="categoryId" class="form-select form-select-custom">
+                    <option value="">All Categories</option>
+                    @if (ViewBag.Categories != null)
+                    {
+                        foreach (var cat in ViewBag.Categories)
+                        {
+                            bool selected = ViewBag.CategoryId != null && (int)ViewBag.CategoryId == cat.CategoryID;
+                            <option value="@cat.CategoryID" selected="@selected">@cat.CategoryName</option>
+                        }
+                    }
+                </select>
+            </div>
+
+            <div class="col-md-3">
+                <div class="input-group">
+                    <span class="input-group-text input-group-text-custom">RM</span>
+                    <input type="number" name="maxPrice" class="form-control form-control-custom"
+                           placeholder="Max Budget" value="@ViewBag.MaxPrice">
                 </div>
-            </form>
-        </div>
+            </div>
+
+            <div class="col-md-2">
+                <button type="submit" class="btn w-100 fw-bold text-white" style="background-color: #7367f0;">
+                    Filter
+                </button>
+            </div>
+
+        </form>
     </div>
 </div>
 
@@ -92,10 +100,13 @@
                     @{
                         var firstImg = pkg.ImageURL?.Split(';').FirstOrDefault() ?? "/img/default-package.jpg";
 
-                        // Serialize itinerary for the popup button (Using projection to avoid circular refs)
+                        // 1. Serialize Itinerary
                         var itineraryJson = JsonSerializer.Serialize(pkg.Itinerary
                         .OrderBy(i => i.DayNumber)
                         .Select(i => new { i.DayNumber, i.Title, i.ActivityDescription }));
+
+                        // 2. FIXED: Serialize Package Name safely
+                        var packageNameJson = JsonSerializer.Serialize(pkg.PackageName);
                     }
 
                     <div class="card h-100 shadow-sm package-card">
@@ -112,7 +123,6 @@
                             <h5 class="card-title text-truncate" title="@pkg.PackageName">@pkg.PackageName</h5>
                             <p class="card-text small text-muted mb-2">
                                 <i class="fas fa-map-marker-alt me-1 text-danger"></i>@pkg.Destination
-                                <!-- Map Link -->
                                 <a href="https://www.google.com/maps/search/?api=1&query=@pkg.Latitude,@pkg.Longitude" target="_blank" class="ms-1 text-primary text-decoration-none" title="View on Google Maps">(Map)</a>
                             </p>
 
@@ -123,10 +133,10 @@
                                 </div>
 
                                 <div class="d-grid gap-2">
-                                    <!-- Itinerary Button -->
-                                    <button type="button" class="btn btn-outline-info btn-sm" onclick='showItineraryModal(@Html.Raw(itineraryJson), "@pkg.PackageName.Replace("\"", "&quot;")")'>
+                                    <button type="button" class="btn btn-outline-info btn-sm" onclick='showItineraryModal(@Html.Raw(itineraryJson), @Html.Raw(packageNameJson))'>
                                         <i class="fas fa-list-ul"></i> Itinerary
                                     </button>
+
                                     <div class="d-flex gap-2">
                                         <a href="/Payment/CustomerInfo?packageId=@pkg.PackageID" class="btn btn-primary btn-sm flex-grow-1">Book Now</a>
                                         <a asp-route-id="@pkg.PackageID" asp-action="PackageDetails" asp-controller="PackageDetails" class="btn btn-outline-secondary btn-sm">Details</a>
@@ -141,7 +151,6 @@
     }
 </div>
 
-<!-- === ITINERARY MODAL (Reused) === -->
 <div class="modal fade" id="itineraryModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content">

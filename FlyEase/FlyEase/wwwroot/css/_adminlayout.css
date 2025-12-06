@@ -1,0 +1,114 @@
+﻿/* =========================================
+   ADMIN LAYOUT (Theme Aware)
+   ========================================= */
+
+body {
+    overflow-x: hidden;
+    background-color: var(--bg-body); /* Global Variable */
+    color: var(--text-main);
+}
+
+#wrapper {
+    min-height: 100vh;
+    display: flex;
+    width: 100%;
+}
+
+/* --- Sidebar Styles --- */
+#sidebar-wrapper {
+    width: 250px;
+    background-color: var(--bg-card); /* Global Variable */
+    border-right: 1px solid var(--border-color);
+    transition: margin 0.25s ease-out;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar-heading {
+    padding: 1.5rem;
+    font-size: 1.25rem;
+    font-weight: 700;
+    text-align: center;
+    color: var(--accent-primary);
+    background-color: var(--bg-card);
+    border-bottom: 1px solid var(--border-color);
+    letter-spacing: 1px;
+}
+
+/* Sidebar Links */
+.list-group-item {
+    background-color: transparent;
+    color: var(--text-muted);
+    border: none;
+    padding: 15px 20px;
+    transition: all 0.3s ease;
+    font-weight: 500;
+    border-left: 4px solid transparent;
+}
+
+    .list-group-item:hover {
+        background-color: var(--bg-input);
+        color: var(--accent-primary);
+        cursor: pointer;
+        transform: translateX(5px);
+    }
+
+    .list-group-item.active {
+        background-color: var(--bg-input);
+        color: var(--accent-primary);
+        border-left-color: var(--accent-primary);
+        font-weight: 700;
+        z-index: initial;
+    }
+
+    .list-group-item i {
+        width: 25px;
+        text-align: center;
+        margin-right: 10px;
+    }
+
+/* Toggled State */
+#wrapper.toggled #sidebar-wrapper {
+    margin-left: -250px;
+}
+
+/* --- Page Content Styles --- */
+#page-content-wrapper {
+    background-color: var(--bg-body); /* Global Variable */
+    width: 100%;
+    overflow-y: auto;
+    flex-grow: 1;
+}
+
+.navbar {
+    background-color: var(--bg-card) !important; /* Global Variable */
+    border-bottom: 1px solid var(--border-color);
+    box-shadow: 0 2px 4px var(--shadow-color);
+}
+
+/* Icons */
+.nav-icon-btn {
+    color: var(--text-muted);
+    font-size: 1.2rem;
+}
+
+    .nav-icon-btn:hover {
+        color: var(--accent-primary);
+    }
+
+/* --- Responsive --- */
+@media (min-width: 768px) {
+    #sidebar-wrapper {
+        margin-left: 0;
+    }
+
+    #page-content-wrapper {
+        min-width: 0;
+        width: 100%;
+    }
+
+    #wrapper.toggled #sidebar-wrapper {
+        margin-left: -250px;
+    }
+}

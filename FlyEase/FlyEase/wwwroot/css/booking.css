@@ -1,120 +1,75 @@
-﻿/* ... Existing Styles ... */
+﻿/* =========================================
+   BOOKING PAGES STYLES (Cleaned for Dark Mode)
+   ========================================= */
 
-/* === SELECTION CARDS === */
-.selection-card label {
-    cursor: pointer;
-    transition: all 0.2s ease-in-out;
+/* 1. Price Summary Box */
+.price-summary-custom {
+    /* Use the Input background variable for a subtle contrast against the main Card background */
+    background-color: var(--bg-input) !important;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--text-main);
 }
 
-    .selection-card label:hover {
-        background-color: #f8f9fa;
-        border-color: #dee2e6 !important;
+    .price-summary-custom h6 {
+        color: var(--text-main);
+        border-bottom: 1px solid var(--border-color);
+        padding-bottom: 10px;
+        margin-bottom: 15px;
     }
 
-/* Radio: When Checked */
-.btn-check:checked + label {
-    border-color: #0d6efd !important;
-    background-color: #f0f8ff; /* Light Blue tint */
-    color: #0d6efd !important;
-}
-
-/* Checkbox Icons */
-.check-icon-checked {
-    font-size: 1.2rem;
-}
-
-.check-icon-unchecked {
-    font-size: 1.2rem;
-}
-
-/* Validation Error Highlight */
-.border-danger {
-    border: 1px solid #dc3545 !important;
-}
-
-
-.btn-close {
-    font-size: 2rem;
-    z-index: 1060;
-    background-color: rgba(0,0,0,0.5);
-}
-
-.prev-icon {
-    height: 60px !important;
-    background-color: #ffffff29;
-}
-
-.btn-close {
-    z-index: 23;
-    font-size: 32px;
-    position: fixed;
-    top: 46px;
-    right: 46px;
-}
-
-.next-icon {
-    height: 60px !important;
-    background-color:#ffffff29;
-}
-
-/* === GALLERY GRID LAYOUT === */
-.main-img-height {
-    height: 408px; /* Fixed height for main image */
-}
-
-.side-img-height {
-    height: 200px; /* Fixed height for side images (200 * 2 + 8px gap = ~408px) */
-}
-
-/* Common Image Styles */
-.gallery-item img {
-    cursor: pointer;
-    transition: filter 0.2s;
-}
-
-    .gallery-item img:hover {
-        filter: brightness(0.9);
+    /* 2. Text Colors inside Summary */
+    .price-summary-custom small {
+        color: var(--text-muted);
     }
 
-.object-fit-cover {
-    object-fit: cover;
+    .price-summary-custom strong {
+        color: var(--text-main);
+    }
+
+    /* 3. Total Amount Highlight */
+    .price-summary-custom .text-primary {
+        color: var(--accent-primary) !important;
+    }
+
+/* 4. Form Labels */
+.form-label {
+    font-weight: 500;
+    color: var(--text-main);
 }
 
-/* === GALLERY OVERLAY BUTTON === */
-.gallery-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.4); /* Darken background */
+/* 5. Booking Progress Bar (If used) */
+.progress-container {
+    margin-bottom: 30px;
+}
+
+.step-circle {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background-color: var(--bg-input);
+    border: 2px solid var(--border-color);
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 0.25rem; /* Matches Bootstrap rounded class */
-    cursor: pointer;
-    transition: background-color 0.2s;
+    font-weight: bold;
+    color: var(--text-muted);
+    margin: 0 auto 10px;
 }
 
-    .gallery-overlay:hover {
-        background-color: rgba(0, 0, 0, 0.5);
-    }
-
-
-
-/* The "View Gallery" Button */
-.gallery-btn {
-    pointer-events: none; /* Let the click pass through to the overlay div */
-    font-size: 0.9rem;
-    padding: 8px 16px;
-    border-radius: 8px;
+.step-active .step-circle {
+    background-color: var(--accent-primary);
+    border-color: var(--accent-primary);
+    color: white;
 }
 
-/* === GENERAL UTILS === */
-#optionDropdown, .btn {
-    cursor: pointer;
+.step-text {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    text-align: center;
 }
 
-.form-select.is-invalid {
-    background-position: right calc(0.375em + 0.1875rem) center;
+.step-active .step-text {
+    color: var(--accent-primary);
+    font-weight: bold;
 }

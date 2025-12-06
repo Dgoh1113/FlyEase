@@ -125,7 +125,7 @@ namespace FlyEase.Controllers
                     var claims = new List<Claim>
                     {
                         new Claim(ClaimTypes.NameIdentifier,user.UserID.ToString()),
-                        new Claim(ClaimTypes.Name, user.FullName),  
+                        new Claim(ClaimTypes.Name, user.FullName),
                         new Claim(ClaimTypes.Email, user.Email),
                         new Claim(ClaimTypes.Role, user.Role ?? "User")
                     };
@@ -153,9 +153,12 @@ namespace FlyEase.Controllers
                         principal,
                         authProperties); // Pass the properties here!
 
-                    // 5. Redirect
-                    if (user.Role == "Admin") return RedirectToAction("StaffDashboard", "StaffDashboard");
-                    if (user.Role == "Staff") return RedirectToAction("Dashboard", "Staff");
+                    // 5. Redirect (FIXED THIS PART)
+                    if (user.Role == "Admin" || user.Role == "Staff")
+                    {
+                        // Redirects to AdminDashboardController, Action: AdminDashboard
+                        return RedirectToAction("AdminDashboard", "AdminDashboard");
+                    }
 
                     return RedirectToAction("Profile", "Auth");
                 }
