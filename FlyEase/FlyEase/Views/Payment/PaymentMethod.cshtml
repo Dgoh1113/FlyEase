@@ -89,9 +89,9 @@
 
                         <div class="mt-4 pt-3 border-top">
                             <div class="d-flex justify-content-between">
-                                <a href="/Payment/CustomerInfo" class="btn btn-outline-secondary">
+                                <button type="button" onclick="goBackWithParams()" class="btn btn-outline-secondary">
                                     <i class="fas fa-arrow-left me-1"></i>Back
-                                </a>
+                                </button>
                                 <button type="submit" class="btn btn-primary">
                                     Continue <i class="fas fa-arrow-right ms-1"></i>
                                 </button>
@@ -134,3 +134,10 @@
         margin-right: 15px;
     }
 </style>
+
+    <script>
+        // Option 1: Use history back (preserves parameters)
+        function goBackWithParams() {
+            window.history.back();
+        }
+    </script>
