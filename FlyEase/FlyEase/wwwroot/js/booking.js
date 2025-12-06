@@ -1,17 +1,50 @@
 ﻿console.log("booking.js loaded");
-// --- 1. GALLERY CAROUSEL LOGIC ---
+
 document.addEventListener("DOMContentLoaded", function () {
+    // --- EXISTING CAROUSEL LOGIC ---
     var carousel = document.getElementById('carouselGallery');
     var counter = document.getElementById('carousel-counter');
 
-    // Update counter when slide changes
     if (carousel && counter) {
         carousel.addEventListener('slide.bs.carousel', function (e) {
-            // e.to is 0-indexed, so we add 1
             var currentIndex = e.to + 1;
-            var total = counter.innerText.split('/')[1]; // Keep total from existing text
+            var total = counter.innerText.split('/')[1];
             counter.innerText = currentIndex + " /" + total;
         });
+    }
+
+    // --- EXISTING CHECKBOX LOGIC ---
+    var checkboxes = document.querySelectorAll('.option-trigger');
+    checkboxes.forEach(function (checkbox) {
+        checkbox.addEventListener('change', function () {
+            toggleCheckboxStyle(this);
+        });
+    });
+
+    // --- NEW: MAP LOGIC (Reads from HTML Data Attributes) ---
+    var mapContainer = document.getElementById('bookingMap');
+    if (mapContainer) {
+        // 1. Read Data
+        var lat = parseFloat(mapContainer.getAttribute('data-lat'));
+        console.log("Latitude:", lat);
+        var lng = parseFloat(mapContainer.getAttribute('data-lng'));
+        console.log("Longitude:", lng);
+        var title = mapContainer.getAttribute('data-title');
+        var desc = mapContainer.getAttribute('data-desc');
+
+        // 2. Init Map
+        var map = L.map('bookingMap').setView([lat, lng], 13);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+
+        L.marker([lat, lng]).addTo(map)
+            .bindPopup("<b>" + title + "</b><br>" + desc)
+            .openPopup();
+
+        // 3. Fix Grey Box Issue
+        setTimeout(function () { map.invalidateSize(); }, 500);
     }
 });
 
@@ -32,43 +65,6 @@ function openGalleryModal(index) {
 
     myModal.show();
 }
-
-// --- 2. FORM VALIDATION ---
-function validateAndSubmit() {
-    var hasOptions = document.getElementById('hasOptionsFlag').value === "true";
-
-    if (hasOptions) {
-        var dropdown = document.getElementById('optionDropdown');
-        var selectedVal = dropdown.value;
-
-        if (!selectedVal) {
-            dropdown.classList.add('is-invalid');
-            dropdown.focus();
-
-            Swal.fire({
-                title: 'Selection Required',
-                text: "Please select a package option from the dropdown menu.",
-                icon: 'warning',
-                confirmButtonColor: '#0d6efd',
-                confirmButtonText: 'OK'
-            });
-            return;
-        } else {
-            dropdown.classList.remove('is-invalid');
-        }
-    }
-    document.getElementById('bookingForm').submit();
-}
-
-// Auto-remove invalid class on change
-document.addEventListener("DOMContentLoaded", function () {
-    var dropdown = document.getElementById('optionDropdown');
-    if (dropdown) {
-        dropdown.addEventListener('change', function () {
-            if (this.value) this.classList.remove('is-invalid');
-        });
-    }
-});
 
 // --- 3. PAX COUNTER ---
 function updatePax(change) {
