@@ -36,12 +36,15 @@
 body {
     font-family: 'Poppins', sans-serif !important;
     background-color: var(--bg-body);
-    color: black;
+    /* CHANGED: Use variable instead of 'black' so it switches to white in dark mode */
+    color: var(--text-main);
     line-height: 1.6;
 }
 
 a {
     text-decoration: none;
+    /* Optional: Ensure links inherit color or use accent */
+    color: inherit;
 }
 
 /* =========================================
@@ -58,6 +61,8 @@ a {
     transition: transform 0.3s ease, box-shadow 0.3s ease;
     overflow: hidden;
     margin-bottom: 24px;
+    /* Added: Ensure text inside cards is correct color */
+    color: var(--text-main);
 }
 
     .card:hover, .package-card:hover {
@@ -73,7 +78,7 @@ a {
    4. HEADER & NAVIGATION
    ========================================= */
 header.fixed-top {
-    background: rgba(255, 255, 255, 0.01) !important; /* Almost invisible background */
+    background: rgba(255, 255, 255, 0.01) !important;
     backdrop-filter: blur(20px);
     border-bottom: none !important;
     height: 80px;
@@ -82,44 +87,41 @@ header.fixed-top {
 [data-bs-theme="dark"] header.fixed-top {
     background: rgba(18, 18, 18, 0.5) !important;
 }
+
 .container-fluid.d-flex.align-items-center {
-    background-color: slategrey;
-
-
+    /* REMOVED: background-color: slategrey; - This was hardcoded and ugly */
+    background-color: transparent;
 }
+
 .navbar-brand, .btn-hamburger {
-    /*color: white !important;*/ /* White text so it's readable */
-    /* Make the background bigger */
     padding: 12px 24px !important;
-    border-radius: 12px; /* Rounded corners */
-    /* Ensure they stand out */
+    border-radius: 12px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     margin-right: 15px;
     transition: transform 0.2s ease, background-color 0.2s ease;
+    /* Added: Ensure brand text uses theme color */
+    color: var(--text-main);
 }
- 
-/* Brand Logo */
+
 .navbar-brand {
     font-size: 1.5rem;
     font-weight: 700;
     letter-spacing: -0.5px;
-    /* Removed width: 100% because it breaks layout */
 }
 
 /* --- UPDATED HAMBURGER BUTTON --- */
-/* Completely blends in, no background box */
 .btn-hamburger {
     border: none !important;
     box-shadow: none !important;
-    height:10%;
+    height: 10%; /* Be careful with % height, usually auto or px is safer */
+    color: var(--text-main); /* Ensure icon is visible */
 }
-
 
     .btn-hamburger:hover {
         color: var(--accent-primary) !important;
-        transform: scale(1.1); /* Subtle zoom effect instead of a box */
+        transform: scale(1.1);
         background: transparent !important;
     }
 
@@ -127,30 +129,34 @@ header.fixed-top {
    5. SIDEBAR (Updated Width)
    ========================================= */
 .offcanvas {
-    border-radius: 0 30px 30px 0; /* More rounded edge */
+    border-radius: 0 30px 30px 0;
     border: none;
     background-color: var(--bg-card);
-    width: 380px !important; /* MADE WIDER (Was ~300px) */
+    width: 380px !important;
 }
 
 .list-group-item {
     border: none;
     margin-bottom: 8px;
     border-radius: 12px !important;
-    padding: 14px 24px; /* More padding for wider look */
+    padding: 14px 24px;
     font-weight: 500;
-    color: black;
+    /* CHANGED: Use variable so it turns white in dark mode */
+    color: var(--text-main);
+    background-color: transparent; /* Use transparent so it takes parent bg */
 }
 
     .list-group-item:hover,
     .list-group-item.active {
         background-color: rgba(0, 102, 161, 0.08);
-        color:black;
+        /* CHANGED: Keep text readable on hover (or use primary color) */
+        color: var(--accent-primary);
     }
 
     .list-group-item i {
-        width: 30px; /* Wider icon spacing */
-        color: black;
+        width: 30px;
+        /* CHANGED: Icon follows text color */
+        color: inherit;
     }
 
 /* =========================================
@@ -164,12 +170,15 @@ header.fixed-top {
     padding: 12px 20px;
     font-size: 0.95rem;
     transition: all 0.3s;
+    /* Added: Ensure input text color is correct */
+    color: var(--text-main);
 }
 
     .form-control:focus {
         background-color: var(--bg-card);
         border-color: var(--accent-primary);
         box-shadow: 0 0 0 4px rgba(0, 102, 161, 0.1);
+        color: var(--text-main);
     }
 
 .btn {
@@ -181,10 +190,12 @@ header.fixed-top {
     font-size: 0.85rem;
     box-shadow: 0 4px 15px rgba(0, 102, 161, 0.2);
     border: none;
+    color: white; /* Buttons usually keep white text if they have background */
 }
 
 .btn-primary {
     background: var(--grad-header);
+    color: white;
 }
 
     .btn-primary:hover {
@@ -207,6 +218,7 @@ header.fixed-top {
     padding: 8px 16px;
     background: var(--accent-secondary);
     box-shadow: 0 4px 10px rgba(255, 159, 67, 0.4);
+    color: white; /* Ensure badge text is white */
 }
 
 #flybot-window {
@@ -214,9 +226,12 @@ header.fixed-top {
     box-shadow: 0 20px 60px rgba(0,0,0,0.2) !important;
     border: none !important;
     overflow: hidden;
+    background-color: var(--bg-card); /* Ensure chat window is dark in dark mode */
 }
 
 #flybot-header {
     background: var(--grad-header);
     border-radius: 20px 20px 0 0;
+    color: white;
 }
+
