@@ -27,7 +27,7 @@ namespace FlyEase.Controllers
 
             var booking = await _context.Bookings
                 .Include(b => b.Package)
-                .Include(b => b.User) // <--- ADD THIS LINE!
+                .Include(b => b.User)
                 .FirstOrDefaultAsync(b => b.BookingID == bookingId && b.UserID == userId);
 
             if (booking == null)
@@ -47,6 +47,61 @@ namespace FlyEase.Controllers
             return View(booking);
         }
 
+        // [POST] Create Review
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Create(int bookingId, int rating, string comment)
+        {
+            if (rating < 1 || rating > 5)
+            {
+                TempData["Error"] = "Please select a star rating between 1 and 5.";
+                return RedirectToAction("Create", new { bookingId });
+            }
+
+            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+
+            // 1. Save Feedback
+            var feedback = new Feedback
+            {
+                BookingID = bookingId,
+                UserID = userId,
+                Rating = rating,
+                Comment = comment,
+                CreatedDate = DateTime.Now
+            };
+
+            _context.Feedbacks.Add(feedback);
+            await _context.SaveChangesAsync();
+
+            // 2. Send "Thank You" Email
+            try
+            {
+                var booking = await _context.Bookings
+                    .Include(b => b.User)
+                    .Include(b => b.Package)
+                    .FirstOrDefaultAsync(b => b.BookingID == bookingId);
+
+                if (booking != null)
+                {
+                    var emailService = new FlyEase.Services.EmailService();
+                    await emailService.SendReviewConfirmation(
+                        booking.User.Email,
+                        booking.User.FullName,
+                        booking.Package.PackageName,
+                        rating,
+                        comment
+                    );
+                }
+            }
+            catch
+            {
+                // Ignore email errors
+            }
+
+            TempData["SuccessMessage"] = "Thank you for your feedback! A confirmation email has been sent.";
+            return RedirectToAction("Profile", "Auth");
+        }
+
         // ==========================================
         // EDIT REVIEW (GET)
         // ==========================================
@@ -55,7 +110,6 @@ namespace FlyEase.Controllers
         {
             var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
 
-            // 1. Find the existing feedback
             var feedback = await _context.Feedbacks
                 .Include(f => f.Booking)
                     .ThenInclude(b => b.Package)
@@ -84,10 +138,9 @@ namespace FlyEase.Controllers
 
             if (feedback == null) return NotFound();
 
-            // Update fields
             feedback.Rating = rating;
             feedback.Comment = comment;
-            feedback.CreatedDate = DateTime.Now; // Optional: Update date to now
+            feedback.CreatedDate = DateTime.Now;
 
             _context.Feedbacks.Update(feedback);
             await _context.SaveChangesAsync();
@@ -96,70 +149,88 @@ namespace FlyEase.Controllers
             return RedirectToAction("Profile", "Auth");
         }
 
-        // [file]: Controllers/FeedbackController.cs
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(int bookingId, int rating, string comment)
+        // ==========================================
+        // NEW FEATURE: PERSONAL TRAVEL INSIGHTS
+        // Analysis of the user's own review habits
+        // ==========================================
+        [Authorize]
+        public async Task<IActionResult> Insights()
         {
-            if (rating < 1 || rating > 5)
-            {
-                TempData["Error"] = "Please select a star rating between 1 and 5.";
-                return RedirectToAction("Create", new { bookingId });
-            }
-
             var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
 
-            // 1. Save Feedback
-            var feedback = new Feedback
+            // 1. Fetch all reviews by this user
+            var myReviews = await _context.Feedbacks
+                .Include(f => f.Booking)
+                .ThenInclude(b => b.Package)
+                .Where(f => f.UserID == userId)
+                .OrderByDescending(f => f.CreatedDate)
+                .ToListAsync();
+
+            if (!myReviews.Any())
             {
-                BookingID = bookingId,
-                UserID = userId,
-                Rating = rating,
-                Comment = comment,
-                CreatedDate = DateTime.Now
-            };
-
-            _context.Feedbacks.Add(feedback);
-            await _context.SaveChangesAsync();
-
-            // =========================================================================
-            // 2. NEW: Send "Thank You" Email
-            // =========================================================================
-            try
-            {
-                // We need to fetch the User and Package details to personalize the email
-                var booking = await _context.Bookings
-                    .Include(b => b.User)
-                    .Include(b => b.Package)
-                    .FirstOrDefaultAsync(b => b.BookingID == bookingId);
-
-                if (booking != null)
-                {
-                    var emailService = new FlyEase.Services.EmailService();
-                    await emailService.SendReviewConfirmation(
-                        booking.User.Email,      // To: User's Email
-                        booking.User.FullName,   // Name
-                        booking.Package.PackageName, // Package
-                        rating,                  // Rating
-                        comment                  // What they wrote
-                    );
-                }
+                TempData["InfoMessage"] = "You need to write some reviews to unlock your Travel Insights!";
+                return RedirectToAction("Profile", "Auth");
             }
-            catch
-            {
-                // Ignore email errors so the user still sees the "Success" screen
-            }
-            // =========================================================================
 
-            TempData["SuccessMessage"] = "Thank you for your feedback! A confirmation email has been sent.";
-            return RedirectToAction("Profile", "Auth");
+            // 2. LOGIC: Calculate Statistics
+            var totalReviews = myReviews.Count;
+            var avgGivenRating = myReviews.Average(r => r.Rating);
+            var totalWords = myReviews.Sum(r => r.Comment?.Split(' ').Length ?? 0);
+
+            // 3. LOGIC: Determine "Travel Persona" based on Keywords & Ratings
+            string persona = "The Explorer"; // Default
+            string personaIcon = "fa-hiking";
+            string personaDesc = "You love seeing new places and having new experiences.";
+
+            // Join all comments to analyze keywords
+            var allText = string.Join(" ", myReviews.Select(r => r.Comment?.ToLower() ?? ""));
+
+            if (allText.Contains("food") || allText.Contains("meal") || allText.Contains("delicious"))
+            {
+                persona = "The Foodie";
+                personaIcon = "fa-utensils";
+                personaDesc = "Your trips are defined by the delicious flavors you discover.";
+            }
+            else if (allText.Contains("cheap") || allText.Contains("price") || allText.Contains("value"))
+            {
+                persona = "The Smart Saver";
+                personaIcon = "fa-piggy-bank";
+                personaDesc = "You know how to find the best deals and get the most value.";
+            }
+            else if (allText.Contains("service") || allText.Contains("staff") || allText.Contains("friendly"))
+            {
+                persona = "The People Person";
+                personaIcon = "fa-users";
+                personaDesc = "For you, good service and friendly faces make the trip.";
+            }
+            else if (avgGivenRating >= 4.5)
+            {
+                persona = "The Happy Traveler";
+                personaIcon = "fa-smile-beam";
+                personaDesc = "You tend to see the positive side of every journey!";
+            }
+            else if (avgGivenRating <= 2.5)
+            {
+                persona = "The Critical Critic";
+                personaIcon = "fa-gavel";
+                personaDesc = "You have high standards and expect the best quality.";
+            }
+
+            // 4. Pass Data to View
+            ViewBag.TotalReviews = totalReviews;
+            ViewBag.AvgGivenRating = avgGivenRating;
+            ViewBag.TotalWords = totalWords;
+            ViewBag.Persona = persona;
+            ViewBag.PersonaIcon = personaIcon;
+            ViewBag.PersonaDesc = personaDesc;
+
+            return View(myReviews);
         }
 
         // ==========================================
         // ADMIN / STAFF VIEW (List of all feedback)
         // ==========================================
-        [Authorize(Roles = "Admin,Staff")] // 2. SECURITY: Only Admin/Staff can see this
+        [Authorize(Roles = "Admin,Staff")]
         public async Task<IActionResult> Index()
         {
             var feedbacks = await _context.Feedbacks
@@ -174,7 +245,7 @@ namespace FlyEase.Controllers
         // ==========================================
         // ANALYTICS DASHBOARD 
         // ==========================================
-        [Authorize(Roles = "Admin,Staff")] // 3. SECURITY: Only Admin/Staff can see this
+        [Authorize(Roles = "Admin,Staff")]
         public async Task<IActionResult> Analytics()
         {
             var data = await _context.Feedbacks
@@ -194,8 +265,10 @@ namespace FlyEase.Controllers
 
             return View(data);
         }
-    }
 
+    } // <--- END OF CLASS FeedbackController
+
+    // Helper Class
     public class FeedbackAnalyticsVM
     {
         public string PackageName { get; set; }
@@ -204,4 +277,5 @@ namespace FlyEase.Controllers
         public int OneStarCount { get; set; }
         public int FiveStarCount { get; set; }
     }
-}
+
+} // <--- END OF NAMESPACE
