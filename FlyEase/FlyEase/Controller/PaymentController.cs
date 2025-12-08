@@ -40,6 +40,13 @@ namespace FlyEase.Controllers
             var package = await _context.Packages.FindAsync(packageId);
             if (package == null) return NotFound();
 
+            // FIX: Remove +60 prefix from phone number if it exists
+            string displayPhone = user.Phone;
+            if (!string.IsNullOrEmpty(displayPhone) && displayPhone.StartsWith("+60"))
+            {
+                displayPhone = displayPhone.Substring(3); // Remove "+60"
+            }
+
             var vm = new CustomerInfoViewModel
             {
                 PackageID = packageId,
@@ -50,11 +57,15 @@ namespace FlyEase.Controllers
                 BasePrice = package.Price * people,
                 FullName = user.FullName,
                 Email = user.Email,
-                Phone = user.Phone,
+                Phone = displayPhone, // Use the stripped version
                 Address = user.Address
             };
 
             CalculateDiscounts(vm);
+
+            // ========== FIX: Store the original parameters in session ==========
+            HttpContext.Session.SetString("OriginalPackageId", packageId.ToString());
+            HttpContext.Session.SetString("OriginalPeople", people.ToString());
 
             HttpContext.Session.SetCustomerInfo(vm);
             HttpContext.Session.SetUserId(user.UserID);
@@ -94,6 +105,7 @@ namespace FlyEase.Controllers
                 PackageName = customerInfo.PackageName,
                 FinalAmount = customerInfo.FinalAmount,
                 SelectedMethod = "Credit Card" // Default selection
+
             };
 
             // 3. Pass Model to View

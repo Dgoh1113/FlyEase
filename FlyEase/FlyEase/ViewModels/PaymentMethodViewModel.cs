@@ -14,5 +14,9 @@ namespace FlyEase.ViewModels
         // This captures the user's choice (e.g., "Credit Card", "TNG", etc.)
         [Required(ErrorMessage = "Please select a payment method.")]
         public string SelectedMethod { get; set; } = string.Empty;
+
+        // Add these for back navigation
+        public int PackageID { get; set; }
+        public int NumberOfPeople { get; set; }
     }
 }
