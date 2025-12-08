@@ -14,6 +14,8 @@
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
     <link rel="stylesheet" href="~/css/_layout.css?v=4" />
     <link rel="stylesheet" href="~/css/site.css" />
 
@@ -30,7 +32,6 @@
     </script>
 
     <style>
-        /* Simple SVG Icon Sizing */
         .icon-svg {
             width: 1.2em;
             height: 1.2em;
@@ -57,11 +58,50 @@
             </button>
 
             <a class="navbar-brand fw-bold m-0 flyease-brand" asp-controller="Home" asp-action="Index">
-                <svg xmlns="http://www.w3.org/2000/svg" class="icon-svg me-2" viewBox="0 0 16 16" >
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon-svg me-2" viewBox="0 0 16 16">
                     <path d="M15.964.686a.5.5 0 0 0-.65-.65L.767 5.855H.766l-.452.18a.5.5 0 0 0-.082.887l.41.26.001.002 4.995 3.178 3.178 4.995.002.002.26.41a.5.5 0 0 0 .886-.083l6-15Zm-1.833 1.89L6.637 10.07l-.215-.338a.5.5 0 0 0-.154-.154l-.338-.215 7.494-7.494 1.178-.471-.47 1.178Z" />
                 </svg>
                 FlyEase
             </a>
+
+            <div class="ms-auto">
+                @if (User.Identity != null && User.Identity.IsAuthenticated)
+                {
+                    <div class="dropdown">
+                        <button class="btn btn-link text-decoration-none dropdown-toggle d-flex align-items-center text-body" type="button" id="navbarDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            <span class="me-2 d-none d-md-inline fw-bold small">@User.Identity.Name</span>
+                            <i class="fas fa-user-circle fs-4"></i>
+                        </button>
+
+                        <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2" aria-labelledby="navbarDropdown">
+                            <li>
+                                <a class="dropdown-item" asp-controller="Auth" asp-action="Profile">
+                                    <i class="fas fa-user-circle me-2"></i> My Profile
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" asp-controller="Feedback" asp-action="Insights">
+                                    <i class="fas fa-chart-line me-2 text-primary"></i> Travel Insights <span class="badge bg-danger ms-1" style="font-size: 0.6em;">NEW</span>
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <form asp-controller="Auth" asp-action="Logout" method="post">
+                                    <button type="submit" class="dropdown-item text-danger">Logout</button>
+                                </form>
+                            </li>
+                        </ul>
+                    </div>
+                }
+                else
+                {
+                    <div class="d-flex gap-2">
+                        <a asp-controller="Auth" asp-action="Login" class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-bold">Login</a>
+                        <a asp-controller="Auth" asp-action="Register" class="btn btn-primary btn-sm rounded-pill px-3 fw-bold">Register</a>
+                    </div>
+                }
+            </div>
+
         </div>
     </header>
 
@@ -128,32 +168,9 @@
                     </ul>
                 </div>
 
-                @if (User.Identity != null && User.Identity.IsAuthenticated)
-                {
-                    <div class="user-profile-row">
-                        <div class="flex-grow-1 min-width-0">
-                            <div class="user-name-text text-truncate" title="@User.Identity.Name">@User.Identity.Name</div>
-                            <a class="small text-decoration-none text-primary" asp-controller="Auth" asp-action="Profile">View Profile</a>
-                        </div>
-                        <form asp-controller="Auth" asp-action="Logout" method="post" class="m-0 ms-2">
-                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Logout">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="icon-svg" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M10 12.5a.5.5 0 0 1-.5.5h-8a.5.5 0 0 1-.5-.5v-9a.5.5 0 0 1 .5-.5h8a.5.5 0 0 1 .5.5v2a.5.5 0 0 0 1 0v-2A1.5 1.5 0 0 0 9.5 0h-8A1.5 1.5 0 0 0 0 1.5v9A1.5 1.5 0 0 0 1.5 12h8a1.5 1.5 0 0 0 1.5-1.5v-2a.5.5 0 0 0-1 0v2z" /><path fill-rule="evenodd" d="M15.854 8.354a.5.5 0 0 0 0-.708l-3-3a.5.5 0 0 0-.708.708L14.293 7.5H5.5a.5.5 0 0 0 0 1h8.793l-2.147 2.146a.5.5 0 0 0 .708.708l3-3z" /></svg>
-                            </button>
-                        </form>
-                    </div>
-                }
-                else
-                {
-                    <div class="d-grid gap-2">
-                        <a asp-controller="Auth" asp-action="Login" class="btn btn-primary fw-bold">@Localizer["Login"]</a>
-                        <a asp-controller="Auth" asp-action="Register" class="btn btn-outline-primary fw-bold">Register</a>
-                    </div>
-                }
             </div>
         </div>
     </div>
-
-   
 
     <main>
         @RenderBody()
@@ -190,10 +207,7 @@
         }
 
         function updateIcon(theme) {
-            // Since we are using SVGs now, we swap the entire SVG content or class
-            // For simplicity in this SVG version, you might need a more robust JS to swap SVG paths.
-            // But since the "weird font" was the priority, let's just stick to a simple alert or console log for now
-            // OR you can leave the icon static (Moon) for both states to save complexity.
+            // Icon logic
         }
     </script>
 </body>
