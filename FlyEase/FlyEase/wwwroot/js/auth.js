@@ -51,36 +51,83 @@
 
     initRealTimeValidation() {
         const inputs = document.querySelectorAll('input');
+        const form = document.querySelector('form');
 
         inputs.forEach(input => {
+            // Validate on blur
             input.addEventListener('blur', () => this.validateField(input));
+
+            // Clear error on input
             input.addEventListener('input', () => {
                 if (input.classList.contains('is-invalid')) {
                     input.classList.remove('is-invalid');
+                    const errorSpan = input.parentElement.querySelector('.text-danger');
+                    if (errorSpan) errorSpan.textContent = '';
                 }
-                // Check password match whenever user types in either box
+
+                // Special handling for password matching
                 if (input.id === 'confirmPassword' || (input.id === 'password' && this.confirmInput?.value)) {
                     this.validatePasswordMatch();
                 }
             });
         });
+
+        // Validate all fields on form submit
+        if (form) {
+            form.addEventListener('submit', (e) => {
+                let hasErrors = false;
+
+                inputs.forEach(input => {
+                    if (input.hasAttribute('required') && !input.value.trim()) {
+                        this.toggleError(input, false);
+                        hasErrors = true;
+                    }
+                });
+
+                if (hasErrors) {
+                    e.preventDefault();
+                    // Scroll to first error
+                    const firstError = form.querySelector('.is-invalid');
+                    if (firstError) {
+                        firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                }
+            });
+        }
     }
 
     validateField(input) {
-        if (!input.value && input.hasAttribute('required')) return;
+        // Skip if empty and not required
+        if (!input.value && !input.hasAttribute('required')) return;
 
-        if (input.type === 'email') {
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            this.toggleError(input, emailRegex.test(input.value));
+        let isValid = true;
+        let errorMessage = '';
+
+        switch (input.type) {
+            case 'email':
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                isValid = emailRegex.test(input.value);
+                if (!isValid) errorMessage = 'Please enter a valid email address';
+                break;
+
+            case 'password':
+                if (input.id === 'password') {
+                    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&/])[A-Za-z\d@$!%*?&/]{6,}$/;
+                    isValid = passwordRegex.test(input.value);
+                    if (!isValid) errorMessage = 'Password must have uppercase, lowercase, number, and special character';
+                }
+                break;
+
+            case 'text':
+                if (input.name === 'Phone') {
+                    const cleanVal = input.value.replace(/\D/g, '');
+                    isValid = cleanVal.length >= 9 && cleanVal.length <= 11;
+                    if (!isValid) errorMessage = 'Phone must be 9-11 digits';
+                }
+                break;
         }
 
-        if (input.name === 'Phone') {
-            // Remove non-digits
-            const cleanVal = input.value.replace(/\D/g, '');
-            // Valid length between 9 and 11 digits
-            const isValid = cleanVal.length >= 9 && cleanVal.length <= 11;
-            this.toggleError(input, isValid);
-        }
+        this.toggleError(input, isValid, errorMessage);
     }
 
     validatePasswordMatch() {
@@ -114,17 +161,30 @@
         }
     }
 
-    toggleError(input, isValid) {
-        if (input.value === '') {
-            input.classList.remove('is-valid', 'is-invalid');
-            return;
+    toggleError(input, isValid, errorMessage = '') {
+        const parent = input.parentElement;
+        let errorSpan = parent.querySelector('.field-error');
+
+        if (!errorSpan) {
+            errorSpan = document.createElement('span');
+            errorSpan.className = 'text-danger small field-error';
+            parent.appendChild(errorSpan);
         }
 
-        if (!isValid) {
+        if (!isValid && input.value) {
             input.classList.add('is-invalid');
-        } else {
+            input.classList.remove('is-valid');
+            errorSpan.textContent = errorMessage;
+            errorSpan.style.display = 'block';
+        } else if (input.value) {
             input.classList.remove('is-invalid');
             input.classList.add('is-valid');
+            errorSpan.textContent = '';
+            errorSpan.style.display = 'none';
+        } else {
+            input.classList.remove('is-invalid', 'is-valid');
+            errorSpan.textContent = '';
+            errorSpan.style.display = 'none';
         }
     }
 

@@ -7,64 +7,89 @@
 
 @section Head {
     <link rel="stylesheet" href="~/css/auth.css" />
+    <style>
+        /* Add margin to fix header overlap */
+        .auth-wrapper {
+            margin-top: 120px; /* Pushes content down below fixed header */
+            min-height: calc(100vh - 120px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Card styling */
+        .auth-card {
+            margin-top: -50px; /* Adjust as needed */
+        }
+    </style>
 }
 
-<div class="container mt-5 mb-5">
-    <div class="row justify-content-center">
-        <div class="col-md-6 col-lg-5">
-            <div class="card shadow-lg border-0 rounded-lg">
-                <div class="card-header booking-header text-center py-4">
-                    <h3 class="font-weight-light my-1">Welcome Back</h3>
-                    <small class="opacity-75">Login to your account</small>
-                </div>
+<div class="auth-wrapper">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-6 col-lg-5">
+                <div class="card shadow-lg border-0 rounded-lg auth-card">
+                    <div class="card-header booking-header text-center py-4">
+                        <h3 class="font-weight-light my-1">Welcome Back</h3>
+                        <small class="opacity-75">Login to your account</small>
+                    </div>
 
-                <div class="card-body p-4">
-                    @if (ViewBag.SuccessMessage != null)
-                    {
-                        <div class="alert alert-success alert-dismissible fade show" role="alert">
-                            <i class="fas fa-check-circle me-1"></i> @ViewBag.SuccessMessage
-                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    <div class="card-body p-4">
+                        @if (ViewBag.SuccessMessage != null)
+                        {
+                            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                                <i class="fas fa-check-circle me-1"></i> @ViewBag.SuccessMessage
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        }
+
+                        <form asp-action="Login" method="post" id="loginForm" novalidate>
+                            @Html.AntiForgeryToken()
+
+                            <!-- Remove the general error alert that shows duplicates -->
+
+                            <div class="form-floating mb-3">
+                                <input asp-for="Email" class="form-control" placeholder="name@example.com" />
+                                <label asp-for="Email">Email Address</label>
+                                <!-- Only show ONE validation span -->
+                                <span asp-validation-for="Email" class="text-danger small"></span>
+                            </div>
+
+                            <div class="form-floating mb-3 position-relative">
+                                <input asp-for="Password" class="form-control" type="password" placeholder="Password" id="password" />
+                                <label asp-for="Password">Password</label>
+                                <button type="button" class="btn btn-link position-absolute top-50 end-0 translate-middle-y text-decoration-none me-2 password-toggle" tabindex="-1" style="z-index: 5; color: var(--text-muted);">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <!-- Only show ONE validation span -->
+                                <span asp-validation-for="Password" class="text-danger small"></span>
+                            </div>
+
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" asp-for="RememberMe" id="rememberMe" />
+                                <label class="form-check-label text-muted" for="rememberMe">
+                                    <i class="fas fa-clock me-1"></i> Remember me for 30 days
+                                </label>
+                            </div>
+
+                            <div class="d-grid gap-2 mt-4 mb-0">
+                                <button type="submit" class="btn btn-primary btn-lg fw-bold">
+                                    <i class="fas fa-sign-in-alt me-2"></i>Sign In
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div class="card-footer text-center py-3">
+                        <div class="small">
+                            <a asp-action="Register" class="text-decoration-none fw-bold text-primary">
+                                <i class="fas fa-user-plus me-1"></i>Need an account? Sign up!
+                            </a>
+                            <span class="mx-1 text-muted">|</span>
+                            <a asp-action="ForgotPassword" class="text-decoration-none fw-bold text-primary">
+                                <i class="fas fa-key me-1"></i>Forgot Password?
+                            </a>
                         </div>
-                    }
-
-                    <form asp-action="Login" method="post" id="loginForm" novalidate>
-                        @Html.AntiForgeryToken()
-
-                        <div class="form-floating mb-3">
-                            <input asp-for="Email" class="form-control" placeholder="name@example.com" />
-                            <label asp-for="Email">Email Address</label>
-                            <span asp-validation-for="Email" class="text-danger small"></span>
-                        </div>
-
-                        <div class="form-floating mb-3 position-relative">
-                            <input asp-for="Password" class="form-control" type="password" placeholder="Password" id="password" />
-                            <label asp-for="Password">Password</label>
-                            <button type="button" class="btn btn-link position-absolute top-50 end-0 translate-middle-y text-decoration-none me-2 password-toggle" tabindex="-1" style="z-index: 5; color: var(--text-muted);">
-                                <i class="fas fa-eye"></i>
-                            </button>
-                            <span asp-validation-for="Password" class="text-danger small"></span>
-                        </div>
-
-                        <div class="form-check mb-3">
-                            <input class="form-check-input" asp-for="RememberMe" />
-                            <label class="form-check-label text-muted" asp-for="RememberMe">
-                                Remember Password
-                            </label>
-                        </div>
-
-                        <div class="d-grid gap-2 mt-4 mb-0">
-                            <button type="submit" class="btn btn-primary btn-lg fw-bold">
-                                <i class="fas fa-sign-in-alt me-2"></i>Sign In
-                            </button>
-                        </div>
-                    </form>
-                </div>
-
-                <div class="card-footer text-center py-3">
-                    <div class="small">
-                        <a asp-action="Register" class="text-decoration-none fw-bold">Need an account? Sign up!</a>
-                        <span class="mx-1 text-muted">|</span>
-                        <a asp-action="ForgotPassword" class="text-decoration-none text-muted">Forgot Password?</a>
                     </div>
                 </div>
             </div>
@@ -74,5 +99,4 @@
 
 @section Scripts {
     <script src="~/js/auth.js"></script>
-    <partial name="_ValidationScriptsPartial" />
 }

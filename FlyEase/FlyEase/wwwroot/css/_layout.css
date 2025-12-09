@@ -235,3 +235,119 @@ header.fixed-top {
     color: white;
 }
 
+/* =========================================
+   8. AUTH PAGE FIXES (Add to existing file)
+   ========================================= */
+
+/* Fix for all pages with fixed header */
+main {
+    margin-top: 80px; /* Height of your fixed header */
+    min-height: calc(100vh - 80px);
+}
+
+
+/* Fix header overlap for auth pages */
+.profile-container,
+.auth-container,
+.register-wrapper,
+.auth-wrapper {
+    margin-top: 80px !important;
+    min-height: calc(100vh - 80px);
+    display: flex;
+    align-items: center;
+    padding: 40px 0;
+}
+/* Smooth scroll behavior */
+html {
+    scroll-behavior: smooth;
+}
+
+/* Ensure content doesn't hide behind fixed header */
+:target {
+    scroll-margin-top: 100px;
+}
+
+/* Animation for page transitions */
+.page-enter {
+    animation: pageFadeIn 0.5s ease;
+}
+/* Make the auth card more prominent */
+.auth-card,
+.card.shadow-lg {
+    margin-top: 0;
+    animation: slideUp 0.5s ease-out;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Make links more visible */
+.highlight-link {
+    color: var(--accent-primary) !important;
+    font-weight: 600;
+    text-decoration: underline !important;
+    transition: all 0.3s ease;
+}
+
+    .highlight-link:hover {
+        color: var(--accent-hover) !important;
+        text-decoration: none !important;
+        transform: translateY(-1px);
+    }
+
+/* Terms checkbox styling */
+.terms-check {
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 12px;
+    padding: 15px;
+    background: rgba(0, 0, 0, 0.02);
+    transition: all 0.3s ease;
+}
+
+[data-bs-theme="dark"] .terms-check {
+    border-color: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.terms-check:hover {
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 1px rgba(0, 102, 161, 0.2);
+}
+
+/* Password toggle button styling */
+.password-toggle {
+    color: var(--text-muted) !important;
+    transition: color 0.2s ease;
+}
+
+    .password-toggle:hover {
+        color: var(--accent-primary) !important;
+    }
+
+/* Card header styling */
+.booking-header {
+    background: linear-gradient(135deg, #0066a1 0%, #00a3e0 100%);
+    color: white;
+    border-radius: 15px 15px 0 0 !important;
+    padding: 2rem !important;
+}
+
+    .booking-header h3 {
+        font-weight: 300;
+        font-size: 1.8rem;
+    }
+
+    .booking-header small {
+        opacity: 0.9;
+        font-size: 0.9rem;
+    }
+

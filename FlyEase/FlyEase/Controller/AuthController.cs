@@ -39,33 +39,42 @@ namespace FlyEase.Controllers
         {
             try
             {
+                // 1. Check if ModelState is valid (triggers data annotations)
                 if (ModelState.IsValid)
                 {
-                    // 1. Format Phone Number: Prepend +60
+                    // 2. Format Phone Number: Prepend +60
                     string formattedPhone = "+60" + model.Phone;
 
-                    // 2. Check if email exists
-                    var existingUser = _context.Users.FirstOrDefault(u => u.Email == model.Email);
-                    if (existingUser != null)
+                    // 3. Check if email already exists
+                    var existingEmail = _context.Users.FirstOrDefault(u => u.Email == model.Email);
+                    if (existingEmail != null)
                     {
-                        ModelState.AddModelError("Email", "Email is already registered.");
+                        ModelState.AddModelError("Email", "Email is already registered. Please use a different email or login.");
                         return View(model);
                     }
 
-                    // 3. Manual validations
+                    // 4. Check if phone number already exists
+                    var existingPhone = _context.Users.FirstOrDefault(u => u.Phone == formattedPhone);
+                    if (existingPhone != null)
+                    {
+                        ModelState.AddModelError("Phone", "Phone number is already registered. Please use a different phone number.");
+                        return View(model);
+                    }
+
+                    // 5. Additional manual validations
                     if (!IsValidEmailDomain(model.Email))
                     {
-                        ModelState.AddModelError("Email", "Invalid email domain.");
+                        ModelState.AddModelError("Email", "Invalid email domain. Only gmail.com, yahoo.com, or hotmail.com are allowed.");
                         return View(model);
                     }
 
                     if (!IsPasswordStrong(model.Password))
                     {
-                        ModelState.AddModelError("Password", "Password is not strong enough.");
+                        ModelState.AddModelError("Password", "Password must contain at least 6 characters with uppercase, lowercase, and number.");
                         return View(model);
                     }
 
-                    // 4. Create User (Only basic fields)
+                    // 6. Create User
                     var user = new User
                     {
                         FullName = model.FullName,
@@ -73,23 +82,28 @@ namespace FlyEase.Controllers
                         Phone = formattedPhone,
                         PasswordHash = HashPassword(model.Password),
                         Role = "User",
-                        CreatedDate = DateTime.UtcNow
+                        CreatedDate = DateTime.UtcNow,
+                        Address = model.Address
                     };
 
                     _context.Users.Add(user);
                     _context.SaveChanges();
 
-                    TempData["SuccessMessage"] = "Registration successful! Please login.";
+                    TempData["SuccessMessage"] = "Registration successful! Please login with your new account.";
                     return RedirectToAction("Login");
+                }
+                else
+                {
+                    // If ModelState is invalid, return to view with validation errors
+                    return View(model);
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error during registration");
-                ModelState.AddModelError("", "An unexpected error occurred.");
+                _logger.LogError(ex, "Error during registration for email: {Email}", model.Email);
+                ModelState.AddModelError("", "An unexpected error occurred during registration. Please try again.");
+                return View(model);
             }
-
-            return View(model);
         }
 
         // ==========================================
@@ -115,55 +129,73 @@ namespace FlyEase.Controllers
         {
             if (ModelState.IsValid)
             {
-                // 1. Find User
-                var user = _context.Users.FirstOrDefault(u => u.Email == model.Email);
-
-                // 2. Verify Password (using Hash)
-                if (user != null && VerifyPassword(model.Password, user.PasswordHash))
+                try
                 {
-                    // 3. Create Claims
-                    var claims = new List<Claim>
+                    // Find user
+                    var user = _context.Users.FirstOrDefault(u => u.Email == model.Email);
+
+                    if (user == null)
                     {
-                        new Claim(ClaimTypes.NameIdentifier,user.UserID.ToString()),
-                        new Claim(ClaimTypes.Name, user.FullName),
-                        new Claim(ClaimTypes.Email, user.Email),
-                        new Claim(ClaimTypes.Role, user.Role ?? "User")
-                    };
+                        ModelState.AddModelError("Email", "No account found with this email address.");
+                        return View(model);
+                    }
+
+                    // Verify password
+                    if (!VerifyPassword(model.Password, user.PasswordHash))
+                    {
+                        ModelState.AddModelError("Password", "Incorrect password. Please try again.");
+                        return View(model);
+                    }
+
+                    // Create claims
+                    var claims = new List<Claim>
+            {
+                new Claim(ClaimTypes.NameIdentifier, user.UserID.ToString()),
+                new Claim(ClaimTypes.Name, user.FullName),
+                new Claim(ClaimTypes.Email, user.Email),
+                new Claim(ClaimTypes.Role, user.Role ?? "User")
+            };
 
                     var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
                     var principal = new ClaimsPrincipal(identity);
 
-                    // --- FIX START: Handle Remember Me ---
-                    var authProperties = new AuthenticationProperties
-                    {
-                        // This tells the browser: "Save this cookie even after closing"
-                        IsPersistent = model.RememberMe
-                    };
+                    // FIXED: Proper Remember Me handling
+                    var authProperties = new AuthenticationProperties();
 
                     if (model.RememberMe)
                     {
                         // If checked: Keep them logged in for 30 days
+                        authProperties.IsPersistent = true;
                         authProperties.ExpiresUtc = DateTime.UtcNow.AddDays(30);
                     }
-                    // --- FIX END ---
+                    else
+                    {
+                        // If NOT checked: Session cookie (expires when browser closes)
+                        authProperties.IsPersistent = false;
+                    }
 
-                    // 4. Sign In with Properties
+                    // Sign in with correct properties
                     await HttpContext.SignInAsync(
                         CookieAuthenticationDefaults.AuthenticationScheme,
                         principal,
-                        authProperties); // Pass the properties here!
+                        authProperties);
 
-                    // 5. Redirect (FIXED THIS PART)
+                    // Redirect based on role
                     if (user.Role == "Admin" || user.Role == "Staff")
                     {
-                        // Redirects to AdminDashboardController, Action: AdminDashboard
                         return RedirectToAction("AdminDashboard", "AdminDashboard");
                     }
 
                     return RedirectToAction("Profile", "Auth");
                 }
-                ModelState.AddModelError("", "Invalid email or password.");
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Login error for email: {Email}", model.Email);
+                    ModelState.AddModelError("", "An error occurred during login. Please try again.");
+                    return View(model);
+                }
             }
+
             return View(model);
         }
 
@@ -309,30 +341,47 @@ namespace FlyEase.Controllers
                         // Generate random password
                         var newPassword = GenerateRandomPassword();
 
+                        // Log the generated password (for debugging only - remove in production)
+                        _logger.LogInformation($"Generated password for {user.Email}: {newPassword}");
+
                         // Update user password in database
                         user.PasswordHash = HashPassword(newPassword);
                         await _context.SaveChangesAsync();
 
                         // Send email with new password
-                        var emailSent = await _emailService.SendPasswordResetEmailAsync(
-                            user.Email,
-                            user.FullName,
-                            newPassword
-                        );
+                        try
+                        {
+                            var emailSent = await _emailService.SendPasswordResetEmailAsync(
+                                user.Email,
+                                user.FullName,
+                                newPassword
+                            );
 
-                        if (emailSent)
-                        {
-                            TempData["SuccessMessage"] = "A new password has been sent to your email address!";
-                            return RedirectToAction("Login");
+                            if (emailSent)
+                            {
+                                _logger.LogInformation($"Password reset email sent to {user.Email}");
+                                TempData["SuccessMessage"] = "A new password has been sent to your email address!";
+                                return RedirectToAction("Login");
+                            }
+                            else
+                            {
+                                _logger.LogError($"Failed to send email to {user.Email}");
+                                ModelState.AddModelError("", "Failed to send email. Please try again later.");
+                            }
                         }
-                        else
+                        catch (Exception emailEx)
                         {
-                            ModelState.AddModelError("", "Failed to send email. Please try again later.");
+                            _logger.LogError(emailEx, $"Email sending failed for {user.Email}");
+                            ModelState.AddModelError("", "Email service error. Please contact support.");
                         }
                     }
                     else
                     {
-                        // Don't reveal whether user exists (security best practice)
+                        // For security, don't reveal whether user exists
+                        // But log for debugging
+                        _logger.LogInformation($"Forgot password attempt for non-existent email: {model.Email}");
+
+                        // Still show success message (security best practice)
                         TempData["SuccessMessage"] = "If an account exists with that email, a new password has been sent.";
                         return RedirectToAction("Login");
                     }
@@ -383,11 +432,10 @@ namespace FlyEase.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> UpdateProfile(ProfileViewModel model)
         {
-            // --- FIX: Ignore Password errors when updating profile ---
+            // Remove password validation
             ModelState.Remove("CurrentPassword");
             ModelState.Remove("NewPassword");
             ModelState.Remove("ConfirmNewPassword");
-            // Ignore Lists
             ModelState.Remove("MyBookings");
             ModelState.Remove("MyReviews");
             ModelState.Remove("PaymentHistory");
@@ -401,21 +449,21 @@ namespace FlyEase.Controllers
                     user.FullName = model.FullName;
                     user.Address = model.Address;
 
-                    // Re-add +60
                     if (!string.IsNullOrEmpty(model.Phone))
                     {
                         user.Phone = model.Phone.StartsWith("+60") ? model.Phone : "+60" + model.Phone;
                     }
 
                     _context.SaveChanges();
-                    await RefreshSignIn(user, true); // Keep session persistent if it was before
+                    await RefreshSignIn(user, true);
 
-                    TempData["SuccessMessage"] = "Profile updated successfully!";
-                    return RedirectToAction("Profile");
+                    TempData["DetailsSuccessMessage"] = "Profile updated successfully!";
+                    return RedirectToAction("Profile", new { tab = "details" });
                 }
             }
-            TempData["ErrorMessage"] = "Update failed. Please check inputs.";
-            return RedirectToAction("Profile");
+
+            TempData["DetailsErrorMessage"] = "Update failed. Please check inputs.";
+            return RedirectToAction("Profile", new { tab = "details" });
         }
 
         [HttpPost]
@@ -423,47 +471,74 @@ namespace FlyEase.Controllers
         [ValidateAntiForgeryToken]
         public IActionResult ChangePassword(ProfileViewModel model)
         {
-            // --- FIX: Ignore Profile errors when updating password ---
-            ModelState.Remove("FullName");
-            ModelState.Remove("Phone");
-            ModelState.Remove("Address");
-            // Ignore Lists
-            ModelState.Remove("MyBookings");
-            ModelState.Remove("MyReviews");
-            ModelState.Remove("PaymentHistory");
-            ModelState.Remove("FavoritePackages");
-
-            // --- FIX: Check for NULL/Empty Password Fields ---
-            if (string.IsNullOrEmpty(model.CurrentPassword) ||
-                string.IsNullOrEmpty(model.NewPassword) ||
-                string.IsNullOrEmpty(model.ConfirmNewPassword))
+            try
             {
-                TempData["ErrorMessage"] = "All password fields are required.";
-                return RedirectToAction("Profile");
-            }
+                // Remove validation for other fields
+                ModelState.Remove("FullName");
+                ModelState.Remove("Phone");
+                ModelState.Remove("Address");
+                ModelState.Remove("MyBookings");
+                ModelState.Remove("MyReviews");
+                ModelState.Remove("PaymentHistory");
+                ModelState.Remove("FavoritePackages");
 
-            if (ModelState.IsValid)
-            {
-                var user = GetCurrentUser();
-                if (user != null)
+                // Check for empty fields
+                if (string.IsNullOrEmpty(model.CurrentPassword) ||
+                    string.IsNullOrEmpty(model.NewPassword) ||
+                    string.IsNullOrEmpty(model.ConfirmNewPassword))
                 {
-                    // Verify Old Password
-                    if (!VerifyPassword(model.CurrentPassword, user.PasswordHash))
+                    TempData["SecurityErrorMessage"] = "All password fields are required.";
+                    return RedirectToAction("Profile", new { tab = "security" });
+                }
+
+                if (ModelState.IsValid)
+                {
+                    var user = GetCurrentUser();
+                    if (user != null)
                     {
-                        TempData["ErrorMessage"] = "Current password is incorrect.";
-                        return RedirectToAction("Profile");
+                        // Verify Current Password
+                        if (!VerifyPassword(model.CurrentPassword, user.PasswordHash))
+                        {
+                            TempData["SecurityErrorMessage"] = "Current password is incorrect.";
+                            return RedirectToAction("Profile", new { tab = "security" });
+                        }
+
+                        // Check password strength
+                        if (!IsPasswordStrong(model.NewPassword))
+                        {
+                            TempData["SecurityErrorMessage"] = "Password must contain uppercase, lowercase, number, and be at least 6 characters.";
+                            return RedirectToAction("Profile", new { tab = "security" });
+                        }
+
+                        // Update Password
+                        user.PasswordHash = HashPassword(model.NewPassword);
+                        _context.SaveChanges();
+
+                        TempData["SecuritySuccessMessage"] = "Password changed successfully!";
+                        return RedirectToAction("Profile", new { tab = "security" });
                     }
 
-                    // Update Password
-                    user.PasswordHash = HashPassword(model.NewPassword);
-                    _context.SaveChanges();
+                    TempData["SecurityErrorMessage"] = "User not found. Please login again.";
+                    return RedirectToAction("Profile", new { tab = "security" });
+                }
+                else
+                {
+                    // Collect validation errors
+                    var errors = ModelState.Values
+                        .SelectMany(v => v.Errors)
+                        .Select(e => e.ErrorMessage)
+                        .ToList();
 
-                    TempData["SuccessMessage"] = "Password changed successfully!";
-                    return RedirectToAction("Profile");
+                    TempData["SecurityErrorMessage"] = string.Join(" ", errors);
+                    return RedirectToAction("Profile", new { tab = "security" });
                 }
             }
-            TempData["ErrorMessage"] = "Password check failed.";
-            return RedirectToAction("Profile");
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error changing password");
+                TempData["SecurityErrorMessage"] = "An error occurred. Please try again.";
+                return RedirectToAction("Profile", new { tab = "security" });
+            }
         }
 
         private async Task RefreshSignIn(User user)
@@ -530,6 +605,35 @@ namespace FlyEase.Controllers
         private bool VerifyPassword(string password, string storedHash)
         {
             return HashPassword(password) == storedHash;
+        }
+
+        // Add to AuthController.cs
+        [AcceptVerbs("GET", "POST")]
+        public IActionResult VerifyEmail(string email)
+        {
+            var existingUser = _context.Users.FirstOrDefault(u => u.Email == email);
+
+            if (existingUser != null)
+            {
+                return Json($"Email {email} is already registered.");
+            }
+
+            return Json(true);
+        }
+
+        [AcceptVerbs("GET", "POST")]
+        public IActionResult VerifyPhone(string phone)
+        {
+            // Format phone with +60
+            string formattedPhone = "+60" + phone;
+            var existingUser = _context.Users.FirstOrDefault(u => u.Phone == formattedPhone);
+
+            if (existingUser != null)
+            {
+                return Json($"Phone number {phone} is already registered.");
+            }
+
+            return Json(true);
         }
     }
 }

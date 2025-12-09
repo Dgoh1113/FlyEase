@@ -65,3 +65,303 @@
 .fa-user-circle {
     color: rgba(255, 255, 255, 0.8);
 }
+
+/* =========================================
+   PROFILE PAGE STYLES - UPDATED
+   ========================================= */
+
+/* Main container fix */
+.profile-container {
+    margin-top: 100px;
+    min-height: calc(100vh - 100px);
+    padding-bottom: 50px;
+    animation: fadeIn 0.5s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+/* Sidebar improvements */
+.avatar-circle {
+    width: 80px;
+    height: 80px;
+    background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.1) 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 3px solid rgba(255,255,255,0.3);
+    margin: 0 auto;
+}
+
+.sidebar-header {
+    background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-hover) 100%);
+    padding: 2rem 1.5rem !important;
+    border-radius: 15px 15px 0 0;
+}
+
+/* Tab navigation */
+.tab-nav-item {
+    padding: 12px 15px;
+    border-left: 3px solid transparent;
+    border-radius: 8px;
+    margin-bottom: 5px;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    color: var(--text-main);
+    background: transparent;
+}
+
+    .tab-nav-item:hover {
+        background-color: var(--bg-input);
+        border-left: 3px solid var(--accent-primary);
+        transform: translateX(5px);
+    }
+
+    .tab-nav-item.active {
+        background-color: var(--bg-input);
+        border-left: 3px solid var(--accent-primary);
+        font-weight: 600;
+        color: var(--accent-primary);
+    }
+
+/* Badge styles */
+.badge {
+    padding: 6px 12px;
+    font-weight: 500;
+    border-radius: 20px;
+}
+
+/* Table improvements */
+.table th {
+    font-weight: 600;
+    color: var(--text-main);
+    border-bottom: 2px solid var(--border-color);
+}
+
+.table td {
+    vertical-align: middle;
+    padding: 1rem 0.75rem;
+}
+
+/* Card improvements */
+.dashboard-content {
+    background: var(--bg-card);
+    border-radius: 20px;
+    padding: 2rem;
+    box-shadow: var(--shadow-soft);
+    min-height: 500px;
+}
+
+/* Form improvements in profile */
+.form-floating label {
+    color: var(--text-muted);
+}
+
+.form-control:focus ~ label {
+    color: var(--accent-primary);
+}
+
+/* Button styles */
+.btn-outline-primary {
+    border-color: var(--accent-primary);
+    color: var(--accent-primary);
+}
+
+    .btn-outline-primary:hover {
+        background-color: var(--accent-primary);
+        color: white;
+    }
+
+/* Animation for tab switching */
+.tab-pane {
+    animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .profile-container {
+        margin-top: 80px;
+        padding-top: 20px;
+    }
+
+    .dashboard-content {
+        padding: 1rem;
+    }
+
+    .sidebar-header {
+        padding: 1.5rem !important;
+    }
+}
+
+/* Dark mode adjustments */
+[data-bs-theme="dark"] .table-light {
+    background-color: rgba(255,255,255,0.05);
+    border-color: rgba(255,255,255,0.1);
+}
+
+[data-bs-theme="dark"] .table-hover tbody tr:hover {
+    background-color: rgba(255,255,255,0.05);
+}
+
+[data-bs-theme="dark"] .btn-outline-secondary {
+    border-color: rgba(255,255,255,0.2);
+    color: rgba(255,255,255,0.8);
+}
+
+/* =========================================
+   PASSWORD TOGGLE ICON FIXES
+   ========================================= */
+
+/* Fix password toggle button positioning */
+.form-floating.position-relative {
+    position: relative;
+}
+
+.password-toggle {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 10;
+    background: transparent;
+    border: none;
+    color: var(--text-muted) !important;
+    padding: 8px;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+}
+
+    .password-toggle:hover {
+        color: var(--accent-primary) !important;
+        background: var(--bg-input);
+    }
+
+    .password-toggle:focus {
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(var(--accent-primary-rgb), 0.25);
+    }
+
+/* Add padding to form controls to prevent text overlap */
+.form-floating > .form-control,
+.form-floating > .form-control-plaintext,
+.form-floating > .form-select {
+    padding-right: 50px !important; /* Space for eye icon */
+}
+
+/* Ensure label doesn't overlap with icon */
+.form-floating > label {
+    padding-right: 40px;
+}
+
+/* Password strength meter styles */
+.password-strength {
+    margin-top: 15px;
+}
+
+.strength-bar {
+    height: 8px;
+    background-color: var(--bg-input);
+    border-radius: 4px;
+    overflow: hidden;
+    margin: 8px 0;
+}
+
+.strength-fill {
+    height: 100%;
+    width: 0%;
+    transition: width 0.3s ease, background-color 0.3s ease;
+    border-radius: 4px;
+}
+
+.strength-weak {
+    background-color: #dc3545;
+}
+
+.strength-medium {
+    background-color: #ffc107;
+}
+
+.strength-strong {
+    background-color: #198754;
+}
+
+/* Password match indicator */
+#passwordMatch {
+    margin-top: 10px;
+    font-size: 0.9rem;
+    min-height: 20px;
+}
+
+/* Fix table visibility in dark mode */
+[data-bs-theme="dark"] .table {
+    --bs-table-color: #e0e0e0;
+    --bs-table-bg: transparent;
+    --bs-table-border-color: #444;
+}
+
+    [data-bs-theme="dark"] .table th {
+        background-color: rgba(255, 255, 255, 0.05);
+        color: #e0e0e0;
+        border-bottom-color: #444;
+    }
+
+    [data-bs-theme="dark"] .table td {
+        color: #e0e0e0;
+        border-color: #444;
+    }
+
+[data-bs-theme="dark"] .table-hover tbody tr:hover {
+    background-color: rgba(255, 255, 255, 0.075);
+}
+
+/* Ensure all text in tables is visible */
+.table td,
+.table th {
+    color: inherit !important;
+}
+
+/* Fix badge visibility */
+.badge {
+    color: white !important;
+}
+
+    .badge.bg-warning.text-dark {
+        color: #000 !important;
+    }
+
+/* Tab switching fixes */
+.tab-pane {
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+    .tab-pane.active {
+        opacity: 1;
+        transform: translateY(0);
+    }
