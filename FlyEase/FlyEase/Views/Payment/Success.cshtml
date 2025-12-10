@@ -64,6 +64,11 @@
                 <a asp-controller="Auth" asp-action="Profile" class="btn btn-outline-secondary px-4 py-2 fw-bold">
                     <i class="fas fa-user me-2"></i>View My Bookings
                 </a>
+                <!-- NEW: View Receipt Button -->
+                <a asp-controller="Payment" asp-action="Receipt" asp-route-bookingId="@Model.BookingID"
+                   class="btn btn-success px-4 py-2 fw-bold">
+                    <i class="fas fa-receipt me-2"></i>View Receipt
+                </a>
             </div>
 
         </div>

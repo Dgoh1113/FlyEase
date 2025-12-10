@@ -6,111 +6,455 @@
 
 @section Head {
     <link rel="stylesheet" href="~/css/booking.css" />
+    <style>
+        .payment-method-card {
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+            border-radius: 15px;
+            overflow: hidden;
+            height: 100%;
+        }
+        
+        .payment-method-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1) !important;
+        }
+        
+        .btn-check:checked + .payment-method-card {
+            border-color: #0d6efd;
+            background: linear-gradient(135deg, rgba(13, 110, 253, 0.05) 0%, rgba(13, 110, 253, 0.02) 100%);
+            box-shadow: 0 5px 15px rgba(13, 110, 253, 0.15) !important;
+        }
+        
+        .method-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
+            font-size: 24px;
+        }
+        
+        .card-primary {
+            background: linear-gradient(135deg, #4361ee 0%, #3a0ca3 100%);
+            color: white;
+        }
+        
+        .card-success {
+            background: linear-gradient(135deg, #06d6a0 0%, #118ab2 100%);
+            color: white;
+        }
+        
+        .card-warning {
+            background: linear-gradient(135deg, #ff9e00 0%, #ff6b00 100%);
+            color: white;
+        }
+        
+        .card-info {
+            background: linear-gradient(135deg, #4cc9f0 0%, #4361ee 100%);
+            color: white;
+        }
+        
+        .method-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 0.7rem;
+            padding: 3px 8px;
+            border-radius: 20px;
+        }
+        
+        .instant-badge {
+            background: rgba(25, 135, 84, 0.15);
+            color: #198754;
+            border: 1px solid rgba(25, 135, 84, 0.3);
+        }
+        
+        .verified-badge {
+            background: rgba(13, 110, 253, 0.15);
+            color: #0d6efd;
+            border: 1px solid rgba(13, 110, 253, 0.3);
+        }
+        
+        .summary-card {
+            background: linear-gradient(135deg, #f8f9ff 0%, #ffffff 100%);
+            border: 2px solid #e9ecef;
+            border-radius: 15px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .summary-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 5px;
+            height: 100%;
+            background: linear-gradient(to bottom, #4361ee, #3a0ca3);
+        }
+        
+        .booking-header {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            border-radius: 15px 15px 0 0 !important;
+        }
+        
+        .amount-display {
+            font-size: 2.5rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+     
+    </style>
 }
 
 <div class="container mt-4 mb-5">
     <div class="row justify-content-center">
-        <div class="col-lg-8">
+        <div class="col-lg-10">
+            <!-- Progress Bar -->
             <partial name="_BookingProgress" />
 
-            <div class="card shadow-sm dashboard-card">
-                <div class="card-header booking-header text-white">
-                    <h4 class="mb-0"><i class="fas fa-wallet me-2"></i>Select Payment Method</h4>
+            <div class="card shadow-lg border-0 overflow-hidden">
+                <div class="card-header booking-header text-white py-4">
+                    <div class="d-flex align-items-center">
+                        <div class="me-3">
+                            <i class="fas fa-wallet fa-2x"></i>
+                        </div>
+                        <div>
+                            <h4 class="mb-1 fw-bold">Select Payment Method</h4>
+                            <p class="mb-0 opacity-75">Choose your preferred way to pay</p>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="card-body">
-
-                    <div class="card p-3 mb-4 price-summary-custom border">
-                        <h6 class="fw-bold mb-2">Booking Summary</h6>
-                        <p class="mb-1"><strong>Package:</strong> @Model.PackageName</p>
-                        <p class="mb-0">
-                            <strong>Amount to Pay:</strong>
-                            <span class="text-primary fw-bold">RM @Model.FinalAmount.ToString("N2")</span>
-                        </p>
+                <div class="card-body p-4 p-lg-5">
+                    <!-- Booking Summary -->
+                    <div class="summary-card p-4 mb-5">
+                        <div class="row align-items-center">
+                            <div class="col-md-8">
+                                <h5 class="fw-bold text-primary mb-2">Booking Summary</h5>
+                                <h4 class="fw-bold mb-1">@Model.PackageName</h4>
+                                <p class="text-muted mb-0">Complete your booking with secure payment</p>
+                            </div>
+                            <div class="col-md-4 text-md-end">
+                                <p class="text-muted mb-1">Total Amount</p>
+                                <div class="amount-display">RM @Model.FinalAmount.ToString("N2")</div>
+                            </div>
+                        </div>
                     </div>
 
-                    <h5 class="mb-3">Choose payment method:</h5>
-
-                    <form asp-action="PaymentMethod" method="post">
-                        @Html.AntiForgeryToken()
-                        <input type="hidden" asp-for="PackageName" />
-                        <input type="hidden" asp-for="FinalAmount" />
-
+                    <!-- Payment Methods -->
+                    <div class="mb-4">
+                        <h5 class="fw-bold mb-4 text-center">Choose your payment method:</h5>
+                        
                         @if (TempData["Error"] != null)
                         {
-                            <div class="alert alert-danger">@TempData["Error"]</div>
+                            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                <i class="fas fa-exclamation-circle me-2"></i>
+                                @TempData["Error"]
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
                         }
-                        <span asp-validation-for="SelectedMethod" class="text-danger"></span>
+                        
+                        <form asp-action="PaymentMethod" method="post" id="paymentMethodForm">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" asp-for="PackageName" />
+                            <input type="hidden" asp-for="FinalAmount" />
+                            
+                            <span asp-validation-for="SelectedMethod" class="text-danger d-block mb-3"></span>
 
-                        <div class="row g-3">
-                            <div class="col-md-6">
-                                <input type="radio" class="btn-check" asp-for="SelectedMethod" id="method_card" value="Credit Card">
-                                <label class="btn w-100 h-100 text-start p-3 payment-card-custom border rounded" for="method_card">
-                                    <div class="d-flex align-items-center">
-                                        <div class="me-3 text-primary fs-3"><i class="fas fa-credit-card"></i></div>
-                                        <div>
-                                            <h6 class="fw-bold mb-0">Credit/Debit Card</h6>
-                                            <small class="text-muted">Pay with Visa/Mastercard</small>
+                            <div class="row g-4">
+                                <!-- Credit Card -->
+                                <div class="col-lg-6">
+                                    <input type="radio" class="btn-check" asp-for="SelectedMethod" id="method_card" value="Credit Card">
+                                    <label class="btn p-0 w-100" for="method_card">
+                                        <div class="payment-method-card p-4 shadow-sm">
+                                            <div class="d-flex align-items-center">
+                                                <div class="method-icon card-primary">
+                                                    <i class="fas fa-credit-card"></i>
+                                                </div>
+                                                <div class="flex-grow-1">
+                                                    <h6 class="fw-bold mb-1">Credit/Debit Card</h6>
+                                                    <p class="text-muted small mb-0">Visa, Mastercard, AMEX</p>
+                                                </div>
+                                            </div>
+                                            <div class="mt-3">
+                                                <div class="d-flex align-items-center">
+                                                    <div class="me-2">
+                                                        <i class="fas fa-bolt text-success"></i>
+                                                    </div>
+                                                    <small class="text-success fw-bold">Instant Payment</small>
+                                                </div>
+                                                <div class="d-flex align-items-center mt-1">
+                                                    <div class="me-2">
+                                                        <i class="fas fa-shield-alt text-primary"></i>
+                                                    </div>
+                                                    <small class="text-muted">Secure Stripe Integration</small>
+                                                </div>
+                                            </div>
+                                            <span class="method-badge instant-badge">
+                                                <i class="fas fa-check-circle me-1"></i>Auto-Complete
+                                            </span>
                                         </div>
-                                    </div>
-                                </label>
+                                    </label>
+                                </div>
+
+                                <!-- Bank Transfer -->
+                                <div class="col-lg-6">
+                                    <input type="radio" class="btn-check" asp-for="SelectedMethod" id="method_bank" value="Bank Transfer">
+                                    <label class="btn p-0 w-100" for="method_bank">
+                                        <div class="payment-method-card p-4 shadow-sm">
+                                            <div class="d-flex align-items-center">
+                                                <div class="method-icon card-success">
+                                                    <i class="fas fa-university"></i>
+                                                </div>
+                                                <div class="flex-grow-1">
+                                                    <h6 class="fw-bold mb-1">Bank Transfer</h6>
+                                                    <p class="text-muted small mb-0">FPX Online Banking</p>
+                                                </div>
+                                            </div>
+                                            <div class="mt-3">
+                                                <div class="d-flex align-items-center">
+                                                    <div class="me-2">
+                                                        <i class="fas fa-building text-success"></i>
+                                                    </div>
+                                                    <small class="text-muted">All Malaysian Banks</small>
+                                                </div>
+                                                <div class="d-flex align-items-center mt-1">
+                                                    <div class="me-2">
+                                                        <i class="fas fa-check-circle text-success"></i>
+                                                    </div>
+                                                    <small class="text-success fw-bold">Auto-Verification</small>
+                                                </div>
+                                            </div>
+                                            <span class="method-badge verified-badge">
+                                                <i class="fas fa-star me-1"></i>Professional Interface
+                                            </span>
+                                        </div>
+                                    </label>
+                                </div>
+
+                                <!-- Touch 'n Go -->
+                                <div class="col-lg-6">
+                                    <input type="radio" class="btn-check" asp-for="SelectedMethod" id="method_tng" value="TouchNGo">
+                                    <label class="btn p-0 w-100" for="method_tng">
+                                        <div class="payment-method-card p-4 shadow-sm">
+                                            <div class="d-flex align-items-center">
+                                                <div class="method-icon card-warning">
+                                                    <i class="fas fa-wallet"></i>
+                                                </div>
+                                                <div class="flex-grow-1">
+                                                    <h6 class="fw-bold mb-1">Touch 'n Go</h6>
+                                                    <p class="text-muted small mb-0">eWallet Payment</p>
+                                                </div>
+                                            </div>
+                                            <div class="mt-3">
+                                                <div class="d-flex align-items-center">
+                                                    <div class="me-2">
+                                                        <i class="fas fa-bolt text-warning"></i>
+                                                    </div>
+                                                    <small class="text-warning fw-bold">Lightning Fast</small>
+                                                </div>
+                                                <div class="d-flex align-items-center mt-1">
+                                                    <div class="me-2">
+                                                        <i class="fas fa-check-circle text-success"></i>
+                                                    </div>
+                                                    <small class="text-success fw-bold">Instant Auto-Verification</small>
+                                                </div>
+                                            </div>
+                                            <span class="method-badge verified-badge">
+                                                <i class="fas fa-mobile-alt me-1"></i>Mobile-Friendly
+                                            </span>
+                                        </div>
+                                    </label>
+                                </div>
+
+                                <!-- Cash -->
+                                <div class="col-lg-6">
+                                    <input type="radio" class="btn-check" asp-for="SelectedMethod" id="method_cash" value="Cash">
+                                    <label class="btn p-0 w-100" for="method_cash">
+                                        <div class="payment-method-card p-4 shadow-sm">
+                                            <div class="d-flex align-items-center">
+                                                <div class="method-icon card-info">
+                                                    <i class="fas fa-money-bill-wave"></i>
+                                                </div>
+                                                <div class="flex-grow-1">
+                                                    <h6 class="fw-bold mb-1">Cash / Counter</h6>
+                                                    <p class="text-muted small mb-0">Pay at Office</p>
+                                                </div>
+                                            </div>
+                                            <div class="mt-3">
+                                                <div class="d-flex align-items-center">
+                                                    <div class="me-2">
+                                                        <i class="fas fa-store text-info"></i>
+                                                    </div>
+                                                    <small class="text-muted">KL Sentral Office</small>
+                                                </div>
+                                                <div class="d-flex align-items-center mt-1">
+                                                    <div class="me-2">
+                                                        <i class="fas fa-clock text-info"></i>
+                                                    </div>
+                                                    <small class="text-muted">Manual Verification</small>
+                                                </div>
+                                            </div>
+                                            <span class="method-badge">
+                                                <i class="fas fa-user-check me-1"></i>Personal Service
+                                            </span>
+                                        </div>
+                                    </label>
+                                </div>
                             </div>
 
-                            <div class="col-md-6">
-                                <input type="radio" class="btn-check" asp-for="SelectedMethod" id="method_bank" value="Bank Transfer">
-                                <label class="btn w-100 h-100 text-start p-3 payment-card-custom border rounded" for="method_bank">
-                                    <div class="d-flex align-items-center">
-                                        <div class="me-3 text-success fs-3"><i class="fas fa-university"></i></div>
-                                        <div>
-                                            <h6 class="fw-bold mb-0">Bank Transfer</h6>
-                                            <small class="text-muted">FPX Online Banking</small>
-                                        </div>
+                            <!-- Features Comparison -->
+                            <div class="row mt-5 pt-4 border-top">
+                                <div class="col-md-3 text-center mb-3">
+                                    <div class="feature-icon mb-2">
+                                        <i class="fas fa-bolt fa-2x text-success"></i>
                                     </div>
-                                </label>
+                                    <h6 class="fw-bold mb-1">Instant</h6>
+                                    <p class="small text-muted mb-0">Card & TNG</p>
+                                </div>
+                                <div class="col-md-3 text-center mb-3">
+                                    <div class="feature-icon mb-2">
+                                        <i class="fas fa-shield-alt fa-2x text-primary"></i>
+                                    </div>
+                                    <h6 class="fw-bold mb-1">Secure</h6>
+                                    <p class="small text-muted mb-0">All Methods</p>
+                                </div>
+                                <div class="col-md-3 text-center mb-3">
+                                    <div class="feature-icon mb-2">
+                                        <i class="fas fa-check-circle fa-2x text-success"></i>
+                                    </div>
+                                    <h6 class="fw-bold mb-1">Auto-Verified</h6>
+                                    <p class="small text-muted mb-0">Bank & TNG</p>
+                                </div>
+                                <div class="col-md-3 text-center mb-3">
+                                    <div class="feature-icon mb-2">
+                                        <i class="fas fa-headset fa-2x text-info"></i>
+                                    </div>
+                                    <h6 class="fw-bold mb-1">Support</h6>
+                                    <p class="small text-muted mb-0">24/7 Assistance</p>
+                                </div>
                             </div>
 
-                            <div class="col-md-6">
-                                <input type="radio" class="btn-check" asp-for="SelectedMethod" id="method_tng" value="TouchNGo">
-                                <label class="btn w-100 h-100 text-start p-3 payment-card-custom border rounded" for="method_tng">
-                                    <div class="d-flex align-items-center">
-                                        <div class="me-3 text-warning fs-3"><i class="fas fa-wallet"></i></div>
-                                        <div>
-                                            <h6 class="fw-bold mb-0">Touch 'n Go</h6>
-                                            <small class="text-muted">eWallet Payment</small>
-                                        </div>
-                                    </div>
-                                </label>
+                            <!-- Action Buttons -->
+                            <div class="d-flex justify-content-between mt-5 pt-4 border-top">
+                                <a href="@Url.Action("CustomerInfo", "Payment", new { 
+                                    packageId = Context.Session.GetString("OriginalPackageId"),
+                                    people = Context.Session.GetString("OriginalPeople")
+                                })" class="btn btn-outline-secondary btn-lg px-4">
+                                    <i class="fas fa-arrow-left me-2"></i>Back
+                                </a>
+                                <button type="submit" class="btn btn-primary btn-lg px-5" id="continueBtn">
+                                    Continue to Payment <i class="fas fa-arrow-right ms-2"></i>
+                                </button>
                             </div>
+                        </form>
+                    </div>
 
-                            <div class="col-md-6">
-                                <input type="radio" class="btn-check" asp-for="SelectedMethod" id="method_cash" value="Cash">
-                                <label class="btn w-100 h-100 text-start p-3 payment-card-custom border rounded" for="method_cash">
-                                    <div class="d-flex align-items-center">
-                                        <div class="me-3 text-info fs-3"><i class="fas fa-money-bill-wave"></i></div>
-                                        <div>
-                                            <h6 class="fw-bold mb-0">Cash / Counter</h6>
-                                            <small class="text-muted">Pay at office</small>
-                                        </div>
-                                    </div>
-                                </label>
+                    <!-- Security Assurance -->
+                    <div class="alert alert-light border mt-4">
+                        <div class="d-flex align-items-center">
+                            <div class="me-3 text-success">
+                                <i class="fas fa-shield-check fa-2x"></i>
+                            </div>
+                            <div>
+                                <h6 class="fw-bold mb-1">100% Secure Payment</h6>
+                                <p class="mb-0 small">
+                                    All payments are encrypted and secure. Your financial information is never stored on our servers.
+                                    <a href="#" class="text-decoration-none ms-1">Learn more</a>
+                                </p>
                             </div>
                         </div>
-
-                        <div class="d-flex justify-content-between mt-4">
-                            <a href="@Url.Action("CustomerInfo", "Payment", new { 
-                            packageId = Context.Session.GetString("OriginalPackageId"),
-                            people = Context.Session.GetString("OriginalPeople")
-                            })" class="btn btn-outline-secondary">
-                                <i class="fas fa-arrow-left me-1"></i>Back
-                            </a>
-                            <button type="submit" class="btn btn-primary fw-bold px-4">
-                                Continue <i class="fas fa-arrow-right ms-1"></i>
-                            </button>
-                        </div>
-                    </form>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('paymentMethodForm');
+            const continueBtn = document.getElementById('continueBtn');
+            const radioButtons = document.querySelectorAll('input[type="radio"]');
+            
+            // Add visual feedback when selecting payment method
+            radioButtons.forEach(radio => {
+                radio.addEventListener('change', function() {
+                    // Remove all active states first
+                    document.querySelectorAll('.payment-method-card').forEach(card => {
+                        card.classList.remove('active');
+                    });
+                    
+                    // Add active state to selected card
+                    if (this.checked) {
+                        const label = document.querySelector(`label[for="${this.id}"]`);
+                        if (label) {
+                            label.querySelector('.payment-method-card').classList.add('active');
+                        }
+                    }
+                    
+                    // Enable the continue button
+                    continueBtn.disabled = false;
+                });
+            });
+            
+            // Form submission
+            form.addEventListener('submit', function(e) {
+                const selectedMethod = document.querySelector('input[name="SelectedMethod"]:checked');
+                
+                if (!selectedMethod) {
+                    e.preventDefault();
+                    
+                    // Show error
+                    const errorSpan = document.querySelector('[data-valmsg-for="SelectedMethod"]');
+                    if (errorSpan) {
+                        errorSpan.textContent = 'Please select a payment method';
+                        errorSpan.style.display = 'block';
+                    }
+                    
+                    // Add shake animation to cards
+                    document.querySelectorAll('.payment-method-card').forEach(card => {
+                        card.classList.add('animate__animated', 'animate__shakeX');
+                        setTimeout(() => {
+                            card.classList.remove('animate__animated', 'animate__shakeX');
+                        }, 1000);
+                    });
+                    
+                    return false;
+                }
+                
+                // Show loading state
+                continueBtn.disabled = true;
+                continueBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
+                
+                // Add a small delay for better UX
+                setTimeout(() => {
+                    continueBtn.innerHTML = '<i class="fas fa-check me-2"></i>Redirecting...';
+                }, 500);
+            });
+            
+            // Add animation classes
+            document.querySelectorAll('.payment-method-card').forEach((card, index) => {
+                card.classList.add('animate__animated', 'animate__fadeInUp');
+                card.style.animationDelay = `${index * 0.1}s`;
+            });
+            
+            // Feature icons animation
+            document.querySelectorAll('.feature-icon').forEach((icon, index) => {
+                icon.style.animationDelay = `${0.5 + (index * 0.1)}s`;
+                icon.classList.add('animate__animated', 'animate__pulse');
+            });
+        });
+    </script>
+    
+    <!-- Animate.css for animations -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
+</div>

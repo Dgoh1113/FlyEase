@@ -115,11 +115,9 @@ namespace FlyEase.Controllers
         [HttpPost]
         public IActionResult PaymentMethod(PaymentMethodViewModel model)
         {
-            // === FIX 2: Handle Model Binding from View ===
             if (string.IsNullOrEmpty(model.SelectedMethod))
             {
                 TempData["Error"] = "Please select a payment method";
-                // Reload data needed for the view
                 var customerInfo = HttpContext.Session.GetCustomerInfo();
                 if (customerInfo != null)
                 {
@@ -132,9 +130,14 @@ namespace FlyEase.Controllers
             HttpContext.Session.SetPaymentMethod(model.SelectedMethod);
 
             // Redirect based on selection
-            return model.SelectedMethod == "Credit Card"
-                ? RedirectToAction("CardPayment")
-                : RedirectToAction("ManualPayment", new { method = model.SelectedMethod });
+            return model.SelectedMethod switch
+            {
+                "Credit Card" => RedirectToAction("CardPayment"),
+                "Bank Transfer" => RedirectToAction("BankTransfer"),
+                "TouchNGo" => RedirectToAction("TNGPayment"),
+                "Cash" => RedirectToAction("ManualPayment", new { method = "Cash" }),
+                _ => RedirectToAction("ManualPayment", new { method = model.SelectedMethod })
+            };
         }
 
         // =========================================================
@@ -228,14 +231,203 @@ namespace FlyEase.Controllers
             if (string.IsNullOrEmpty(reference))
             {
                 TempData["Error"] = "Please enter reference number";
-                // Need to redirect back to ManualPayment with the stored method
                 var storedMethod = HttpContext.Session.GetPaymentMethod() ?? "Bank Transfer";
                 return RedirectToAction("ManualPayment", new { method = storedMethod });
             }
 
             var method = HttpContext.Session.GetPaymentMethod();
-            return await ProcessBooking(method, reference);
+
+            // Check if it's Cash payment
+            if (method == "Cash")
+            {
+                // Process as unverified cash payment (status remains Pending)
+                return await ProcessBooking(method, reference);
+            }
+            else
+            {
+                // For Bank Transfer/TNG, redirect to proper forms
+                if (method == "Bank Transfer")
+                    return RedirectToAction("BankTransfer");
+                else if (method == "TouchNGo")
+                    return RedirectToAction("TNGPayment");
+                else
+                    return await ProcessBooking(method, reference);
+            }
         }
+
+
+        // =========================================================
+        // NEW ACTIONS FOR BANK TRANSFER
+        // =========================================================
+        [HttpGet]
+        public IActionResult BankTransfer()
+        {
+            var customerInfo = HttpContext.Session.GetCustomerInfo();
+            if (customerInfo == null)
+            {
+                TempData["Error"] = "Session expired";
+                return RedirectToAction("Index", "Home");
+            }
+
+            ViewBag.FinalAmount = customerInfo.FinalAmount;
+            return View(); // This will render BankTransfer.cshtml
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> ProcessBankTransfer(string bankName, string transactionId,
+            DateTime transferDate, string senderName, string notes = "")
+        {
+            // Validate bank transfer
+            if (!IsValidBankTransfer(transactionId))
+            {
+                TempData["Error"] = "Invalid transaction ID format. Must start with BANK or TRF followed by 9-12 digits.";
+                return RedirectToAction("BankTransfer");
+            }
+
+            if (string.IsNullOrEmpty(bankName) || string.IsNullOrEmpty(senderName))
+            {
+                TempData["Error"] = "Please fill all required fields";
+                return RedirectToAction("BankTransfer");
+            }
+
+            // Process as verified bank transfer
+            return await ProcessVerifiedManualPayment("Bank Transfer", transactionId);
+        }
+
+        // =========================================================
+        // NEW ACTIONS FOR TNG PAYMENT
+        // =========================================================
+        [HttpGet]
+        public IActionResult TNGPayment()
+        {
+            var customerInfo = HttpContext.Session.GetCustomerInfo();
+            if (customerInfo == null)
+            {
+                TempData["Error"] = "Session expired";
+                return RedirectToAction("Index", "Home");
+            }
+
+            ViewBag.FinalAmount = customerInfo.FinalAmount;
+            return View(); // This will render TNGPayment.cshtml
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> ProcessTNGPayment(string transactionId, string phoneNumber,
+            DateTime paymentTime, string paymentMethod, string senderTngId = "")
+        {
+            // Validate TNG payment
+            if (!IsValidTNG(transactionId))
+            {
+                TempData["Error"] = "Invalid TNG transaction ID. Format: TNG-ABC123XYZ";
+                return RedirectToAction("TNGPayment");
+            }
+
+            if (string.IsNullOrEmpty(phoneNumber) || string.IsNullOrEmpty(paymentMethod))
+            {
+                TempData["Error"] = "Please fill all required fields";
+                return RedirectToAction("TNGPayment");
+            }
+
+            // Process as verified TNG payment
+            return await ProcessVerifiedManualPayment("TouchNGo", transactionId);
+        }
+
+        // =========================================================
+        // HELPER METHODS FOR VERIFICATION
+        // =========================================================
+        private bool IsValidBankTransfer(string reference)
+        {
+            if (string.IsNullOrEmpty(reference)) return false;
+
+            // Check if reference looks like a bank transaction
+            // Format: BANK123456789 or TRF123456789
+            var pattern = @"^(BANK|TRF|FPX)\d{9,12}$";
+            return System.Text.RegularExpressions.Regex.IsMatch(reference, pattern);
+        }
+
+        private bool IsValidTNG(string reference)
+        {
+            if (string.IsNullOrEmpty(reference)) return false;
+
+            // Check if reference looks like TNG transaction
+            // Format: TNG-ABC123XYZ or TNG123456789
+            var pattern = @"^(TNG-|TNG)\w{9,12}$";
+            return System.Text.RegularExpressions.Regex.IsMatch(reference, pattern);
+        }
+
+        private async Task<IActionResult> ProcessVerifiedManualPayment(string paymentMethod, string transactionId)
+        {
+            var customerInfo = HttpContext.Session.GetCustomerInfo();
+            var userId = HttpContext.Session.GetUserId();
+
+            if (customerInfo == null || userId == 0)
+            {
+                TempData["Error"] = "Session expired";
+                return RedirectToAction("Index", "Home");
+            }
+
+            var package = await _context.Packages.FindAsync(customerInfo.PackageID);
+
+            // Check slots
+            if (package == null || package.AvailableSlots < customerInfo.NumberOfPeople)
+            {
+                TempData["Error"] = "Package not available (Sold Out)";
+                return RedirectToAction("Index", "Home");
+            }
+
+            // Create Booking - STATUS WILL BE "Completed" FOR VERIFIED PAYMENTS
+            var booking = new Booking
+            {
+                UserID = userId,
+                PackageID = customerInfo.PackageID,
+                BookingDate = DateTime.Now,
+                TravelDate = customerInfo.TravelDate,
+                NumberOfPeople = customerInfo.NumberOfPeople,
+                TotalBeforeDiscount = customerInfo.BasePrice,
+                TotalDiscountAmount = customerInfo.DiscountAmount,
+                FinalAmount = customerInfo.FinalAmount,
+                BookingStatus = "Completed" // IMPORTANT: Verified payments are completed immediately
+            };
+
+            _context.Bookings.Add(booking);
+            await _context.SaveChangesAsync();
+
+            // Create Payment Record - STATUS "Completed" for verified payments
+            string paymentMethodText = GetPaymentMethodName(paymentMethod);
+
+            // Add verification info to payment method text
+            if (paymentMethod == "Bank Transfer")
+            {
+                paymentMethodText = $"Bank Transfer (Verified: {transactionId})";
+            }
+            else if (paymentMethod == "TouchNGo")
+            {
+                paymentMethodText = $"Touch 'n Go (Verified: {transactionId})";
+            }
+
+            var payment = new Payment
+            {
+                BookingID = booking.BookingID,
+                PaymentMethod = paymentMethodText,
+                AmountPaid = customerInfo.FinalAmount,
+                IsDeposit = false,
+                PaymentDate = DateTime.Now,
+                PaymentStatus = "Completed" // Verified payments are completed
+            };
+
+            _context.Payments.Add(payment);
+
+            // Reduce slots
+            package.AvailableSlots -= customerInfo.NumberOfPeople;
+
+            await _context.SaveChangesAsync();
+
+            // Clear Session
+            HttpContext.Session.ClearPaymentSession();
+
+            return RedirectToAction("Success", new { bookingId = booking.BookingID });
+        }
+
 
         // =========================================================
         // PROCESS BOOKING (FINAL SAVE)
@@ -288,8 +480,9 @@ namespace FlyEase.Controllers
             }
 
             // Determine Status: Cards are Completed immediately. Manual methods are Pending check.
-            string status = (paymentMethod == "Credit Card" || paymentMethod == "DevBypass") ? "Completed" : "Pending";
-
+            string status = (paymentMethod == "Credit Card" || paymentMethod == "DevBypass")
+                ? "Completed"
+                : "Pending"; // Cash and other unverified methods stay Pending
             var payment = new Payment
             {
                 BookingID = booking.BookingID,
@@ -326,6 +519,44 @@ namespace FlyEase.Controllers
                 .FirstOrDefaultAsync(b => b.BookingID == bookingId);
 
             if (booking == null) return NotFound();
+            return View(booking);
+        }
+
+        // =========================================================
+        // RECEIPT VIEW
+        // =========================================================
+        [HttpGet]
+        public async Task<IActionResult> Receipt(int bookingId, bool print = false)
+        {
+            var booking = await _context.Bookings
+                .Include(b => b.Package)
+                .Include(b => b.User)
+                .Include(b => b.Payments)
+                .FirstOrDefaultAsync(b => b.BookingID == bookingId);
+
+            if (booking == null)
+            {
+                TempData["Error"] = "Booking not found";
+                return RedirectToAction("Index", "Home");
+            }
+
+            // Only check authorization if user is logged in
+            if (User.Identity?.IsAuthenticated == true)
+            {
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (!string.IsNullOrEmpty(userIdClaim) && int.TryParse(userIdClaim, out int userId))
+                {
+                    // Check if logged-in user owns this booking or is admin/staff
+                    if (booking.UserID != userId && !User.IsInRole("Admin") && !User.IsInRole("Staff"))
+                    {
+                        TempData["Error"] = "This receipt belongs to another user";
+                        return RedirectToAction("Index", "Home");
+                    }
+                }
+            }
+            // If not logged in, still allow viewing (from success page link)
+
+            ViewBag.Print = print;
             return View(booking);
         }
 

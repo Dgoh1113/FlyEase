@@ -1,0 +1,443 @@
+﻿@model FlyEase.Data.Booking
+@{
+    ViewData["Title"] = "Payment Receipt";
+    Layout = null; // No layout for printing
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Receipt - @Model.BookingID</title>
+
+    <!-- Bootstrap for styling -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        /* Print-specific styles */
+        @@media print {
+            body {
+                margin: 0;
+                padding: 0;
+            }
+
+            .no-print {
+                display: none !important;
+            }
+
+            .receipt-container {
+                box-shadow: none !important;
+                border: none !important;
+            }
+
+            .print-footer {
+                display: block !important;
+                position: fixed;
+                bottom: 0;
+                width: 100%;
+                text-align: center;
+                font-size: 12px;
+                color: #666;
+            }
+        }
+
+        /* Screen styles */
+        body {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .receipt-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .receipt-header {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            padding: 40px 30px;
+            position: relative;
+            overflow: hidden;
+        }
+
+            .receipt-header::before {
+                content: '';
+                position: absolute;
+                top: -50%;
+                right: -50%;
+                width: 300px;
+                height: 300px;
+                background: rgba(255,255,255,0.1);
+                border-radius: 50%;
+            }
+
+        .receipt-body {
+            padding: 40px 30px;
+        }
+
+        .receipt-logo {
+            font-size: 2.5rem;
+            font-weight: 900;
+            color: white;
+            margin-bottom: 10px;
+        }
+
+        .receipt-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .receipt-id {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            font-weight: 300;
+        }
+
+        .divider {
+            height: 2px;
+            background: linear-gradient(90deg, #1e3c72, transparent);
+            margin: 25px 0;
+        }
+
+        .info-card {
+            background: #f8f9ff;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-left: 4px solid #1e3c72;
+        }
+
+        .info-label {
+            font-weight: 600;
+            color: #1e3c72;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .info-value {
+            font-size: 1.1rem;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .amount-row {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+        }
+
+        .total-amount {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: #1e3c72;
+            text-align: right;
+        }
+
+        .watermark {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            opacity: 0.1;
+            font-size: 8rem;
+            font-weight: 900;
+            color: #1e3c72;
+            transform: rotate(-45deg);
+            pointer-events: none;
+            user-select: none;
+        }
+
+        .status-badge {
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            display: inline-block;
+        }
+
+        .status-completed {
+            background: rgba(25, 135, 84, 0.15);
+            color: #198754;
+            border: 1px solid rgba(25, 135, 84, 0.3);
+        }
+
+        .print-footer {
+            display: none;
+        }
+
+        .stamp {
+            position: absolute;
+            bottom: 30px;
+            right: 30px;
+            width: 150px;
+            height: 150px;
+            border: 3px dashed #1e3c72;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            transform: rotate(15deg);
+            opacity: 0.8;
+        }
+
+        .stamp-text {
+            font-weight: 700;
+            color: #1e3c72;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+        }
+    </style>
+</head>
+<body>
+    <div class="receipt-container">
+        <!-- Watermark -->
+        <div class="watermark">PAID</div>
+
+        <!-- Header -->
+        <div class="receipt-header">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <div class="receipt-logo">
+                        <i class="fas fa-plane me-2"></i>FlyEase Travel
+                    </div>
+                    <h1 class="receipt-title">PAYMENT RECEIPT</h1>
+                    <p class="receipt-id">Receipt #@Model.BookingID</p>
+                </div>
+                <div class="col-md-4 text-md-end">
+                    <div class="status-badge status-completed">
+                        <i class="fas fa-check-circle me-1"></i> @Model.BookingStatus
+                    </div>
+                    <p class="mt-2 mb-0 opacity-75">Issued: @DateTime.Now.ToString("dd MMM yyyy HH:mm")</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Body -->
+        <div class="receipt-body">
+            <!-- Booking Details -->
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="info-card">
+                        <div class="info-label">Booking Information</div>
+                        <div class="info-value">#@Model.BookingID</div>
+                        <small class="text-muted">Booking Date: @Model.BookingDate.ToString("dd MMM yyyy")</small>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="info-card">
+                        <div class="info-label">Travel Information</div>
+                        <div class="info-value">@Model.TravelDate.ToString("dd MMM yyyy")</div>
+                        <small class="text-muted">@Model.NumberOfPeople Person(s)</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Customer & Package -->
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="info-card">
+                        <div class="info-label">Customer</div>
+                        <div class="info-value">@Model.User.FullName</div>
+                        <div class="text-muted small">@Model.User.Email</div>
+                        <div class="text-muted small">@Model.User.Phone</div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="info-card">
+                        <div class="info-label">Package</div>
+                        <div class="info-value">@Model.Package.PackageName</div>
+                        <div class="text-muted small">@Model.Package.Destination</div>
+                        <div class="text-muted small">Duration: @((Model.Package.EndDate - Model.Package.StartDate).Days) days</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <!-- Payment Details -->
+            <div class="mb-4">
+                <h4 class="fw-bold mb-3 text-primary">
+                    <i class="fas fa-file-invoice-dollar me-2"></i>Payment Details
+                </h4>
+
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="info-card">
+                            <div class="info-label">Payment Information</div>
+                            @{
+                                var payment = Model.Payments.FirstOrDefault();
+                                if (payment != null)
+                                {
+                                    <div class="info-value">@payment.PaymentMethod</div>
+                                    <div class="text-muted small">Paid on: @payment.PaymentDate.ToString("dd MMM yyyy HH:mm")</div>
+                                    <div class="text-muted small">Status: <span class="text-success fw-bold">@payment.PaymentStatus</span></div>
+                                }
+                            }
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <!-- Paid Stamp -->
+                        <div class="stamp">
+                            <div class="stamp-text">
+                                <i class="fas fa-check fa-2x mb-2"></i><br>
+                                PAID<br>
+                                <small>@DateTime.Now.ToString("dd/MM/yy")</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <!-- Price Breakdown -->
+            <h4 class="fw-bold mb-3 text-primary">
+                <i class="fas fa-calculator me-2"></i>Price Breakdown
+            </h4>
+
+            <div class="table-responsive mb-4">
+                <table class="table table-bordered">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Description</th>
+                            <th class="text-end">Quantity</th>
+                            <th class="text-end">Unit Price</th>
+                            <th class="text-end">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>@Model.Package.PackageName</td>
+                            <td class="text-end">@Model.NumberOfPeople person(s)</td>
+                            <td class="text-end">RM @((Model.Package.Price).ToString("N2"))</td>
+                            <td class="text-end">RM @Model.TotalBeforeDiscount.ToString("N2")</td>
+                        </tr>
+                        @if (Model.TotalDiscountAmount > 0)
+                        {
+                            <tr class="table-success">
+                                <td colspan="3" class="fw-bold">Discounts Applied</td>
+                                <td class="text-end text-success fw-bold">- RM @Model.TotalDiscountAmount.ToString("N2")</td>
+                            </tr>
+                        }
+                        <tr class="table-active">
+                            <td colspan="3" class="fw-bold">TOTAL AMOUNT</td>
+                            <td class="text-end fw-bold fs-5 text-primary">RM @Model.FinalAmount.ToString("N2")</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Terms & Notes -->
+            <div class="alert alert-light border mt-4">
+                <h6 class="fw-bold mb-2"><i class="fas fa-info-circle me-2"></i>Important Notes</h6>
+                <ul class="mb-0 small">
+                    <li>This receipt serves as confirmation of your payment.</li>
+                    <li>Please bring this receipt (digital or printed) during check-in.</li>
+                    <li>For any inquiries, contact support@flyease.com or call 1300-888-999.</li>
+                    <li>Receipt issued by FlyEase Travel Sdn Bhd (Company No: 1234567-A).</li>
+                </ul>
+            </div>
+
+            <!-- Action Buttons (Hidden when printing) -->
+            <div class="no-print mt-4 pt-3 border-top">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <a href="@Url.Action("Success", "Payment", new { bookingId = Model.BookingID })" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Back to Booking
+                        </a>
+                        <a href="@Url.Action("Profile", "Auth")" class="btn btn-outline-primary ms-2">
+                            <i class="fas fa-user me-2"></i>My Profile
+                        </a>
+                    </div>
+                    <div>
+                        <button onclick="window.print()" class="btn btn-primary me-2">
+                            <i class="fas fa-print me-2"></i>Print Receipt
+                        </button>
+                        <button onclick="downloadAsPDF()" class="btn btn-success">
+                            <i class="fas fa-file-pdf me-2"></i>Download PDF
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="alert alert-info no-print mt-3">
+            <h6><i class="fas fa-info-circle me-2"></i>PDF Download Tips:</h6>
+            <ol class="mb-0 small">
+                <li>Click <strong>Print Receipt</strong> button</li>
+                <li>In print dialog, select <strong>"Save as PDF"</strong> as printer</li>
+                <li>Adjust margins to <strong>"None"</strong> or <strong>"Minimum"</strong></li>
+                <li>Click <strong>Save</strong> to download</li>
+            </ol>
+        </div>
+        <!-- Print Footer -->
+        <div class="print-footer p-3 border-top">
+            <p class="mb-0">
+                Official Receipt from FlyEase Travel • www.flyease.com • +603-1234 5678 •
+                Generated on @DateTime.Now.ToString("dd MMM yyyy HH:mm:ss")
+            </p>
+        </div>
+    </div>
+
+    <!-- JavaScript for PDF generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script>
+                function downloadAsPDF() {
+            // Store original display values
+            const originalDisplay = {};
+            const noPrintElements = document.querySelectorAll('.no-print');
+
+            // Hide non-printable elements
+            noPrintElements.forEach(el => {
+                originalDisplay[el.id || Math.random()] = el.style.display;
+                el.style.display = 'none';
+            });
+
+            // Use browser's print to PDF
+            window.print();
+
+            // Restore display values after a delay
+            setTimeout(() => {
+                noPrintElements.forEach(el => {
+                    const key = el.id || Object.keys(originalDisplay).find(k =>
+                        originalDisplay[k] === el.style.display);
+                    if (key && originalDisplay[key]) {
+                        el.style.display = originalDisplay[key];
+                    }
+                });
+            }, 1000);
+        }
+
+        // Auto-print if requested
+        @if (Context.Request.Query["print"] == "true")
+        {
+                <text>
+                window.onload = function() {
+                    window.print();
+                }
+                </text>
+        }
+
+        // Add animation to stamp
+        document.addEventListener('DOMContentLoaded', function() {
+            const stamp = document.querySelector('.stamp');
+            stamp.style.transform = 'rotate(15deg) scale(0.8)';
+            stamp.style.transition = 'transform 0.5s ease';
+
+            setTimeout(() => {
+                stamp.style.transform = 'rotate(15deg) scale(1)';
+            }, 500);
+        });
+    </script>
+</body>
+</html>
