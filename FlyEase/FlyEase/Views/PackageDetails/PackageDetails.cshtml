@@ -121,9 +121,7 @@
                     <div class="mb-3">
                         <p class="fw-bold">Guests</p>
                         <div class="input-group">
-                            <button type="button" class="btn btn-outline-secondary" onclick="updatePax(-1)">-</button>
-                            <input type="number" name="people" id="paxInput" class="form-control text-center" value="1" min="1" max="10" readonly />
-                            <button type="button" class="btn btn-outline-secondary" onclick="updatePax(1)">+</button>
+                            <input type="number" name="people" id="paxInput" class="form-control text-center" value="1" min="1" max="@Model.AvailableSlots"/>
                         </div>
                     </div>
 
