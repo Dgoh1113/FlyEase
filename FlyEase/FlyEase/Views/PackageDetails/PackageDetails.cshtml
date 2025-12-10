@@ -7,7 +7,7 @@
 @section Head {
     <link rel="stylesheet" href="~/css/booking.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="~/js/booking.js"></script>
+    <script src="~/js/packageDetails.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 }
 
@@ -126,6 +126,7 @@
                     </div>
 
                     <button type="submit" class="btn btn-primary w-100 py-2 fw-bold fs-5 shadow-sm"
+                            onclick="return validateBookNow(event)"
                             @(Model.AvailableSlots == 0 ? "disabled" : "")>
                         <i class="fas fa-calendar-check me-1"></i>
                         @(Model.AvailableSlots > 0 ? "Book Now" : "Sold Out")
