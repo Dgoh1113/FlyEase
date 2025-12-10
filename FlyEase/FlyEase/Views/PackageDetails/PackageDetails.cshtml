@@ -35,7 +35,7 @@
                                 @if (i == 3 && Model.AllImages.Count > 5)
                                 {
                                     <div class="gallery-overlay" onclick="openGalleryModal(0)">
-                                        <button class="btn btn-light btn-sm fw-bold shadow-sm gallery-btn">
+                                        <button class="btn btn-sm fw-bold gallery-btn">
                                             <i class="bi bi-grid-3x3-gap-fill me-2"></i>View Gallery
                                         </button>
                                     </div>
@@ -78,7 +78,7 @@
             </div>
 
             <div class="mt-4 mb-5">
-                <button type="button" class="btn btn-outline-primary w-100 py-3 fw-bold" data-bs-toggle="modal" data-bs-target="#itineraryModal">
+                <button type="button" class="btn btn-primary w-100 py-3 fw-bold" data-bs-toggle="modal" data-bs-target="#itineraryModal">
                     <i class="fas fa-list-ol me-2"></i>See Trip Process (Itinerary)
                 </button>
             </div>
@@ -95,7 +95,7 @@
                     @if (Model.Inclusions.Count > 0)
                     {
                         <div class="mb-4">
-                            <label class="form-label fw-bold small text-uppercase text-muted">Includes</label>
+                            <label class="form-label fw-bold small text-uppercase text-muted">Add-ons</label>
                             <div class="d-flex flex-column gap-2">
                                 @foreach (var item in Model.Inclusions)
                                 {
