@@ -15,13 +15,14 @@ namespace FlyEase.Controllers
         private readonly FlyEaseDbContext _context;
         private readonly IConfiguration _configuration;
 
+        private readonly StripeService _stripeService;
+
         public PaymentController(FlyEaseDbContext context, IConfiguration configuration)
         {
             _context = context;
             _configuration = configuration;
-
-            // SET REAL STRIPE KEY
-            StripeConfiguration.ApiKey = _configuration["Stripe:SecretKey"];
+            // Initialize Stripe Service manually or via DI if you registered it
+            _stripeService = new StripeService(configuration);
         }
 
         // =========================================================
@@ -144,20 +145,35 @@ namespace FlyEase.Controllers
         // STEP 3A: CARD PAYMENT
         // =========================================================
         [HttpGet]
-        public IActionResult CardPayment()
+        public async Task<IActionResult> CardPayment()
         {
             var customerInfo = HttpContext.Session.GetCustomerInfo();
-            if (customerInfo == null)
+            if (customerInfo == null) return RedirectToAction("Index", "Home");
+
+            // Use the current domain for the redirect URLs
+            var domain = $"{Request.Scheme}://{Request.Host}";
+
+            try
             {
-                TempData["Error"] = "Session expired";
-                return RedirectToAction("Index", "Home");
+                // Create the Stripe Checkout Session
+                var session = await _stripeService.CreateCheckoutSessionAsync(
+                    customerInfo.FinalAmount,
+                    "myr",
+                    $"{domain}/Payment/StripeCallback?session_id={{CHECKOUT_SESSION_ID}}", // Success URL
+                    $"{domain}/Payment/PaymentMethod", // Cancel URL
+                    $"BK-{DateTime.Now.Ticks}" // Unique Ref
+                );
+
+                // Redirect user to Stripe's hosted payment page
+                // They will see Card, GrabPay, and FPX options there.
+                return Redirect(session.Url);
             }
-
-            ViewBag.FinalAmount = customerInfo.FinalAmount;
-            ViewBag.StripePublishableKey = _configuration["Stripe:PublishableKey"];
-            return View();
+            catch (Exception ex)
+            {
+                TempData["Error"] = $"Stripe Connection Error: {ex.Message}";
+                return RedirectToAction("PaymentMethod");
+            }
         }
-
         [HttpPost]
         public async Task<IActionResult> CardPayment(string cardNumber, string expiry, string cvv, string cardholder)
         {
@@ -206,6 +222,35 @@ namespace FlyEase.Controllers
                 return RedirectToAction("CardPayment");
             }
         }
+        [HttpGet]
+        public async Task<IActionResult> StripeCallback(string session_id)
+        {
+            var service = new Stripe.Checkout.SessionService();
+            var session = await service.GetAsync(session_id);
+
+            if (session.PaymentStatus == "paid")
+            {
+                // Retrieve booking info from session since we are coming back from external site
+                var customerInfo = HttpContext.Session.GetCustomerInfo();
+
+                // If session expired while paying, you might need to recover data 
+                // or re-fetch based on metadata if you saved a temp booking.
+                // For now, assuming session is still alive:
+
+                if (customerInfo != null)
+                {
+                    // Determine method used (Stripe tells us)
+                    // session.PaymentMethodTypes[0] usually holds the method (card, grabpay, fpx)
+                    string methodUsed = "Stripe Payment"; // Default
+
+                    // Save Booking
+                    return await ProcessBooking(methodUsed, session.PaymentIntentId);
+                }
+            }
+
+            TempData["Error"] = "Payment verification failed or was cancelled.";
+            return RedirectToAction("PaymentMethod");
+        }   
 
         // =========================================================
         // STEP 3B: MANUAL PAYMENT
