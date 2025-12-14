@@ -133,21 +133,32 @@ namespace FlyEase.Controllers
             {
                 try
                 {
+                    // First, check if the email exists
                     var user = _context.Users.FirstOrDefault(u => u.Email == model.Email);
-                    if (user == null || !VerifyPassword(model.Password, user.PasswordHash))
+
+                    if (user == null)
                     {
-                        ModelState.AddModelError("", "Invalid email or password.");
+                        // Account doesn't exist
+                        ModelState.AddModelError("Email", "Account doesn't exist. Please check your email or register.");
+                        return View(model);
+                    }
+
+                    // Account exists, now check password
+                    if (!VerifyPassword(model.Password, user.PasswordHash))
+                    {
+                        // Password doesn't match
+                        ModelState.AddModelError("Password", "Password is incorrect. Please try again.");
                         return View(model);
                     }
 
                     // Create claims
                     var claims = new List<Claim>
-                    {
-                        new Claim(ClaimTypes.NameIdentifier, user.UserID.ToString()),
-                        new Claim(ClaimTypes.Name, user.FullName),
-                        new Claim(ClaimTypes.Email, user.Email),
-                        new Claim(ClaimTypes.Role, user.Role ?? "User")
-                    };
+            {
+                new Claim(ClaimTypes.NameIdentifier, user.UserID.ToString()),
+                new Claim(ClaimTypes.Name, user.FullName),
+                new Claim(ClaimTypes.Email, user.Email),
+                new Claim(ClaimTypes.Role, user.Role ?? "User")
+            };
 
                     var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
                     var principal = new ClaimsPrincipal(identity);
@@ -168,7 +179,7 @@ namespace FlyEase.Controllers
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "Login error");
-                    ModelState.AddModelError("", "An error occurred.");
+                    ModelState.AddModelError("", "An error occurred during login.");
                     return View(model);
                 }
             }

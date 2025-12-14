@@ -293,3 +293,55 @@ window.resetPasswordForm = function () {
         });
     }
 };
+
+// Reset Password Form Function
+window.resetPasswordForm = function () {
+    const form = document.querySelector('#security-tab form');
+    if (form) {
+        form.reset();
+
+        // Reset strength meter
+        const strengthFill = document.getElementById('strengthFill');
+        const strengthText = document.getElementById('strengthText');
+        const passwordMatchDiv = document.getElementById('passwordMatch');
+
+        if (strengthFill) {
+            strengthFill.style.width = '0%';
+            strengthFill.className = 'strength-fill';
+        }
+
+        if (strengthText) {
+            strengthText.textContent = 'None';
+            strengthText.className = 'strength-text fw-bold text-muted';
+        }
+
+        if (passwordMatchDiv) {
+            passwordMatchDiv.innerHTML = `
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-circle text-muted me-2" style="font-size: 0.5rem;"></i>
+                    <small class="text-muted">Passwords will be checked for match</small>
+                </div>`;
+        }
+
+        // Clear validation classes
+        document.querySelectorAll('.is-valid, .is-invalid').forEach(el => {
+            el.classList.remove('is-valid', 'is-invalid');
+        });
+
+        // Reset password toggles
+        document.querySelectorAll('#security-tab .password-toggle i').forEach(icon => {
+            icon.className = 'fas fa-eye';
+        });
+
+        document.querySelectorAll('#security-tab input[type="text"]').forEach(input => {
+            if (input.id.includes('Password')) {
+                input.type = 'password';
+            }
+        });
+
+        // Clear error messages
+        document.querySelectorAll('#security-tab .error-container .text-danger').forEach(el => {
+            el.textContent = '';
+        });
+    }
+};

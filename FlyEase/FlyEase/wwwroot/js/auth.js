@@ -25,17 +25,16 @@
                 e.preventDefault(); // Stop form submission
                 const button = e.currentTarget;
 
-                // --- THE FIX ---
-                // 1. Find the parent container (the div with class "form-floating")
+                // Find the parent container (the div with class "form-floating")
                 const container = button.closest('.form-floating') || button.parentElement;
 
-                // 2. Find the actual input tag inside that container
+                // Find the actual input tag inside that container
                 const input = container.querySelector('input');
                 const icon = button.querySelector('i');
 
                 if (!input) return; // Safety check
 
-                // 3. Toggle the type
+                // Toggle the type
                 if (input.type === 'password') {
                     input.type = 'text'; // Show password
                     icon.classList.remove('fa-eye');
@@ -111,11 +110,8 @@
                 break;
 
             case 'password':
-                if (input.id === 'password') {
-                    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&/])[A-Za-z\d@$!%*?&/]{6,}$/;
-                    isValid = passwordRegex.test(input.value);
-                    if (!isValid) errorMessage = 'Password must have uppercase, lowercase, number, and special character';
-                }
+                // REMOVED: Real-time password complexity validation
+                // Only validate on form submission
                 break;
 
             case 'text':
