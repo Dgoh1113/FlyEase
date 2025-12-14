@@ -107,3 +107,38 @@ canvas {
         font-size: 1.5rem;
     }
 }
+
+@media print {
+    /* 1. Hide Sidebar, Navbar, and Buttons */
+    #sidebar-wrapper,
+    .navbar,
+    .btn,
+    #menu-toggle {
+        display: none !important;
+    }
+
+    /* 2. Reset Layout Constraints */
+    #wrapper {
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+
+    #page-content-wrapper {
+        margin-left: 0 !important;
+        width: 100% !important;
+        padding: 0 !important;
+    }
+
+    /* 3. Ensure Content fits */
+    .container-fluid, #printable-area {
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    /* Optional: Remove shadows/backgrounds to save ink */
+    .card {
+        box-shadow: none !important;
+        border: 1px solid #ddd !important;
+    }
+}
