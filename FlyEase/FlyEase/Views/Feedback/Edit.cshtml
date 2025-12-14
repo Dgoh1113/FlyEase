@@ -6,95 +6,147 @@
 }
 
 <style>
-    /* Reuse your existing Review Styles */
-    .review-container {
-        max-width: 900px;
-        margin: 40px auto;
-        font-family: 'Segoe UI', sans-serif;
+    .emotion-group input[type="radio"] {
+        display: none;
     }
 
-    .review-form-card {
-        background: #fff;
-        padding: 20px;
-        border-radius: 10px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    .emotion-group label {
+        font-size: 2.5rem;
+        cursor: pointer;
+        opacity: 0.5;
+        transition: all 0.2s ease;
+        margin: 0 10px;
+        filter: grayscale(100%);
+        /* Prevent text selection cursor */
+        user-select: none;
+        -webkit-user-select: none;
     }
 
-    /* Star Rating Logic */
-    .star-rating-input {
-        display: flex;
-        flex-direction: row-reverse;
-        justify-content: flex-end;
-        gap: 5px;
-    }
-
-        .star-rating-input input {
-            display: none;
+        .emotion-group label:hover {
+            opacity: 1;
+            transform: scale(1.2);
         }
 
-        .star-rating-input label {
-            font-size: 2rem;
-            color: #ddd;
-            cursor: pointer;
-            transition: color 0.2s;
-        }
-
-            .star-rating-input input:checked ~ label,
-            .star-rating-input label:hover,
-            .star-rating-input label:hover ~ label {
-                color: #ffc107;
-            }
-
-    .form-control-custom {
-        width: 100%;
-        padding: 12px;
-        border: 1px solid #ddd;
-        border-radius: 10px;
-    }
-
-    .btn-update {
-        background-color: #0066a1;
-        color: white;
-        padding: 10px 30px;
-        border-radius: 30px;
-        border: none;
-        font-weight: bold;
+    .emotion-group input[type="radio"]:checked + label {
+        opacity: 1;
+        filter: grayscale(0%);
+        transform: scale(1.3);
     }
 </style>
 
-<div class="container">
-    <div class="review-container">
+<div class="container-fluid min-vh-100 d-flex justify-content-center align-items-center" style="background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);">
+    <div class="container py-5">
+        <div class="row justify-content-center">
+            <div class="col-lg-6 col-md-8">
+                <div class="card border-0 shadow-lg overflow-hidden" style="border-radius: 20px;">
 
-        <div style="background: #e3f2fd; padding: 15px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid #0066a1;">
-            <h5 class="fw-bold mb-1">Editing Review for: @Model.Booking.Package.PackageName</h5>
-            <p class="text-muted mb-0">Original Date: @Model.CreatedDate.ToString("dd MMM yyyy")</p>
-        </div>
+                    <div class="card-header border-0 p-5 text-center text-white" style="background: linear-gradient(135deg, #0066a1 0%, #00a3e0 100%);">
+                        <div class="bg-white text-primary rounded-circle d-inline-flex justify-content-center align-items-center mb-3 shadow-sm" style="width: 80px; height: 80px; font-size: 2.5rem;">
+                            <i class="fas fa-edit"></i>
+                        </div>
+                        <h2 class="fw-bold mb-1">Edit Your Review</h2>
+                        <p class="mb-0 opacity-75">Update your experience for @Model.Booking.Package.PackageName</p>
+                    </div>
 
-        <div class="review-form-card">
-            <form asp-action="Edit" method="post">
-                <input type="hidden" name="bookingId" value="@Model.BookingID" />
+                    <div class="card-body p-5 bg-white">
+                        <form asp-action="Edit" method="post">
+                            <input type="hidden" name="bookingId" value="@Model.BookingID" />
+                            @Html.AntiForgeryToken()
 
-                <div class="mb-4">
-                    <label class="form-label fw-bold">Update Rating</label>
-                    <div class="star-rating-input">
-                        <input type="radio" id="star5" name="rating" value="5" @(Model.Rating == 5 ? "checked" : "")><label for="star5">★</label>
-                        <input type="radio" id="star4" name="rating" value="4" @(Model.Rating == 4 ? "checked" : "")><label for="star4">★</label>
-                        <input type="radio" id="star3" name="rating" value="3" @(Model.Rating == 3 ? "checked" : "")><label for="star3">★</label>
-                        <input type="radio" id="star2" name="rating" value="2" @(Model.Rating == 2 ? "checked" : "")><label for="star2">★</label>
-                        <input type="radio" id="star1" name="rating" value="1" @(Model.Rating == 1 ? "checked" : "")><label for="star1">★</label>
+                            <div class="mb-4 text-center">
+                                <label class="form-label fw-bold text-dark mb-2">Rate your experience</label>
+                                <div class="rating-group d-flex justify-content-center gap-3" style="font-size: 2rem; cursor: pointer;">
+                                    <input type="hidden" id="ratingInput" name="rating" value="@Model.Rating" />
+
+                                    @for (int i = 1; i <= 5; i++)
+                                    {
+                                        var starClass = i <= Model.Rating ? "fas text-warning" : "far text-muted";
+                                        <i class="@starClass fa-star star-icon" data-value="@i" onclick="setRating(@i)"></i>
+                                    }
+                                </div>
+                                <div class="form-text mt-2" id="ratingText">Updated Rating</div>
+                            </div>
+
+                            <div class="mb-4 text-center">
+                                <label class="form-label d-block fw-bold">How did this trip make you feel?</label>
+                                <div class="emotion-group d-flex justify-content-center mt-2">
+
+                                    <input type="radio" id="emo1" name="emotion" value="Sad" @(Model.Emotion == "Sad" ? "checked" : "") required>
+                                    <label for="emo1" title="Disappointed">😞</label>
+
+                                    <input type="radio" id="emo2" name="emotion" value="Neutral" @(Model.Emotion == "Neutral" ? "checked" : "")>
+                                    <label for="emo2" title="It was okay">😐</label>
+
+                                    <input type="radio" id="emo3" name="emotion" value="Happy" @(Model.Emotion == "Happy" ? "checked" : "")>
+                                    <label for="emo3" title="Happy">🙂</label>
+
+                                    <input type="radio" id="emo4" name="emotion" value="Excited" @(Model.Emotion == "Excited" ? "checked" : "")>
+                                    <label for="emo4" title="Excited">🤩</label>
+
+                                    <input type="radio" id="emo5" name="emotion" value="Loved" @(Model.Emotion == "Loved" ? "checked" : "")>
+                                    <label for="emo5" title="Loved it!">😍</label>
+                                </div>
+                            </div>
+
+                            <div class="mb-4">
+                                <label for="comment" class="form-label fw-bold text-dark">Your Feedback</label>
+                                <textarea name="comment" id="comment" rows="4" class="form-control bg-light border-0"
+                                          style="border-radius: 15px; padding: 15px;">@Model.Comment</textarea>
+                            </div>
+
+                            <div class="d-grid gap-2">
+                                <button type="submit" class="btn btn-primary btn-lg rounded-pill fw-bold shadow-sm">
+                                    Update Review <i class="fas fa-sync-alt ms-2"></i>
+                                </button>
+                                <a asp-controller="Auth" asp-action="Profile" class="btn btn-link text-muted text-decoration-none">
+                                    Cancel
+                                </a>
+                            </div>
+                        </form>
                     </div>
                 </div>
-
-                <div class="mb-4">
-                    <label class="form-label fw-bold">Update Comment</label>
-                    <textarea name="comment" class="form-control-custom" rows="4" required>@Model.Comment</textarea>
-                </div>
-
-                <div class="d-flex gap-2">
-                    <button type="submit" class="btn-update">Update Review</button>
-                    <a asp-controller="Auth" asp-action="Profile" class="btn btn-outline-secondary" style="border-radius: 30px; padding: 10px 30px;">Cancel</a>
-                </div>
-            </form>
+            </div>
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        const stars = document.querySelectorAll('.star-icon');
+        const ratingInput = document.getElementById('ratingInput');
+        const ratingText = document.getElementById('ratingText');
+        const messages = ["Terrible", "Bad", "Okay", "Good", "Excellent!"];
+
+        function setRating(value) {
+            ratingInput.value = value;
+            ratingText.innerText = messages[value - 1];
+
+            stars.forEach(star => {
+                const starValue = parseInt(star.getAttribute('data-value'));
+                if (starValue <= value) {
+                    star.classList.remove('far', 'text-muted');
+                    star.classList.add('fas', 'text-warning');
+                } else {
+                    star.classList.remove('fas', 'text-warning');
+                    star.classList.add('far', 'text-muted');
+                }
+            });
+        }
+
+        // Add hover effect logic here same as Create page if needed
+        stars.forEach(star => {
+            star.addEventListener('mouseover', function() {
+                const hoverValue = this.getAttribute('data-value');
+                stars.forEach(s => {
+                    if (s.getAttribute('data-value') <= hoverValue) {
+                        s.style.transform = "scale(1.2)";
+                        s.style.transition = "transform 0.2s";
+                    }
+                });
+            });
+            star.addEventListener('mouseout', function() {
+                stars.forEach(s => { s.style.transform = "scale(1)"; });
+            });
+        });
+    </script>
+}

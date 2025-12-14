@@ -5,7 +5,7 @@
     Layout = "~/Views/Shared/_Layout.cshtml";
 
     // Retrieve data calculated in Controller
-    var avgRating = (double)ViewBag.AvgGivenRating;
+    var avgRating = ViewBag.AvgGivenRating != null ? (double)ViewBag.AvgGivenRating : 0.0;
     var persona = ViewBag.Persona as string;
     var icon = ViewBag.PersonaIcon as string;
 }
@@ -17,63 +17,80 @@
         <p class="text-muted">We analyzed your reviews to discover what kind of traveler you are.</p>
     </div>
 
-    <div class="card border-0 shadow-lg mb-5 overflow-hidden" style="border-radius: 20px; background: linear-gradient(135deg, #0066a1 0%, #00a3e0 100%);">
-        <div class="card-body p-5 text-white text-center">
-            <div class="bg-white text-primary rounded-circle d-inline-flex justify-content-center align-items-center mb-3 shadow" style="width: 100px; height: 100px; font-size: 3rem;">
-                <i class="fas @icon"></i>
+    @if (Model.Any())
+    {
+        <div class="card border-0 shadow-lg mb-5 overflow-hidden" style="border-radius: 20px; background: linear-gradient(135deg, #0066a1 0%, #00a3e0 100%);">
+            <div class="card-body p-5 text-white text-center">
+                <div class="bg-white text-primary rounded-circle d-inline-flex justify-content-center align-items-center mb-3 shadow" style="width: 100px; height: 100px; font-size: 3rem;">
+                    <i class="fas @icon"></i>
+                </div>
+                <h2 class="display-4 fw-bold">@persona</h2>
+                <p class="lead opacity-75">@ViewBag.PersonaDesc</p>
             </div>
-            <h2 class="display-4 fw-bold">@persona</h2>
-            <p class="lead opacity-75">@ViewBag.PersonaDesc</p>
         </div>
-    </div>
 
-    <div class="row g-4 mb-5">
-        <div class="col-md-4">
-            <div class="card border-0 shadow-sm h-100 py-4" style="border-radius: 16px;">
-                <div class="card-body text-center">
-                    <h5 class="text-muted text-uppercase small fw-bold mb-3">Trips Reviewed</h5>
-                    <h1 class="fw-bold text-dark display-5">@ViewBag.TotalReviews</h1>
-                    <i class="fas fa-plane-departure text-muted opacity-25" style="font-size: 2rem;"></i>
+        <div class="row g-4 mb-5">
+            <div class="col-md-4">
+                <div class="card border-0 shadow-sm h-100 py-4" style="border-radius: 16px;">
+                    <div class="card-body text-center">
+                        <h5 class="text-muted text-uppercase small fw-bold mb-3">Trips Reviewed</h5>
+                        <h1 class="fw-bold text-dark display-5">@ViewBag.TotalReviews</h1>
+                        <i class="fas fa-plane-departure text-muted opacity-25" style="font-size: 2rem;"></i>
+                    </div>
                 </div>
             </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card border-0 shadow-sm h-100 py-4" style="border-radius: 16px;">
-                <div class="card-body text-center">
-                    <h5 class="text-muted text-uppercase small fw-bold mb-3">Avg Rating Given</h5>
-                    <h1 class="fw-bold text-warning display-5">@avgRating.ToString("0.0")</h1>
-                    <div class="text-warning small">
-                        @for (int i = 1; i <= 5; i++)
-                        {
-                            <i class="@(i <= Math.Round(avgRating) ? "fas" : "far") fa-star"></i>
-                        }
+            <div class="col-md-4">
+                <div class="card border-0 shadow-sm h-100 py-4" style="border-radius: 16px;">
+                    <div class="card-body text-center">
+                        <h5 class="text-muted text-uppercase small fw-bold mb-3">Avg Rating Given</h5>
+                        <h1 class="fw-bold text-warning display-5">@avgRating.ToString("0.0")</h1>
+                        <div class="text-warning small">
+                            @for (int i = 1; i <= 5; i++)
+                            {
+                                <i class="@(i <= Math.Round(avgRating) ? "fas" : "far") fa-star"></i>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card border-0 shadow-sm h-100 py-4" style="border-radius: 16px;">
+                    <div class="card-body text-center">
+                        <h5 class="text-muted text-uppercase small fw-bold mb-3">Words Written</h5>
+                        <h1 class="fw-bold text-info display-5">@ViewBag.TotalWords</h1>
+                        <p class="text-muted small mb-0">You love to share details!</p>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="col-md-4">
-            <div class="card border-0 shadow-sm h-100 py-4" style="border-radius: 16px;">
-                <div class="card-body text-center">
-                    <h5 class="text-muted text-uppercase small fw-bold mb-3">Words Written</h5>
-                    <h1 class="fw-bold text-info display-5">@ViewBag.TotalWords</h1>
-                    <p class="text-muted small mb-0">You love to share details!</p>
-                </div>
-            </div>
-        </div>
-    </div>
 
-    <h4 class="fw-bold mb-4">Your Review History</h4>
-    <div class="list-group shadow-sm" style="border-radius: 16px; overflow: hidden;">
-        @foreach (var item in Model)
-        {
-            <div class="list-group-item border-0 p-4 border-bottom">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <h5 class="fw-bold mb-0 text-primary">@item.Booking.Package.PackageName</h5>
-                    <span class="badge bg-light text-dark border">@item.Rating <i class="fas fa-star text-warning"></i></span>
+        <h4 class="fw-bold mb-4">Your Review History</h4>
+        <div class="list-group shadow-sm" style="border-radius: 16px; overflow: hidden;">
+            @foreach (var item in Model)
+            {
+                <div class="list-group-item border-0 p-4 border-bottom">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h5 class="fw-bold mb-0 text-primary">@item.Booking.Package.PackageName</h5>
+                        <span class="badge bg-light text-dark border">@item.Rating <i class="fas fa-star text-warning"></i></span>
+                    </div>
+                    <p class="text-secondary mb-1">"@item.Comment"</p>
+                    <small class="text-muted">Posted on @item.CreatedDate.ToString("dd MMM yyyy")</small>
                 </div>
-                <p class="text-secondary mb-1">"@item.Comment"</p>
-                <small class="text-muted">Posted on @item.CreatedDate.ToString("dd MMM yyyy")</small>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="text-center py-5">
+            <div class="mb-3 text-muted" style="opacity: 0.3;">
+                <i class="fas fa-suitcase-rolling fa-4x"></i>
             </div>
-        }
-    </div>
+            <h3 class="fw-bold text-dark">No Reviews Yet</h3>
+            <p class="text-muted mb-4">Book a trip and leave a review to unlock your personalized travel insights!</p>
+            <a asp-controller="Home" asp-action="Packages" class="btn btn-primary rounded-pill px-4">
+                Explore Packages
+            </a>
+        </div>
+    }
+
 </div>

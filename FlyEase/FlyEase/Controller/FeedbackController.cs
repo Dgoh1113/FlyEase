@@ -50,7 +50,8 @@ namespace FlyEase.Controllers
         // [POST] Create Review
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(int bookingId, int rating, string comment)
+        // 1. Updated to accept 'emotion'
+        public async Task<IActionResult> Create(int bookingId, int rating, string comment, string emotion)
         {
             if (rating < 1 || rating > 5)
             {
@@ -60,12 +61,13 @@ namespace FlyEase.Controllers
 
             var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
 
-            // 1. Save Feedback
+            // 2. Save Feedback (including Emotion)
             var feedback = new Feedback
             {
                 BookingID = bookingId,
                 UserID = userId,
                 Rating = rating,
+                Emotion = emotion, // <--- Added here
                 Comment = comment,
                 CreatedDate = DateTime.Now
             };
@@ -73,13 +75,14 @@ namespace FlyEase.Controllers
             _context.Feedbacks.Add(feedback);
             await _context.SaveChangesAsync();
 
-            // 2. Send "Thank You" Email
+            // 3. Send "Thank You" Email (Preserved Logic)
             try
             {
                 var booking = await _context.Bookings
                     .Include(b => b.User)
                     .Include(b => b.Package)
                     .FirstOrDefaultAsync(b => b.BookingID == bookingId);
+                // ... inside [HttpPost] Create method ...
 
                 if (booking != null)
                 {
@@ -89,7 +92,8 @@ namespace FlyEase.Controllers
                         booking.User.FullName,
                         booking.Package.PackageName,
                         rating,
-                        comment
+                        comment,
+                        emotion // <--- Add this argument
                     );
                 }
             }
@@ -129,7 +133,8 @@ namespace FlyEase.Controllers
         // ==========================================
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int bookingId, int rating, string comment)
+        // 1. Add 'string emotion' to the parameters
+        public async Task<IActionResult> Edit(int bookingId, int rating, string comment, string emotion)
         {
             var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
 
@@ -140,6 +145,7 @@ namespace FlyEase.Controllers
 
             feedback.Rating = rating;
             feedback.Comment = comment;
+            feedback.Emotion = emotion; // <--- 2. Update Emotion
             feedback.CreatedDate = DateTime.Now;
 
             _context.Feedbacks.Update(feedback);
@@ -166,63 +172,71 @@ namespace FlyEase.Controllers
                 .OrderByDescending(f => f.CreatedDate)
                 .ToListAsync();
 
-            if (!myReviews.Any())
+            // 2. CHECK IF REVIEWS EXIST
+            if (myReviews.Any())
             {
-                TempData["InfoMessage"] = "You need to write some reviews to unlock your Travel Insights!";
-                return RedirectToAction("Profile", "Auth");
-            }
+                // LOGIC: Calculate Statistics
+                var totalReviews = myReviews.Count;
+                var avgGivenRating = myReviews.Average(r => r.Rating);
+                var totalWords = myReviews.Sum(r => r.Comment?.Split(' ').Length ?? 0);
 
-            // 2. LOGIC: Calculate Statistics
-            var totalReviews = myReviews.Count;
-            var avgGivenRating = myReviews.Average(r => r.Rating);
-            var totalWords = myReviews.Sum(r => r.Comment?.Split(' ').Length ?? 0);
+                // LOGIC: Determine "Travel Persona" based on Keywords & Ratings
+                string persona = "The Explorer"; // Default
+                string personaIcon = "fa-hiking";
+                string personaDesc = "You love seeing new places and having new experiences.";
 
-            // 3. LOGIC: Determine "Travel Persona" based on Keywords & Ratings
-            string persona = "The Explorer"; // Default
-            string personaIcon = "fa-hiking";
-            string personaDesc = "You love seeing new places and having new experiences.";
+                // Join all comments to analyze keywords
+                var allText = string.Join(" ", myReviews.Select(r => r.Comment?.ToLower() ?? ""));
 
-            // Join all comments to analyze keywords
-            var allText = string.Join(" ", myReviews.Select(r => r.Comment?.ToLower() ?? ""));
+                if (allText.Contains("food") || allText.Contains("meal") || allText.Contains("delicious"))
+                {
+                    persona = "The Foodie";
+                    personaIcon = "fa-utensils";
+                    personaDesc = "Your trips are defined by the delicious flavors you discover.";
+                }
+                else if (allText.Contains("cheap") || allText.Contains("price") || allText.Contains("value"))
+                {
+                    persona = "The Smart Saver";
+                    personaIcon = "fa-piggy-bank";
+                    personaDesc = "You know how to find the best deals and get the most value.";
+                }
+                else if (allText.Contains("service") || allText.Contains("staff") || allText.Contains("friendly"))
+                {
+                    persona = "The People Person";
+                    personaIcon = "fa-users";
+                    personaDesc = "For you, good service and friendly faces make the trip.";
+                }
+                else if (avgGivenRating >= 4.5)
+                {
+                    persona = "The Happy Traveler";
+                    personaIcon = "fa-smile-beam";
+                    personaDesc = "You tend to see the positive side of every journey!";
+                }
+                else if (avgGivenRating <= 2.5)
+                {
+                    persona = "The Critical Critic";
+                    personaIcon = "fa-gavel";
+                    personaDesc = "You have high standards and expect the best quality.";
+                }
 
-            if (allText.Contains("food") || allText.Contains("meal") || allText.Contains("delicious"))
-            {
-                persona = "The Foodie";
-                personaIcon = "fa-utensils";
-                personaDesc = "Your trips are defined by the delicious flavors you discover.";
+                // Pass Data to View
+                ViewBag.TotalReviews = totalReviews;
+                ViewBag.AvgGivenRating = avgGivenRating;
+                ViewBag.TotalWords = totalWords;
+                ViewBag.Persona = persona;
+                ViewBag.PersonaIcon = personaIcon;
+                ViewBag.PersonaDesc = personaDesc;
             }
-            else if (allText.Contains("cheap") || allText.Contains("price") || allText.Contains("value"))
+            else
             {
-                persona = "The Smart Saver";
-                personaIcon = "fa-piggy-bank";
-                personaDesc = "You know how to find the best deals and get the most value.";
+                // DEFAULT DATA FOR NO REVIEWS
+                ViewBag.TotalReviews = 0;
+                ViewBag.AvgGivenRating = 0.0;
+                ViewBag.TotalWords = 0;
+                ViewBag.Persona = "The Aspiring Traveler";
+                ViewBag.PersonaIcon = "fa-map-marked-alt";
+                ViewBag.PersonaDesc = "Your journey is just beginning. Book a trip to see your travel persona!";
             }
-            else if (allText.Contains("service") || allText.Contains("staff") || allText.Contains("friendly"))
-            {
-                persona = "The People Person";
-                personaIcon = "fa-users";
-                personaDesc = "For you, good service and friendly faces make the trip.";
-            }
-            else if (avgGivenRating >= 4.5)
-            {
-                persona = "The Happy Traveler";
-                personaIcon = "fa-smile-beam";
-                personaDesc = "You tend to see the positive side of every journey!";
-            }
-            else if (avgGivenRating <= 2.5)
-            {
-                persona = "The Critical Critic";
-                personaIcon = "fa-gavel";
-                personaDesc = "You have high standards and expect the best quality.";
-            }
-
-            // 4. Pass Data to View
-            ViewBag.TotalReviews = totalReviews;
-            ViewBag.AvgGivenRating = avgGivenRating;
-            ViewBag.TotalWords = totalWords;
-            ViewBag.Persona = persona;
-            ViewBag.PersonaIcon = personaIcon;
-            ViewBag.PersonaDesc = personaDesc;
 
             return View(myReviews);
         }
@@ -278,4 +292,4 @@ namespace FlyEase.Controllers
         public int FiveStarCount { get; set; }
     }
 
-} // <--- END OF NAMESPACE
+}

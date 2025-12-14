@@ -59,6 +59,11 @@
                     <i class="fa-regular fa-chart-bar"></i> Report
                 </a>
 
+                <a asp-controller="AdminDashboard" asp-action="Analytics"
+                   class="list-group-item list-group-item-action @(ViewContext.RouteData.Values["Action"]?.ToString() == "Analytics" ? "active" : "")">
+                    <i class="fas fa-chart-line"></i> Analytics
+                </a>
+
             </div>
 
             <div class="mt-auto p-3 border-top border-secondary">

@@ -1,11 +1,11 @@
 ﻿using FlyEase.Data;
 using FlyEase.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Localization; // Added for Localization
 using Microsoft.EntityFrameworkCore;
 using Stripe;
-using Microsoft.AspNetCore.Localization; // Added for Localization
 using System.Globalization; // Added for Localization
-
+using FlyEase.Model; // <--- ADD THIS LINE
 var builder = WebApplication.CreateBuilder(args);
 
 // Add logging
@@ -14,12 +14,15 @@ builder.Logging.AddConsole();
 builder.Logging.AddDebug();
 builder.Logging.SetMinimumLevel(LogLevel.Information);
 
-// Add this line after builder creation
+builder.Services.Configure<StripeSettings>(builder.Configuration.GetSection("Stripe"));
+
+// 2. Set the global Stripe API Key immediately
 StripeConfiguration.ApiKey = builder.Configuration["Stripe:SecretKey"];
 
+// 3. Register the StripeService so Controllers can use it
+builder.Services.AddScoped<StripeService>();
 // ====================================================================
-// 1. DYNAMIC PATH SETUP (No App_Data folder)
-// ====================================================================
+
 string path = builder.Environment.ContentRootPath;
 AppDomain.CurrentDomain.SetData("DataDirectory", path);
 

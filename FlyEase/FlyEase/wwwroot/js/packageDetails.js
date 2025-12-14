@@ -48,6 +48,80 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 });
 
+
+// Helper for Checkboxes (Visual Toggle)
+function toggleCheckboxStyle(checkbox) {
+    var label = document.querySelector('label[for="' + checkbox.id + '"]');
+    if (!label) return;
+
+    var uncheckedIcon = label.querySelector('.check-icon-unchecked');
+    var checkedIcon = label.querySelector('.check-icon-checked');
+
+    if (checkbox.checked) {
+        // --- APPLIED SELECTED STATE ---
+        label.classList.add('selected-card'); // Adds the dark blue style
+
+        // Remove default styles to prevent conflicts
+        label.classList.remove('text-dark', 'border', 'btn-outline-light');
+
+        // Swap Icons
+        if (uncheckedIcon) uncheckedIcon.classList.add('d-none');
+        if (checkedIcon) checkedIcon.classList.remove('d-none');
+    } else {
+        // --- REMOVED SELECTED STATE ---
+        label.classList.remove('selected-card');
+
+        // Restore default styles
+        label.classList.add('text-dark', 'border', 'btn-outline-light');
+
+        // Swap Icons Back
+        if (uncheckedIcon) uncheckedIcon.classList.remove('d-none');
+        if (checkedIcon) checkedIcon.classList.add('d-none');
+    }
+}
+
+// --- NEW VALIDATION LOGIC ---
+function validateBookNow(event) {
+    console.log("bookNowCheck called");
+    var input = document.getElementById('paxInput');
+    if (!input) return true;
+
+    // Parse values (default to 0 or 1 if empty)
+    var currentVal = parseInt(input.value) || 0;
+    var maxVal = parseInt(input.getAttribute('max')) || 0;
+
+    // 1. Check if exceeds max
+    if (currentVal > maxVal) {
+        event.preventDefault(); // STOP FORM SUBMISSION
+
+        Swal.fire({
+            icon: 'error',
+            title: 'Not Enough Slots',
+            text: `Sorry, only ${maxVal} slots are available for this package.`,
+            confirmButtonColor: '#0d6efd'
+        });
+
+        input.value = maxVal; // Auto-correct to max
+        return false;
+    }
+
+    // 2. Check if less than 1
+    if (currentVal < 1) {
+        event.preventDefault(); // STOP FORM SUBMISSION
+
+        Swal.fire({
+            icon: 'warning',
+            title: 'Invalid Quantity',
+            text: 'Please select at least 1 guest.',
+            confirmButtonColor: '#0d6efd'
+        });
+        return false;
+    }
+
+    // If valid, return true (allow submit)
+    return true;
+}
+
 function openGalleryModal(index) {
     var myModal = new bootstrap.Modal(document.getElementById('galleryModal'));
     var carouselEl = document.getElementById('carouselGallery');
@@ -64,14 +138,4 @@ function openGalleryModal(index) {
     }
 
     myModal.show();
-}
-
-// --- 3. PAX COUNTER ---
-function updatePax(change) {
-    var input = document.getElementById('paxInput');
-    if (input) {
-        var currentVal = parseInt(input.value);
-        var newVal = currentVal + change;
-        if (newVal >= 1 && newVal <= 10) input.value = newVal;
-    }
 }
