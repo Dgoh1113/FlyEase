@@ -30,6 +30,7 @@ AppDomain.CurrentDomain.SetData("DataDirectory", path);
 // 2. REGISTER SERVICES (Modified for Localization)
 // ====================================================================
 
+builder.Services.AddSingleton<IConfiguration>(builder.Configuration);
 // A. Add Localization Service (Points to "Resources" folder)
 builder.Services.AddLocalization(options => options.ResourcesPath = "Resources");
 
@@ -47,9 +48,10 @@ builder.Services.AddScoped<IEmailService, ForgetEmailService>();
 // Add session support
 builder.Services.AddSession(options =>
 {
-    options.IdleTimeout = TimeSpan.FromMinutes(30);
+    options.IdleTimeout = TimeSpan.FromMinutes(5); // Shorter for reset links
     options.Cookie.HttpOnly = true;
     options.Cookie.IsEssential = true;
+    options.Cookie.Name = "FlyEase.Session";
 });
 
 // Add Authentication
@@ -69,6 +71,7 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.Cookie.SameSite = SameSiteMode.Lax;
     });
 
+
 // Add Authorization
 builder.Services.AddAuthorization();
 
@@ -77,20 +80,7 @@ builder.Services.AddDistributedMemoryCache();
 
 var app = builder.Build();
 
-using (var scope = app.Services.CreateScope())
-{
-    var services = scope.ServiceProvider;
-    try
-    {
-        // Call the seeder here
-        DbSeeder.Seed(services);
-    }
-    catch (Exception ex)
-    {
-        var logger = services.GetRequiredService<ILogger<Program>>();
-        logger.LogError(ex, "An error occurred seeding the DB.");
-    }
-}
+
 
 // Configure the HTTP request pipeline
 if (!app.Environment.IsDevelopment())

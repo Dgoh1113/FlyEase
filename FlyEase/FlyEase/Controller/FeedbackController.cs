@@ -50,7 +50,8 @@ namespace FlyEase.Controllers
         // [POST] Create Review
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(int bookingId, int rating, string comment)
+        // 1. Updated to accept 'emotion'
+        public async Task<IActionResult> Create(int bookingId, int rating, string comment, string emotion)
         {
             if (rating < 1 || rating > 5)
             {
@@ -60,12 +61,13 @@ namespace FlyEase.Controllers
 
             var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
 
-            // 1. Save Feedback
+            // 2. Save Feedback (including Emotion)
             var feedback = new Feedback
             {
                 BookingID = bookingId,
                 UserID = userId,
                 Rating = rating,
+                Emotion = emotion, // <--- Added here
                 Comment = comment,
                 CreatedDate = DateTime.Now
             };
@@ -73,13 +75,14 @@ namespace FlyEase.Controllers
             _context.Feedbacks.Add(feedback);
             await _context.SaveChangesAsync();
 
-            // 2. Send "Thank You" Email
+            // 3. Send "Thank You" Email (Preserved Logic)
             try
             {
                 var booking = await _context.Bookings
                     .Include(b => b.User)
                     .Include(b => b.Package)
                     .FirstOrDefaultAsync(b => b.BookingID == bookingId);
+                // ... inside [HttpPost] Create method ...
 
                 if (booking != null)
                 {
@@ -89,7 +92,8 @@ namespace FlyEase.Controllers
                         booking.User.FullName,
                         booking.Package.PackageName,
                         rating,
-                        comment
+                        comment,
+                        emotion // <--- Add this argument
                     );
                 }
             }
@@ -129,7 +133,8 @@ namespace FlyEase.Controllers
         // ==========================================
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int bookingId, int rating, string comment)
+        // 1. Add 'string emotion' to the parameters
+        public async Task<IActionResult> Edit(int bookingId, int rating, string comment, string emotion)
         {
             var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
 
@@ -140,6 +145,7 @@ namespace FlyEase.Controllers
 
             feedback.Rating = rating;
             feedback.Comment = comment;
+            feedback.Emotion = emotion; // <--- 2. Update Emotion
             feedback.CreatedDate = DateTime.Now;
 
             _context.Feedbacks.Update(feedback);
@@ -286,4 +292,4 @@ namespace FlyEase.Controllers
         public int FiveStarCount { get; set; }
     }
 
-} // <--- END OF NAMESPACE
+}

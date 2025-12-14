@@ -136,6 +136,7 @@ namespace FlyEase.Data
     // ===== Entities =====
     public class User
     {
+        public int TokenID { get; set; }
         public int UserID { get; set; }
         public string FullName { get; set; } = null!;
         public string Email { get; set; } = null!;
@@ -143,6 +144,8 @@ namespace FlyEase.Data
         public string PasswordHash { get; set; } = null!;
         public string Role { get; set; } = null!;
         public string? Address { get; set; }
+        public string Token { get; set; } = string.Empty;
+        public DateTime ExpiryTime { get; set; }
         public DateTime CreatedDate { get; set; }
         public ICollection<Booking> Bookings { get; set; } = new List<Booking>();
         public ICollection<Feedback> Feedbacks { get; set; } = new List<Feedback>();
@@ -272,6 +275,7 @@ namespace FlyEase.Data
         public DateTime CreatedDate { get; set; }
         public Booking Booking { get; set; } = null!;
         public User User { get; set; } = null!;
+        public string Emotion { get; set; }
     }
 
     // --- VIEW MODELS (DTOs) KEPT FOR COMPATIBILITY ---

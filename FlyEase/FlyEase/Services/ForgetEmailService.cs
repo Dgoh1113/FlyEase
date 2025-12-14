@@ -15,11 +15,12 @@ namespace FlyEase.Services
     }
 
     public interface IEmailService
-    {
-        Task<bool> SendPasswordResetEmailAsync(string recipientEmail, string recipientName, string newPassword);
-        Task<bool> SendContactFormEmailAsync(ContactFormData contactData); // Add contact method
-        Task<bool> SendBookingConfirmationEmailAsync(BookingConfirmationData bookingData); // Optional: for bookings
-    }
+{
+    Task<bool> SendPasswordResetEmailAsync(string recipientEmail, string recipientName, string newPassword);
+    Task<bool> SendPasswordResetLinkAsync(string recipientEmail, string recipientName, string resetLink); // Add this
+    Task<bool> SendContactFormEmailAsync(ContactFormData contactData);
+    Task<bool> SendBookingConfirmationEmailAsync(BookingConfirmationData bookingData);
+}
 
     // Add data models for contact form
     public class ContactFormData
@@ -43,6 +44,13 @@ namespace FlyEase.Services
         public decimal Amount { get; set; }
         public int NumberOfPeople { get; set; }
     }
+    public class PasswordResetData
+    {
+        public string Email { get; set; } = string.Empty;
+        public string FullName { get; set; } = string.Empty;
+        public string ResetCode { get; set; } = string.Empty;
+        public DateTime ExpiryTime { get; set; }
+    }
 
     public class ForgetEmailService : IEmailService
     {
@@ -54,7 +62,72 @@ namespace FlyEase.Services
             _emailSettings = emailSettings.Value;
             _logger = logger;
         }
+        public async Task<bool> SendPasswordResetLinkAsync(string recipientEmail, string recipientName, string resetLink)
+        {
+            try
+            {
+                var subject = "Reset Your Password - FlyEase Travel";
+                var expiryTime = DateTime.Now.AddSeconds(30);
 
+                var body = $@"
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='UTF-8'>
+    <style>
+        body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
+        .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+        .header {{ background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }}
+        .content {{ background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }}
+        .btn-reset {{ background: #667eea; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: 600; margin: 20px 0; }}
+        .warning {{ background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 8px; margin: 20px 0; }}
+        .footer {{ text-align: center; margin-top: 20px; color: #666; font-size: 14px; }}
+    </style>
+</head>
+<body>
+    <div class='container'>
+        <div class='header'>
+            <h1>✈️ FlyEase Travel</h1>
+            <p>Password Reset Request</p>
+        </div>
+        
+        <div class='content'>
+            <p>Hello <strong>{recipientName}</strong>,</p>
+            <p>We received a request to reset your password for your FlyEase Travel account.</p>
+            
+            <div style='text-align: center;'>
+                <a href='{resetLink}' class='btn-reset'>
+                    Reset My Password
+                </a>
+            </div>
+            
+            <p style='text-align: center;'>
+                <small>Or copy and paste this link:<br>
+                <code style='word-break: break-all; color: #667eea;'>{resetLink}</code></small>
+            </p>
+            
+            <div class='warning'>
+                <strong>⚠️ Important:</strong> This link will expire in <strong>30 seconds</strong>. 
+                If you didn't request this reset, please ignore this email.
+            </div>
+        </div>
+        
+        <div class='footer'>
+            <p>This is an automated message. Please do not reply.</p>
+            <p>&copy; {DateTime.Now.Year} FlyEase Travel</p>
+        </div>
+    </div>
+</body>
+</html>";
+
+                return await SendEmailAsync(recipientEmail, recipientName, subject, body);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error sending password reset link to {Email}", recipientEmail);
+                return false;
+            }
+        }
         // Existing Password Reset Method
         public async Task<bool> SendPasswordResetEmailAsync(string recipientEmail, string recipientName, string newPassword)
         {

@@ -1,0 +1,100 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 30px auto;
+            background: #ffffff;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+
+        .header {
+            background-color: #20c997;
+            padding: 30px;
+            text-align: center;
+        }
+
+            .header h1 {
+                margin: 0;
+                color: #ffffff;
+                font-size: 28px;
+            }
+
+        .content {
+            padding: 40px 30px;
+            text-align: center;
+            color: #333;
+        }
+
+        .rating-box {
+            font-size: 30px;
+            color: #ffc107;
+            letter-spacing: 5px;
+            margin: 10px 0;
+        }
+
+        .emotion-box {
+            font-size: 18px;
+            font-weight: bold;
+            color: #555;
+            margin-bottom: 20px;
+        }
+
+        .comment-box {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            font-style: italic;
+            color: #555;
+            margin: 20px 0;
+            border-left: 4px solid #20c997;
+        }
+
+        .footer {
+            background-color: #f8f9fa;
+            padding: 20px;
+            text-align: center;
+            font-size: 12px;
+            color: #999;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Feedback Received!</h1>
+        </div>
+        <div class="content">
+            <h2>Thank You, {{UserName}}</h2>
+            <p>Your review for <strong>{{PackageName}}</strong> has been successfully posted.</p>
+
+            <div class="rating-box">
+                {{Stars}}
+            </div>
+
+            <div class="emotion-box">
+                {{Emotion}}
+            </div>
+
+            <div class="comment-box">
+                "{{Comment}}"
+            </div>
+
+            <p>We truly appreciate you sharing your experience with the FlyEase community.</p>
+        </div>
+        <div class="footer">
+            <p>&copy; {{Year}} FlyEase. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>

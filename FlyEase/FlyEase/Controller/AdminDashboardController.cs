@@ -175,6 +175,7 @@ namespace FlyEase.Controllers
         {
             var input = model.CurrentBooking;
 
+            // 1. Fetch Booking with related data
             var booking = await _context.Bookings
                 .Include(b => b.User)
                 .Include(b => b.Package)
@@ -182,25 +183,44 @@ namespace FlyEase.Controllers
 
             if (booking != null)
             {
+                // 2. Logic to prevent sending duplicate emails if simply saving
+                bool isJustCompleted = (input.BookingStatus == "Completed" && booking.BookingStatus != "Completed");
+
+                // 3. Update Status
                 booking.BookingStatus = input.BookingStatus;
                 await _context.SaveChangesAsync();
 
-                if (booking.BookingStatus == "Completed")
+                // 4. Send Email ONLY if status changed to Completed
+                if (isJustCompleted)
                 {
-                    var emailService = new EmailService();
                     try
                     {
+                        // Extract the first image if available (ImageURL format: "img1.jpg;img2.jpg")
+                        string packageImage = "";
+                        if (!string.IsNullOrEmpty(booking.Package.ImageURL))
+                        {
+                            var images = booking.Package.ImageURL.Split(';');
+                            if (images.Length > 0)
+                            {
+                                packageImage = images[0];
+                            }
+                        }
+
+                        // Send the email
+                        var emailService = new EmailService();
                         await emailService.SendReviewInvitation(
                             booking.User.Email,
                             booking.User.FullName,
                             booking.BookingID,
-                            booking.Package.PackageName
+                            booking.Package.PackageName,
+                            packageImage // <--- Pass the image here
                         );
+
                         TempData["Success"] = "Booking marked Completed & Review Email Sent!";
                     }
-                    catch
+                    catch (Exception ex)
                     {
-                        TempData["Warning"] = "Booking saved, but Email failed to send. Check credentials.";
+                        TempData["Warning"] = "Booking saved, but Email failed: " + ex.Message;
                     }
                 }
                 else
