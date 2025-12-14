@@ -46,6 +46,14 @@ namespace FlyEase.Controllers
             var user = await GetCurrentUserAsync();
             if (user == null) { TempData["Error"] = "Please login first"; return RedirectToAction("Login", "Auth"); }
 
+            // --- RESTRICT ADMIN & STAFF FROM BOOKING ---
+            if (User.IsInRole("Admin") || User.IsInRole("Staff"))
+            {
+                TempData["Error"] = "Administrator and Staff accounts are not allowed to make bookings.";
+                return RedirectToAction("Index", "Home");
+            }
+            // -------------------------------------------
+
             var package = await _context.Packages.FindAsync(packageId);
             if (package == null) return NotFound();
 
@@ -81,6 +89,14 @@ namespace FlyEase.Controllers
         [HttpPost]
         public IActionResult CustomerInfo(CustomerInfoViewModel model)
         {
+            // --- RESTRICT ADMIN & STAFF ---
+            if (User.IsInRole("Admin") || User.IsInRole("Staff"))
+            {
+                TempData["Error"] = "Administrator and Staff accounts are not allowed to make bookings.";
+                return RedirectToAction("Index", "Home");
+            }
+            // ------------------------------
+
             // Validation: Ensure Seniors + Juniors <= Total People
             if ((model.NumberOfSeniors + model.NumberOfJuniors) > model.NumberOfPeople)
             {
@@ -435,7 +451,7 @@ namespace FlyEase.Controllers
         }
 
         // =========================================================
-        // BOOKING HISTORY & CANCELLATION (UPDATED FOR AUTO-COMPLETE)
+        // BOOKING HISTORY & CANCELLATION
         // =========================================================
         [HttpGet]
         [Authorize]
@@ -706,6 +722,13 @@ namespace FlyEase.Controllers
         [HttpGet("Payment/DevQuickBook")]
         public async Task<IActionResult> DevQuickBook(int packageId)
         {
+            // --- RESTRICT ADMIN & STAFF ---
+            if (User.IsInRole("Admin") || User.IsInRole("Staff"))
+            {
+                return Content("Error: Administrator and Staff accounts are not allowed to make bookings.");
+            }
+            // ------------------------------
+
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (userIdClaim == null) return Content("Error: Must be logged in");
             int userId = int.Parse(userIdClaim);
