@@ -344,52 +344,31 @@ namespace FlyEase.Controllers
         }
 
         // ==========================================
-        // 6. ANALYTICS (Updated with Popular Package Logic)
+        // 6. ANALYTICS (Updated Logic)
         // ==========================================
         [HttpGet("Analytics")]
         public async Task<IActionResult> Analytics()
         {
-            // 1. Calculate General Stats
-            var feedbackStats = await _context.Feedbacks
-                .GroupBy(f => 1)
-                .Select(g => new
-                {
-                    AverageRating = g.Average(f => f.Rating),
-                    TotalCount = g.Count()
-                })
-                .FirstOrDefaultAsync();
-
-            // 2. Get Rating Breakdown (for the chart)
-            var ratingBreakdownDb = await _context.Feedbacks
-                .GroupBy(f => f.Rating)
-                .ToDictionaryAsync(g => g.Key, g => g.Count());
-
-            var finalBreakdown = new Dictionary<int, int>();
-            for (int i = 5; i >= 1; i--)
-            {
-                finalBreakdown[i] = ratingBreakdownDb.ContainsKey(i) ? ratingBreakdownDb[i] : 0;
-            }
-
-            // 3. Get Latest 5 Feedback
-            var latestFeedback = await _context.Feedbacks
-                .Include(f => f.Booking).ThenInclude(b => b.User)
-                .Include(f => f.Booking).ThenInclude(b => b.Package)
+            // 1. Fetch Data
+            var allFeedback = await _context.Feedbacks
+                .Include(f => f.User)
+                .Include(f => f.Booking).ThenInclude(b => b.Package) // Include Package for popularity stats
                 .OrderByDescending(f => f.CreatedDate)
-                .Take(5)
-                .Select(f => new LatestFeedbackViewModel
-                {
-                    FeedbackId = f.FeedbackID,
-                    UserName = f.Booking.User.FullName,
-                    PackageName = f.Booking.Package.PackageName,
-                    Rating = f.Rating,
-                    Comment = f.Comment,
-                    CreatedAt = f.CreatedDate
-                })
                 .ToListAsync();
 
-            // 4. NEW LOGIC: Get Most & Least Popular Packages
-            var packageStats = await _context.Feedbacks
-                .Include(f => f.Booking).ThenInclude(b => b.Package)
+            if (!allFeedback.Any())
+            {
+                return View(new FeedbackAnalyticsViewModel());
+            }
+
+            // 2. Calculate General Stats
+            var totalReviews = allFeedback.Count;
+            var averageRating = allFeedback.Average(f => f.Rating);
+            var positiveCount = allFeedback.Count(f => f.Rating >= 4);
+            var positivePercentage = totalReviews > 0 ? (double)positiveCount / totalReviews * 100 : 0;
+
+            // 3. NEW: Calculate Popularity (Group by Package Name)
+            var packageStats = allFeedback
                 .GroupBy(f => f.Booking.Package.PackageName)
                 .Select(g => new PopularPackageViewModel
                 {
@@ -397,18 +376,29 @@ namespace FlyEase.Controllers
                     AverageRating = g.Average(f => f.Rating),
                     ReviewCount = g.Count()
                 })
-                .ToListAsync();
+                .ToList();
 
-            var mostPopular = packageStats.OrderByDescending(p => p.AverageRating).FirstOrDefault();
-            var leastPopular = packageStats.OrderBy(p => p.AverageRating).FirstOrDefault();
+            var mostPopular = packageStats.OrderByDescending(p => p.AverageRating).ThenByDescending(p => p.ReviewCount).FirstOrDefault();
+            var leastPopular = packageStats.OrderBy(p => p.AverageRating).ThenByDescending(p => p.ReviewCount).FirstOrDefault();
 
-            // 5. Create ViewModel
+            // 4. Prepare Chart Data
+            var ratingCounts = new Dictionary<int, int>
+    {
+        { 5, allFeedback.Count(f => f.Rating == 5) },
+        { 4, allFeedback.Count(f => f.Rating == 4) },
+        { 3, allFeedback.Count(f => f.Rating == 3) },
+        { 2, allFeedback.Count(f => f.Rating == 2) },
+        { 1, allFeedback.Count(f => f.Rating == 1) }
+    };
+
+            // 5. Map to ViewModel
             var viewModel = new FeedbackAnalyticsViewModel
             {
-                AverageRating = feedbackStats?.AverageRating ?? 0,
-                TotalFeedbackCount = feedbackStats?.TotalCount ?? 0,
-                RatingBreakdown = finalBreakdown,
-                LatestFeedback = latestFeedback,
+                AverageRating = averageRating,
+                TotalReviews = totalReviews,
+                PositivePercentage = positivePercentage,
+                RatingCounts = ratingCounts,
+                RecentReviews = allFeedback.Take(10).ToList(), // Took 10 for the bottom list
                 MostPopularPackage = mostPopular,
                 LeastPopularPackage = leastPopular
             };
@@ -417,4 +407,3 @@ namespace FlyEase.Controllers
         }
     }
 }
-    

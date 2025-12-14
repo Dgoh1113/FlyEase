@@ -1,36 +1,30 @@
-﻿using System;
+﻿using FlyEase.Data;
 using System.Collections.Generic;
 
 namespace FlyEase.ViewModels
 {
     public class FeedbackAnalyticsViewModel
     {
-        // Stats
+        // --- 1. Stats ---
         public double AverageRating { get; set; }
-        public int TotalFeedbackCount { get; set; }
+        public int TotalReviews { get; set; }
+        public double PositivePercentage { get; set; }
 
-        // Charts & Lists
-        public Dictionary<int, int> RatingBreakdown { get; set; }
-        public List<LatestFeedbackViewModel> LatestFeedback { get; set; }
+        // --- 2. New: Popular Packages (Restored) ---
+        public PopularPackageViewModel? MostPopularPackage { get; set; }
+        public PopularPackageViewModel? LeastPopularPackage { get; set; }
 
-        // New: Top and Bottom Packages
-        public PopularPackageViewModel MostPopularPackage { get; set; }
-        public PopularPackageViewModel LeastPopularPackage { get; set; }
+        // --- 3. Chart Data ---
+        public Dictionary<int, int> RatingCounts { get; set; } = new Dictionary<int, int>();
+
+        // --- 4. Sidebar List ---
+        public List<Feedback> RecentReviews { get; set; } = new List<Feedback>();
     }
 
-    public class LatestFeedbackViewModel
-    {
-        public int FeedbackId { get; set; }
-        public string UserName { get; set; }
-        public string PackageName { get; set; }
-        public int Rating { get; set; }
-        public string Comment { get; set; }
-        public DateTime CreatedAt { get; set; }
-    }
-
+    // Helper class for the Top/Bottom cards
     public class PopularPackageViewModel
     {
-        public string PackageName { get; set; }
+        public string PackageName { get; set; } = string.Empty;
         public double AverageRating { get; set; }
         public int ReviewCount { get; set; }
     }
