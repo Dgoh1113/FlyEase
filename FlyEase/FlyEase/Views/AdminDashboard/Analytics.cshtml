@@ -1,0 +1,217 @@
+﻿@model FlyEase.ViewModels.FeedbackAnalyticsViewModel
+
+@{
+    ViewData["Title"] = "Feedback Analytics";
+    Layout = "~/Views/Shared/_StaffLayout.cshtml";
+}
+
+<div class="container-fluid px-4">
+    <div class="d-flex justify-content-between align-items-center mt-4 mb-4">
+        <div>
+            <h2 class="fw-bold text-dark mb-0">Analytics Overview</h2>
+            <p class="text-muted small mb-0">Detailed performance metrics and customer insights.</p>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-lg-4">
+            <div class="card h-100 border-0 shadow-sm border-start border-warning border-4">
+                <div class="card-body text-center d-flex flex-column justify-content-center py-4">
+                    <h6 class="text-uppercase text-muted small fw-bold mb-2">Overall Rating</h6>
+                    <div class="d-flex align-items-center justify-content-center">
+                        <span class="display-4 fw-bold text-dark me-2">@Model.AverageRating.ToString("0.0")</span>
+                        <div class="text-start">
+                            <div class="text-warning small"><i class="fas fa-star"></i></div>
+                            <div class="text-muted small" style="font-size: 0.7rem;">/ 5.0</div>
+                        </div>
+                    </div>
+                    <p class="text-muted small mb-0 mt-2">Based on @Model.TotalFeedbackCount reviews</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card h-100 border-0 shadow-sm border-start border-success border-4">
+                <div class="card-body py-4">
+                    <div class="d-flex justify-content-between mb-3">
+                        <h6 class="text-uppercase text-success small fw-bold mb-0">🏆 Top Performer</h6>
+                        <span class="badge bg-success-subtle text-success">Best Rated</span>
+                    </div>
+                    @if (Model.MostPopularPackage != null)
+                    {
+                        <h5 class="fw-bold text-dark mb-1">@Model.MostPopularPackage.PackageName</h5>
+                        <div class="d-flex align-items-center mt-2">
+                            <span class="fw-bold text-success me-2">@Model.MostPopularPackage.AverageRating.ToString("0.0") ★</span>
+                            <span class="text-muted small">(@Model.MostPopularPackage.ReviewCount reviews)</span>
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="text-muted small fst-italic">No reviews yet.</p>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card h-100 border-0 shadow-sm border-start border-danger border-4">
+                <div class="card-body py-4">
+                    <div class="d-flex justify-content-between mb-3">
+                        <h6 class="text-uppercase text-danger small fw-bold mb-0">📉 Needs Improvement</h6>
+                        <span class="badge bg-danger-subtle text-danger">Lowest Rated</span>
+                    </div>
+                    @if (Model.LeastPopularPackage != null)
+                    {
+                        <h5 class="fw-bold text-dark mb-1">@Model.LeastPopularPackage.PackageName</h5>
+                        <div class="d-flex align-items-center mt-2">
+                            <span class="fw-bold text-danger me-2">@Model.LeastPopularPackage.AverageRating.ToString("0.0") ★</span>
+                            <span class="text-muted small">(@Model.LeastPopularPackage.ReviewCount reviews)</span>
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="text-muted small fst-italic">No reviews yet.</p>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white border-bottom py-3">
+            <h6 class="fw-bold text-dark mb-0"><i class="fas fa-chart-bar me-2 text-primary"></i>Detailed Rating Distribution</h6>
+        </div>
+        <div class="card-body">
+            <div style="height: 350px; width: 100%;">
+                <canvas id="ratingBreakdownChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-5">
+        <div class="card-header bg-white border-bottom py-3">
+            <h6 class="fw-bold text-dark mb-0"><i class="fas fa-comments me-2 text-primary"></i>Recent Customer Feedback</h6>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-4">Customer</th>
+                            <th>Package</th>
+                            <th style="width: 15%;">Rating</th>
+                            <th style="width: 35%;">Comment</th>
+                            <th class="text-end pe-4">Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model.LatestFeedback)
+                        {
+                            <tr>
+                                <td class="ps-4 fw-bold">@item.UserName</td>
+                                <td>@item.PackageName</td>
+                                <td>
+                                    @for (int i = 0; i < item.Rating; i++)
+                                    {
+                                        <i class="fas fa-star text-warning" style="font-size: 0.8rem;"></i>
+                                    }
+                                </td>
+                                <td>
+                                    @if (!string.IsNullOrEmpty(item.Comment))
+                                    {
+                                        <span class="text-muted">"@item.Comment"</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted small fst-italic">No comment provided</span>
+                                    }
+                                </td>
+                                <td class="text-end pe-4 text-muted small">@item.CreatedAt.ToString("MMM dd, yyyy")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        const ctx = document.getElementById('ratingBreakdownChart').getContext('2d');
+        const breakdownRaw = @Html.Raw(Json.Serialize(Model.RatingBreakdown));
+
+        // Sort data 5 down to 1
+        const stars = ["5", "4", "3", "2", "1"];
+        const dataValues = stars.map(star => breakdownRaw[star] || 0);
+        const labels = stars.map(star => star + ' Stars');
+
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Number of Reviews',
+                    data: dataValues,
+                    backgroundColor: [
+                        'rgba(25, 135, 84, 0.85)',  // 5 Stars: Deep Green
+                        'rgba(117, 183, 152, 0.8)', // 4 Stars: Light Green
+                        'rgba(255, 193, 7, 0.8)',   // 3 Stars: Yellow
+                        'rgba(253, 126, 20, 0.8)',  // 2 Stars: Orange
+                        'rgba(220, 53, 69, 0.8)'    // 1 Star: Red
+                    ],
+                    borderColor: [
+                        '#198754', // Green Border
+                        '#75b798', // Light Green Border
+                        '#ffc107', // Yellow Border
+                        '#fd7e14', // Orange Border
+                        '#dc3545'  // Red Border
+                    ],
+                    borderWidth: 1,
+                    borderRadius: 4,
+                    barPercentage: 0.65
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        enabled: true,
+                        backgroundColor: 'rgba(0, 0, 0, 0.9)',
+                        padding: 12,
+                        cornerRadius: 6,
+                        titleFont: { size: 13 },
+                        bodyFont: { size: 13 }
+                    }
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        grid: {
+                            color: '#f0f0f0',
+                            drawBorder: false
+                        },
+                        ticks: {
+                            stepSize: 1,
+                            color: '#6c757d'
+                        }
+                    },
+                    y: {
+                        grid: { display: false },
+                        ticks: {
+                            font: {
+                                size: 13,
+                                weight: '600'
+                            },
+                            color: '#495057'
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+}
