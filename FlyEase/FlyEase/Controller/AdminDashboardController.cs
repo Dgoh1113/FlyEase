@@ -14,7 +14,8 @@ using FlyEase.Services;
 namespace FlyEase.Controllers
 {
     [Route("AdminDashboard")]
-    [Authorize(Roles = "Admin,Staff")]
+    [Authorize(Roles = "Admin")]
+
     public class AdminDashboardController : Controller
     {
         private readonly FlyEaseDbContext _context;
