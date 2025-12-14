@@ -4,21 +4,19 @@
     ViewData["Title"] = "Touch 'n Go Payment";
     Layout = "~/Views/Shared/_Layout.cshtml";
 
-    var customerInfo = Context.Session.GetObject<CustomerInfoViewModel>("CustomerInfo");
-    var finalAmount = customerInfo?.FinalAmount ?? 0;
+    // FIX: Retrieve the calculated amount from the Controller (handles Deposit vs Full logic)
+    var finalAmount = ViewBag.FinalAmount != null ? (decimal)ViewBag.FinalAmount : 0;
 
-    // Generate a random QR code data (in real app, this would be dynamic)
+    // Generate a random QR code data
     var qrData = $"TNG|FlyEase|{finalAmount}|{DateTime.Now:yyyyMMddHHmmss}";
 
-    // Fixed: Define these variables
-    var tngUsername = "@FlyEaseTravel"; // Your TNG username
-    var tngPhone = "012-345 6789"; // Your TNG phone number
+    var tngUsername = "FlyEaseTravel";
+    var tngPhone = "012-345 6789";
 }
 
 <div class="container mt-4">
     <div class="row justify-content-center">
         <div class="col-lg-8">
-            <!-- Progress Bar -->
             <partial name="_BookingProgress" />
 
             <div class="card payment-card border-0 shadow-lg" style="border-top: 5px solid #FF6B00 !important;">
@@ -40,7 +38,6 @@
                 </div>
 
                 <div class="card-body p-4">
-                    <!-- Payment Amount -->
                     <div class="text-center mb-5">
                         <p class="text-muted mb-1">Pay Now With</p>
                         <div class="tng-logo-large mb-3">
@@ -51,12 +48,10 @@
                         <p class="text-muted">One tap payment • Instant confirmation</p>
                     </div>
 
-                    <!-- QR Code Section -->
                     <div class="row align-items-center mb-5">
                         <div class="col-md-6 text-center">
                             <div class="qr-container p-4">
                                 <div class="qr-code-placeholder mb-3">
-                                    <!-- In real app, generate actual QR code -->
                                     <div class="fake-qr">
                                         <div class="qr-grid">
                                             @for (int i = 0; i < 25; i++)
@@ -109,7 +104,7 @@
                                             <div>
                                                 <h6 class="fw-bold mb-1">Phone Number</h6>
                                                 <p class="small text-muted mb-0">
-                                                    Transfer to: <code class="bg-warning text-dark px-2 py-1 rounded">012-345 6789</code>
+                                                    Transfer to: <code class="bg-warning text-dark px-2 py-1 rounded">@tngPhone</code>
                                                 </p>
                                             </div>
                                         </div>
@@ -119,13 +114,12 @@
                         </div>
                     </div>
 
-                    <!-- Verification Form -->
                     <div class="verification-form mt-5">
                         <h5 class="fw-bold mb-4 text-center">
                             <i class="fas fa-check-circle me-2 tng-orange"></i>Payment Verification
                         </h5>
 
-                        <form method="post" action="/Payment/ProcessTNGPayment" id="tngForm">
+                        <form asp-action="ProcessTNGPayment" asp-controller="Payment" method="post" id="tngForm">
                             @Html.AntiForgeryToken()
 
                             <div class="row g-3">
@@ -182,7 +176,6 @@
                                 </div>
                             </div>
 
-                            <!-- Instant Verification Badge -->
                             <div class="alert alert-warning border-warning mt-4">
                                 <div class="d-flex align-items-center">
                                     <div class="me-3">
@@ -198,7 +191,6 @@
                                 </div>
                             </div>
 
-                            <!-- Terms -->
                             <div class="form-check mb-4">
                                 <input class="form-check-input" type="checkbox" id="tngTerms" required>
                                 <label class="form-check-label" for="tngTerms">
@@ -207,9 +199,8 @@
                                 </label>
                             </div>
 
-                            <!-- Action Buttons -->
                             <div class="d-flex justify-content-between mt-4 pt-3 border-top">
-                                <a href="/Payment/PaymentMethod" class="btn btn-outline-secondary btn-lg px-4">
+                                <a asp-action="PaymentMethod" asp-controller="Payment" class="btn btn-outline-secondary btn-lg px-4">
                                     <i class="fas fa-arrow-left me-2"></i>Back
                                 </a>
                                 <button type="submit" class="btn tng-btn btn-lg px-5" id="submitTngBtn">
@@ -220,7 +211,6 @@
                         </form>
                     </div>
 
-                    <!-- TNG Features -->
                     <div class="row mt-5 pt-4 border-top">
                         <div class="col-md-4 text-center mb-3">
                             <div class="feature-icon mb-2">
@@ -250,180 +240,162 @@
     </div>
 </div>
 
-    <style>
-        .tng-header {
-            background: linear-gradient(135deg, #FF6B00 0%, #FF8C00 100%) !important;
+<style>
+    .tng-header {
+        background: linear-gradient(135deg, #FF6B00 0%, #FF8C00 100%) !important;
+    }
+
+    .tng-orange {
+        color: #FF6B00 !important;
+    }
+
+    .tng-icon-container {
+        width: 70px;
+        height: 70px;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .tng-logo-large {
+        font-size: 3.5rem;
+        font-weight: 900;
+        color: #FF6B00;
+        letter-spacing: -2px;
+    }
+
+    .tng-text {
+        color: #FF6B00;
+    }
+
+    .tng-superscript {
+        font-size: 1.5rem;
+        vertical-align: super;
+        color: #333;
+        font-weight: 300;
+    }
+
+    .qr-container {
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+
+    .fake-qr {
+        width: 200px;
+        height: 200px;
+        margin: 0 auto;
+        background: white;
+        border: 2px solid #FF6B00;
+        padding: 10px;
+    }
+
+    .qr-grid {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 2px;
+        width: 100%;
+        height: 100%;
+    }
+
+    .qr-cell {
+        background: #f8f9fa;
+    }
+
+        .qr-cell.qr-filled {
+            background: #FF6B00;
         }
 
-        .tng-orange {
-            color: #FF6B00 !important;
-        }
+    .tng-btn {
+        background: linear-gradient(135deg, #FF6B00 0%, #FF8C00 100%);
+        border: none;
+        color: white;
+        font-weight: bold;
+        transition: all 0.3s;
+    }
 
-        .tng-icon-container {
-            width: 70px;
-            height: 70px;
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .tng-logo-large {
-            font-size: 3.5rem;
-            font-weight: 900;
-            color: #FF6B00;
-            letter-spacing: -2px;
-        }
-
-        .tng-text {
-            color: #FF6B00;
-        }
-
-        .tng-superscript {
-            font-size: 1.5rem;
-            vertical-align: super;
-            color: #333;
-            font-weight: 300;
-        }
-
-        .qr-container {
-            background: white;
-            border-radius: 15px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-        }
-
-        .fake-qr {
-            width: 200px;
-            height: 200px;
-            margin: 0 auto;
-            background: white;
-            border: 2px solid #FF6B00;
-            padding: 10px;
-        }
-
-        .qr-grid {
-            display: grid;
-            grid-template-columns: repeat(5, 1fr);
-            gap: 2px;
-            width: 100%;
-            height: 100%;
-        }
-
-        .qr-cell {
-            background: #f8f9fa;
-        }
-
-            .qr-cell.qr-filled {
-                background: #FF6B00;
-            }
-
-        .tng-btn {
-            background: linear-gradient(135deg, #FF6B00 0%, #FF8C00 100%);
-            border: none;
+        .tng-btn:hover {
+            background: linear-gradient(135deg, #E55A00 0%, #E57A00 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 107, 0, 0.3);
             color: white;
-            font-weight: bold;
-            transition: all 0.3s;
         }
 
-            .tng-btn:hover {
-                background: linear-gradient(135deg, #E55A00 0%, #E57A00 100%);
-                transform: translateY(-2px);
-                box-shadow: 0 5px 15px rgba(255, 107, 0, 0.3);
-                color: white;
+    .feature-icon {
+        width: 60px;
+        height: 60px;
+        background: rgba(255, 107, 0, 0.1);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto;
+    }
+
+    .form-control:focus, .form-select:focus {
+        border-color: #FF6B00;
+        box-shadow: 0 0 0 0.25rem rgba(255, 107, 0, 0.25);
+    }
+
+    .list-group-item {
+        transition: all 0.3s;
+    }
+
+        .list-group-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+        }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.getElementById('tngForm');
+        const submitBtn = document.getElementById('submitTngBtn');
+
+        form.addEventListener('submit', function(e) {
+            if (!form.checkValidity()) {
+                e.preventDefault();
+                e.stopPropagation();
+            } else {
+                // Ensure form submits normally after UI change
+                const buttonHtml = submitBtn.innerHTML;
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Verifying...';
             }
+            form.classList.add('was-validated');
+        }, false);
 
-        .feature-icon {
-            width: 60px;
-            height: 60px;
-            background: rgba(255, 107, 0, 0.1);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto;
-        }
-
-        .form-control:focus {
-            border-color: #FF6B00;
-            box-shadow: 0 0 0 0.25rem rgba(255, 107, 0, 0.25);
-        }
-
-        .form-select:focus {
-            border-color: #FF6B00;
-            box-shadow: 0 0 0 0.25rem rgba(255, 107, 0, 0.25);
-        }
-
-        .list-group-item {
-            transition: all 0.3s;
-        }
-
-            .list-group-item:hover {
-                transform: translateX(5px);
-                box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+        // Real-time validation for TNG Transaction ID
+        const tngIdInput = document.getElementById('tngTransactionId');
+        tngIdInput.addEventListener('input', function() {
+            const pattern = /^TNG-\w{9,12}$/;
+            if (pattern.test(this.value)) {
+                this.classList.add('is-valid');
+                this.classList.remove('is-invalid');
+            } else {
+                this.classList.add('is-invalid');
+                this.classList.remove('is-valid');
             }
-    </style>
-
-
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const form = document.getElementById('tngForm');
-            const submitBtn = document.getElementById('submitTngBtn');
-
-            form.addEventListener('submit', function(e) {
-                if (!form.checkValidity()) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                } else {
-                    submitBtn.disabled = true;
-                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Verifying...';
-
-                    // Simulate TNG verification
-                    setTimeout(() => {
-                        submitBtn.innerHTML = '<i class="fas fa-bolt me-2"></i>Payment Verified!';
-                    }, 1500);
-                }
-
-                form.classList.add('was-validated');
-            }, false);
-
-            // Real-time validation for TNG Transaction ID
-            const tngIdInput = document.getElementById('tngTransactionId');
-            tngIdInput.addEventListener('input', function() {
-                const pattern = /^TNG-\w{9,12}$/;
-                if (pattern.test(this.value)) {
-                    this.classList.add('is-valid');
-                    this.classList.remove('is-invalid');
-                } else {
-                    this.classList.add('is-invalid');
-                    this.classList.remove('is-valid');
-                }
-            });
-
-            // Real-time validation for phone number
-            const phoneInput = document.getElementById('phoneNumber');
-            phoneInput.addEventListener('input', function() {
-                const pattern = /^01[0-9]{8,9}$/;
-                if (pattern.test(this.value)) {
-                    this.classList.add('is-valid');
-                    this.classList.remove('is-invalid');
-                } else {
-                    this.classList.add('is-invalid');
-                    this.classList.remove('is-valid');
-                }
-            });
-
-            // Set default payment time to now
-            const now = new Date();
-            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-            document.getElementById('paymentTime').value = now.toISOString().slice(0, 16);
-
-            // Generate random QR code cells (visual effect)
-            const qrCells = document.querySelectorAll('.qr-cell');
-            qrCells.forEach(cell => {
-                if (Math.random() > 0.5) {
-                    cell.classList.add('qr-filled');
-                }
-            });
         });
-    </script>
+
+        // Real-time validation for phone number
+        const phoneInput = document.getElementById('phoneNumber');
+        phoneInput.addEventListener('input', function() {
+            const pattern = /^01[0-9]{8,9}$/;
+            if (pattern.test(this.value)) {
+                this.classList.add('is-valid');
+                this.classList.remove('is-invalid');
+            } else {
+                this.classList.add('is-invalid');
+                this.classList.remove('is-valid');
+            }
+        });
+
+        // Set default payment time to now
+        const now = new Date();
+        now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+        document.getElementById('paymentTime').value = now.toISOString().slice(0, 16);
+    });
+</script>

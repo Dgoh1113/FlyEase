@@ -239,6 +239,10 @@ namespace FlyEase.Data
         public bool IsDeposit { get; set; }
         public DateTime PaymentDate { get; set; }
         public string PaymentStatus { get; set; } = null!;
+
+        // === NEW FIELD: To store Stripe PaymentIntentId or TNG ID ===
+        public string? TransactionID { get; set; }
+
         public Booking Booking { get; set; } = null!;
     }
 
