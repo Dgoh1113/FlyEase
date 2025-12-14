@@ -643,5 +643,80 @@ namespace FlyEase.Controllers
 
             return View(viewModel);
         }
+        [HttpGet("Discounts")]
+        public async Task<IActionResult> Discounts()
+        {
+            var vm = new DiscountsPageVM
+            {
+                Discounts = await _context.DiscountTypes.ToListAsync()
+            };
+            return View(vm);
+        }
+
+        [HttpPost("SaveDiscount")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SaveDiscount(DiscountsPageVM model)
+        {
+            var input = model.CurrentDiscount;
+
+            // Basic Validation
+            if (string.IsNullOrEmpty(input.DiscountName))
+            {
+                TempData["Error"] = "Discount Name is required.";
+                return RedirectToAction(nameof(Discounts));
+            }
+
+            if (input.DiscountTypeID == 0)
+            {
+                // --- CREATE ---
+                _context.DiscountTypes.Add(input);
+                TempData["Success"] = "Discount created successfully!";
+            }
+            else
+            {
+                // --- UPDATE ---
+                var existing = await _context.DiscountTypes.FindAsync(input.DiscountTypeID);
+                if (existing != null)
+                {
+                    existing.DiscountName = input.DiscountName;
+                    existing.DiscountRate = input.DiscountRate;
+                    existing.DiscountAmount = input.DiscountAmount;
+
+                    _context.DiscountTypes.Update(existing);
+                    TempData["Success"] = "Discount updated successfully!";
+                }
+                else
+                {
+                    TempData["Error"] = "Discount not found.";
+                }
+            }
+
+            await _context.SaveChangesAsync();
+            return RedirectToAction(nameof(Discounts));
+        }
+
+        [HttpPost("DeleteDiscount")]
+        public async Task<IActionResult> DeleteDiscount(int id)
+        {
+            var discount = await _context.DiscountTypes.FindAsync(id);
+            if (discount != null)
+            {
+                // Check if used in any bookings before deleting to prevent crashes
+                bool isUsed = await _context.BookingDiscounts.AnyAsync(bd => bd.DiscountTypeID == id);
+
+                if (isUsed)
+                {
+                    TempData["Error"] = "Cannot delete this discount because it has been applied to existing bookings.";
+                }
+                else
+                {
+                    _context.DiscountTypes.Remove(discount);
+                    await _context.SaveChangesAsync();
+                    TempData["Success"] = "Discount deleted successfully.";
+                }
+            }
+            return RedirectToAction(nameof(Discounts));
+        }
     }
+
 }
