@@ -3,14 +3,19 @@ using Microsoft.EntityFrameworkCore;
 using FlyEase.Data;
 using FlyEase.ViewModels;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
-using FlyEase.Services; // Needed to find EmailService
-using Microsoft.AspNetCore.Authorization; // <--- Add this
+using Microsoft.AspNetCore.Hosting;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
+using FlyEase.Services;
 
 namespace FlyEase.Controllers
 {
     [Route("AdminDashboard")]
-    [Authorize(Roles = "Admin")] 
+    [Authorize(Roles = "Admin")]
+
     public class AdminDashboardController : Controller
     {
         private readonly FlyEaseDbContext _context;
@@ -23,28 +28,24 @@ namespace FlyEase.Controllers
         }
 
         // ==========================================
-        // 1. MAIN DASHBOARD SUMMARY (FIXED SQL QUERY)
+        // 1. MAIN DASHBOARD SUMMARY
         // ==========================================
         [HttpGet("AdminDashboard")]
         public async Task<IActionResult> AdminDashboard()
         {
-            // --- BASIC STATS ---
             var totalUsers = await _context.Users.CountAsync();
             var totalBookings = await _context.Bookings.CountAsync();
             var pendingBookings = await _context.Bookings.CountAsync(b => b.BookingStatus == "Pending");
             var totalRevenue = await _context.Payments.Where(p => p.PaymentStatus == "Completed").SumAsync(p => p.AmountPaid);
 
-            // --- RECENT & LOW STOCK ---
             var recentBookings = await _context.Bookings
                 .Include(b => b.User).Include(b => b.Package)
                 .OrderByDescending(b => b.BookingDate).Take(5).ToListAsync();
 
             var lowStock = await _context.Packages.Where(p => p.AvailableSlots < 10).OrderBy(p => p.AvailableSlots).Take(5).ToListAsync();
 
-            // --- 1. GET REVENUE TREND (FIXED: SPLIT SQL & MEMORY) ---
             var sixMonthsAgo = DateTime.Now.AddMonths(-6);
 
-            // Step A: Fetch raw numbers from DB (SQL can handle this)
             var rawRevenueData = await _context.Payments
                 .Where(p => p.PaymentDate >= sixMonthsAgo && p.PaymentStatus == "Completed")
                 .GroupBy(p => new { p.PaymentDate.Year, p.PaymentDate.Month })
@@ -55,9 +56,8 @@ namespace FlyEase.Controllers
                 })
                 .OrderBy(x => x.Year)
                 .ThenBy(x => x.Month)
-                .ToListAsync(); // EXECUTE SQL HERE
+                .ToListAsync();
 
-            // Step B: Convert numbers to Month Names in Memory (C# logic)
             var revenueMonths = rawRevenueData
                 .Select(x => new DateTime(x.Year, x.Month, 1).ToString("MMM"))
                 .ToList();
@@ -66,13 +66,11 @@ namespace FlyEase.Controllers
                 .Select(x => x.Total)
                 .ToList();
 
-            // --- 2. GET BOOKING STATUS COUNTS ---
             var statusCounts = await _context.Bookings
                 .GroupBy(b => b.BookingStatus)
                 .Select(g => new { Status = g.Key, Count = g.Count() })
                 .ToListAsync();
 
-            // --- 3. POPULATE VIEWMODEL ---
             var vm = new AdminDashboardVM
             {
                 TotalUsers = totalUsers,
@@ -81,11 +79,8 @@ namespace FlyEase.Controllers
                 TotalRevenue = totalRevenue,
                 RecentBookings = recentBookings,
                 LowStockPackages = lowStock,
-
-                // Assign the processed lists for Charts
                 RevenueMonths = revenueMonths,
                 RevenueValues = revenueValues,
-
                 PendingBookingsCount = statusCounts.FirstOrDefault(x => x.Status == "Pending")?.Count ?? 0,
                 CompletedBookingsCount = statusCounts.FirstOrDefault(x => x.Status == "Completed")?.Count ?? 0,
                 CancelledBookingsCount = statusCounts.FirstOrDefault(x => x.Status == "Cancelled")?.Count ?? 0
@@ -180,7 +175,6 @@ namespace FlyEase.Controllers
         {
             var input = model.CurrentBooking;
 
-            // 1. Fetch Booking
             var booking = await _context.Bookings
                 .Include(b => b.User)
                 .Include(b => b.Package)
@@ -188,11 +182,9 @@ namespace FlyEase.Controllers
 
             if (booking != null)
             {
-                // 2. Update Status
                 booking.BookingStatus = input.BookingStatus;
                 await _context.SaveChangesAsync();
 
-                // 3. TRIGGER: Send Email if Completed
                 if (booking.BookingStatus == "Completed")
                 {
                     var emailService = new EmailService();
@@ -242,7 +234,6 @@ namespace FlyEase.Controllers
             var packages = await _context.Packages
                 .Include(p => p.Category)
                 .Include(p => p.Bookings).ThenInclude(b => b.Feedbacks)
-                .Include(p => p.Itinerary)
                 .OrderByDescending(p => p.PackageID)
                 .ToListAsync();
 
@@ -302,7 +293,6 @@ namespace FlyEase.Controllers
             else
             {
                 var existing = await _context.Packages
-                    .Include(p => p.Itinerary)
                     .FirstOrDefaultAsync(p => p.PackageID == input.PackageID);
 
                 if (existing != null)
@@ -316,18 +306,8 @@ namespace FlyEase.Controllers
                     existing.AvailableSlots = input.AvailableSlots;
                     existing.Description = input.Description;
                     existing.ImageURL = input.ImageURL;
-                    existing.Latitude = input.Latitude;
-                    existing.Longitude = input.Longitude;
+                    // existing.MapUrl = input.MapUrl; 
 
-                    _context.PackageItineraries.RemoveRange(existing.Itinerary);
-
-                    if (input.Itinerary != null)
-                    {
-                        foreach (var day in input.Itinerary)
-                        {
-                            if (!string.IsNullOrWhiteSpace(day.Title)) existing.Itinerary.Add(day);
-                        }
-                    }
                     _context.Packages.Update(existing);
                     TempData["Success"] = "Package updated successfully!";
                 }
@@ -357,15 +337,73 @@ namespace FlyEase.Controllers
             return RedirectToAction(nameof(Packages));
         }
 
-        // ==========================================
-        // 5. REPORT MANAGEMENT
-        // ==========================================
-
         [HttpGet("Report")]
         public IActionResult Report()
         {
             return View();
         }
 
+        // ==========================================
+        // 6. ANALYTICS (Updated Logic)
+        // ==========================================
+        [HttpGet("Analytics")]
+        public async Task<IActionResult> Analytics()
+        {
+            // 1. Fetch Data
+            var allFeedback = await _context.Feedbacks
+                .Include(f => f.User)
+                .Include(f => f.Booking).ThenInclude(b => b.Package) // Include Package for popularity stats
+                .OrderByDescending(f => f.CreatedDate)
+                .ToListAsync();
+
+            if (!allFeedback.Any())
+            {
+                return View(new FeedbackAnalyticsViewModel());
+            }
+
+            // 2. Calculate General Stats
+            var totalReviews = allFeedback.Count;
+            var averageRating = allFeedback.Average(f => f.Rating);
+            var positiveCount = allFeedback.Count(f => f.Rating >= 4);
+            var positivePercentage = totalReviews > 0 ? (double)positiveCount / totalReviews * 100 : 0;
+
+            // 3. NEW: Calculate Popularity (Group by Package Name)
+            var packageStats = allFeedback
+                .GroupBy(f => f.Booking.Package.PackageName)
+                .Select(g => new PopularPackageViewModel
+                {
+                    PackageName = g.Key,
+                    AverageRating = g.Average(f => f.Rating),
+                    ReviewCount = g.Count()
+                })
+                .ToList();
+
+            var mostPopular = packageStats.OrderByDescending(p => p.AverageRating).ThenByDescending(p => p.ReviewCount).FirstOrDefault();
+            var leastPopular = packageStats.OrderBy(p => p.AverageRating).ThenByDescending(p => p.ReviewCount).FirstOrDefault();
+
+            // 4. Prepare Chart Data
+            var ratingCounts = new Dictionary<int, int>
+    {
+        { 5, allFeedback.Count(f => f.Rating == 5) },
+        { 4, allFeedback.Count(f => f.Rating == 4) },
+        { 3, allFeedback.Count(f => f.Rating == 3) },
+        { 2, allFeedback.Count(f => f.Rating == 2) },
+        { 1, allFeedback.Count(f => f.Rating == 1) }
+    };
+
+            // 5. Map to ViewModel
+            var viewModel = new FeedbackAnalyticsViewModel
+            {
+                AverageRating = averageRating,
+                TotalReviews = totalReviews,
+                PositivePercentage = positivePercentage,
+                RatingCounts = ratingCounts,
+                RecentReviews = allFeedback.Take(10).ToList(), // Took 10 for the bottom list
+                MostPopularPackage = mostPopular,
+                LeastPopularPackage = leastPopular
+            };
+
+            return View(viewModel);
+        }
     }
 }
