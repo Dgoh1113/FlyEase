@@ -14,24 +14,22 @@
 <div class="profile-container">
     <div class="container">
 
-        <!-- Success/Error Messages -->
-        @if (TempData["SuccessMessage"] != null)
-        {
+@if (TempData["SuccessMessage"] != null)
+{
             <div class="alert alert-success alert-dismissible fade show mb-4 animate-slide-down">
                 <i class="fas fa-check-circle me-2"></i> @TempData["SuccessMessage"]
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
-        }
+}
 
-        @if (TempData["ErrorMessage"] != null)
-        {
+@if (TempData["ErrorMessage"] != null)
+{
             <div class="alert alert-danger alert-dismissible fade show mb-4 animate-slide-down">
                 <i class="fas fa-exclamation-circle me-2"></i> @TempData["ErrorMessage"]
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
-        }
+}
 
-        <!-- Profile Header -->
         <div class="row mb-4">
             <div class="col-12">
                 <div class="d-flex align-items-center justify-content-between">
@@ -44,9 +42,7 @@
             </div>
         </div>
 
-        <!-- Main Content -->
         <div class="row g-4">
-            <!-- Sidebar Navigation -->
             <div class="col-lg-3 col-md-4">
                 <div class="profile-card shadow-sm h-100">
                     <div class="sidebar-header text-white p-4 text-center">
@@ -107,11 +103,9 @@
                 </div>
             </div>
 
-            <!-- Main Content Area -->
             <div class="col-lg-9 col-md-8">
                 <div class="dashboard-content shadow-sm h-100">
 
-                    <!-- Bookings Tab -->
                     <div id="bookings-tab" class="tab-pane active">
                         @if (TempData["BookingsErrorMessage"] != null)
                         {
@@ -162,6 +156,7 @@
                                                 "Completed" => "bg-success",
                                                 "Pending" => "bg-warning text-dark",
                                                 "Cancelled" => "bg-danger",
+                                                "Deposit" => "bg-info text-dark",
                                                 _ => "bg-secondary"
                                             };
 
@@ -176,29 +171,36 @@
                                                     <span class="badge @statusClass px-3 py-2">@displayStatus</span>
                                                 </td>
                                                 <td>
-                                                    @if (displayStatus == "Completed")
-                                                    {
-                                                        @if (b.IsReviewed)
+                                                    <div class="d-flex flex-column gap-2">
+                                                        @if (displayStatus == "Completed")
                                                         {
-                                                            <a asp-controller="Feedback" asp-action="Edit" asp-route-bookingId="@b.BookingID"
-                                                               class="btn btn-sm btn-outline-primary">
-                                                                <i class="fas fa-edit me-1"></i> Edit Review
+                                                            @if (b.IsReviewed)
+                                                            {
+                                                                <a asp-controller="Feedback" asp-action="Edit" asp-route-bookingId="@b.BookingID"
+                                                                   class="btn btn-sm btn-outline-primary">
+                                                                    <i class="fas fa-edit me-1"></i> Edit Review
+                                                                </a>
+                                                            }
+                                                            else
+                                                            {
+                                                                <a asp-controller="Feedback" asp-action="Create" asp-route-bookingId="@b.BookingID"
+                                                                   class="btn btn-sm btn-warning">
+                                                                    <i class="fas fa-star me-1"></i> Rate Package
+                                                                </a>
+                                                            }
+                                                        }
+                                                        else if (displayStatus == "Pending")
+                                                        {
+                                                            <a href="#" class="btn btn-sm btn-outline-secondary disabled">
+                                                                <i class="fas fa-clock me-1"></i> Pending
                                                             </a>
                                                         }
-                                                        else
-                                                        {
-                                                            <a asp-controller="Feedback" asp-action="Create" asp-route-bookingId="@b.BookingID"
-                                                               class="btn btn-sm btn-warning">
-                                                                <i class="fas fa-star me-1"></i> Rate Package
-                                                            </a>
-                                                        }
-                                                    }
-                                                    else if (displayStatus == "Pending")
-                                                    {
-                                                        <a href="#" class="btn btn-sm btn-outline-secondary disabled">
-                                                            <i class="fas fa-clock me-1"></i> Pending
+
+                                                        <a asp-controller="Payment" asp-action="BookingHistoryDetails" asp-route-id="@b.BookingID"
+                                                           class="btn btn-sm btn-primary">
+                                                            <i class="fas fa-eye me-1"></i> View Details
                                                         </a>
-                                                    }
+                                                    </div>
                                                 </td>
                                             </tr>
                                         }
@@ -223,7 +225,6 @@
                         </div>
                     </div>
 
-                    <!-- Reviews Tab -->
                     <div id="reviews-tab" class="tab-pane">
                         <h3 class="mb-4 fw-light">
                             <i class="fas fa-star me-2 text-warning"></i>My Reviews
@@ -269,7 +270,6 @@
                         }
                     </div>
 
-                    <!-- Payments Tab -->
                     <div id="payments-tab" class="tab-pane">
                         <h3 class="mb-4 fw-light">
                             <i class="fas fa-credit-card me-2 text-success"></i>Payment History
@@ -301,7 +301,7 @@
                                                 </td>
                                                 <td class="fw-bold text-success">RM @p.AmountPaid.ToString("N2")</td>
                                                 <td>
-                                                    @if (p.PaymentStatus == "Success")
+                                                    @if (p.PaymentStatus == "Success" || p.PaymentStatus == "Completed")
                                                     {
                                                         <span class="badge bg-success px-3 py-2">
                                                             <i class="fas fa-check-circle me-1"></i> @p.PaymentStatus
@@ -309,8 +309,8 @@
                                                     }
                                                     else
                                                     {
-                                                        <span class="badge bg-danger px-3 py-2">
-                                                            <i class="fas fa-times-circle me-1"></i> @p.PaymentStatus
+                                                        <span class="badge bg-secondary px-3 py-2">
+                                                            <i class="fas fa-info-circle me-1"></i> @p.PaymentStatus
                                                         </span>
                                                     }
                                                 </td>
@@ -330,7 +330,6 @@
                         }
                     </div>
 
-                    <!-- Edit Profile Tab -->
                     <div id="details-tab" class="tab-pane">
                         @if (TempData["DetailsErrorMessage"] != null)
                         {
@@ -400,7 +399,6 @@
                         </form>
                     </div>
 
-                    <!-- Security Tab -->
                     <div id="security-tab" class="tab-pane">
                         @if (TempData["SecurityErrorMessage"] != null)
                         {
@@ -417,100 +415,134 @@
                                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                             </div>
                         }
-                        <h3 class="mb-4 fw-light">
-                            <i class="fas fa-shield-alt me-2 text-danger"></i>Password & Security
-                        </h3>
 
-                        <form asp-action="ChangePassword" method="post" class="needs-validation" novalidate>
-                            @Html.AntiForgeryToken()
+                        <div class="security-header mb-4">
+                            <h3 class="fw-light mb-2">
+                                <i class="fas fa-shield-alt me-2 text-danger"></i>Password & Security
+                            </h3>
+                            <p class="text-muted mb-0">Update your password and manage security settings</p>
+                        </div>
 
-                            <div class="alert alert-info mb-4">
-                                <i class="fas fa-info-circle me-2"></i>
-                                Password must be at least 6 characters with uppercase, lowercase, number, and special character.
-                            </div>
+                        <div class="security-card card border-0 shadow-sm">
+                            <div class="card-body p-4">
+                                <form asp-action="ChangePassword" method="post" class="needs-validation" novalidate>
+                                    @Html.AntiForgeryToken()
 
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="form-floating mb-3">
-                                        <input asp-for="CurrentPassword" type="password" class="form-control" placeholder="Current Password" required />
-                                        <label asp-for="CurrentPassword" class="text-muted">Current Password</label>
-                                        <span asp-validation-for="CurrentPassword" class="text-danger small"></span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="form-floating mb-3 position-relative">
-                                        <input asp-for="NewPassword" type="password" class="form-control" placeholder="New Password"
-                                               id="NewPassword" required />
-                                        <label asp-for="NewPassword" class="text-muted">New Password</label>
-                                        <button type="button" class="btn btn-link position-absolute top-50 end-0 translate-middle-y password-toggle" tabindex="-1">
-                                            <i class="fas fa-eye"></i>
-                                        </button>
-                                        <span asp-validation-for="NewPassword" class="text-danger small"></span>
-
-                                        <!-- Password Strength Meter -->
-                                        <div class="password-strength mt-2">
-                                            <div class="d-flex justify-content-between">
-                                                <small class="text-muted">Password strength:</small>
-                                                <small id="strengthText" class="strength-text">None</small>
-                                            </div>
-                                            <div class="strength-bar">
-                                                <div class="strength-fill" id="strengthFill"></div>
+                                    <div class="alert alert-info border-0 bg-light-info mb-4">
+                                        <div class="d-flex align-items-center">
+                                            <i class="fas fa-info-circle text-info fa-lg me-3"></i>
+                                            <div>
+                                                <h6 class="mb-1 fw-bold">Password Requirements</h6>
+                                                <p class="mb-0 small">Password must be at least 6 characters with uppercase, lowercase, number, and special character.</p>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
 
-                                <div class="col-md-6">
-                                    <div class="form-floating mb-3 position-relative">
-                                        <input asp-for="ConfirmNewPassword" type="password" class="form-control"
-                                               placeholder="Confirm Password" id="ConfirmNewPassword" required />
-                                        <label asp-for="ConfirmNewPassword" class="text-muted">Confirm New Password</label>
-                                        <button type="button" class="btn btn-link position-absolute top-50 end-0 translate-middle-y password-toggle" tabindex="-1">
-                                            <i class="fas fa-eye"></i>
-                                        </button>
-                                        <span asp-validation-for="ConfirmNewPassword" class="text-danger small"></span>
-
-                                        <!-- Password Match Indicator -->
-                                        <div id="passwordMatch" class="password-match"></div>
+                                    <div class="row mb-4">
+                                        <div class="col-md-8">
+                                            <label class="form-label fw-bold mb-2">Current Password</label>
+                                            <div class="form-group">
+                                                <div class="form-floating position-relative">
+                                                    <input asp-for="CurrentPassword" type="password" class="form-control" placeholder="Enter your current password" required />
+                                                    <label asp-for="CurrentPassword" class="text-muted">Enter your current password</label>
+                                                    <button type="button" class="btn btn-link position-absolute top-50 end-0 translate-middle-y text-decoration-none password-toggle" tabindex="-1" style="z-index: 5; color: var(--text-muted);">
+                                                        <i class="fas fa-eye"></i>
+                                                    </button>
+                                                </div>
+                                                <div class="error-container mt-1">
+                                                    <span asp-validation-for="CurrentPassword" class="text-danger small"></span>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
-                                </div>
-                            </div>
 
-                            <div class="d-flex gap-2">
-                                <button type="submit" class="btn btn-danger px-4">
-                                    <i class="fas fa-key me-2"></i> Update Password
-                                </button>
-                                <button type="reset" class="btn btn-outline-secondary px-4">
-                                    <i class="fas fa-redo me-2"></i> Reset
-                                </button>
+                                    <div class="row mb-4">
+                                        <div class="col-md-8">
+                                            <label class="form-label fw-bold mb-2">New Password</label>
+                                            <div class="form-group">
+                                                <div class="form-floating position-relative">
+                                                    <input asp-for="NewPassword" type="password" class="form-control" placeholder="Create a new password"
+                                                           id="NewPassword" required />
+                                                    <label asp-for="NewPassword" class="text-muted">Create a new password</label>
+                                                    <button type="button" class="btn btn-link position-absolute top-50 end-0 translate-middle-y text-decoration-none password-toggle" tabindex="-1" style="z-index: 5; color: var(--text-muted);">
+                                                        <i class="fas fa-eye"></i>
+                                                    </button>
+                                                </div>
+                                                <div class="error-container mt-1">
+                                                    <span asp-validation-for="NewPassword" class="text-danger small"></span>
+                                                </div>
+
+                                                <div class="password-strength mt-3">
+                                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                                        <small class="text-muted fw-medium">Password strength</small>
+                                                        <small id="strengthText" class="strength-text fw-bold">None</small>
+                                                    </div>
+                                                    <div class="strength-bar">
+                                                        <div class="strength-fill" id="strengthFill"></div>
+                                                    </div>
+                                                    <div class="d-flex justify-content-between mt-1">
+                                                        <small class="text-muted">Weak</small>
+                                                        <small class="text-muted">Strong</small>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="row mb-4">
+                                        <div class="col-md-8">
+                                            <label class="form-label fw-bold mb-2">Confirm New Password</label>
+                                            <div class="form-group">
+                                                <div class="form-floating position-relative">
+                                                    <input asp-for="ConfirmNewPassword" type="password" class="form-control"
+                                                           placeholder="Confirm your new password" id="ConfirmNewPassword" required />
+                                                    <label asp-for="ConfirmNewPassword" class="text-muted">Confirm your new password</label>
+                                                    <button type="button" class="btn btn-link position-absolute top-50 end-0 translate-middle-y text-decoration-none password-toggle" tabindex="-1" style="z-index: 5; color: var(--text-muted);">
+                                                        <i class="fas fa-eye"></i>
+                                                    </button>
+                                                </div>
+                                                <div class="error-container mt-1">
+                                                    <span asp-validation-for="ConfirmNewPassword" class="text-danger small"></span>
+                                                </div>
+
+                                                <div id="passwordMatch" class="password-match mt-3">
+                                                    <div class="d-flex align-items-center">
+                                                        <i class="fas fa-circle text-muted me-2" style="font-size: 0.5rem;"></i>
+                                                        <small class="text-muted">Passwords will be checked for match</small>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="d-flex gap-3 mt-5 pt-2">
+                                        <button type="submit" class="btn btn-danger px-4 py-2 fw-bold">
+                                            <i class="fas fa-key me-2"></i> Update Password
+                                        </button>
+                                        <button type="reset" class="btn btn-outline-secondary px-4 py-2" onclick="resetPasswordForm()">
+                                            <i class="fas fa-redo me-2"></i> Reset Form
+                                        </button>
+                                    </div>
+                                </form>
                             </div>
-                        </form>
+                        </div>
                     </div>
 
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
 @section Scripts {
-    <script src="~/js/profile.js"></script>
+                        <script src="~/js/profile.js"></script>
 
-    <script>
-        // Set active tab from URL parameter
-        document.addEventListener("DOMContentLoaded", function() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const tabParam = urlParams.get('tab');
+                        <script>
+                            // Set active tab from URL parameter
+                            document.addEventListener("DOMContentLoaded", function() {
+                                const urlParams = new URLSearchParams(window.location.search);
+                                const tabParam = urlParams.get('tab');
 
-            if (tabParam && typeof switchTab === 'function') {
-                // Delay slightly to ensure DOM is ready
-                setTimeout(() => {
-                    switchTab(tabParam);
-                }, 100);
-            }
-        });
-    </script>
+                                if (tabParam && typeof switchTab === 'function') {
+                                    // Delay slightly to ensure DOM is ready
+                                    setTimeout(() => {
+                                        switchTab(tabParam);
+                                    }, 100);
+                                }
+                            });
+                        </script>
 }
