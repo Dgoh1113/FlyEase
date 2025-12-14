@@ -268,6 +268,7 @@ namespace FlyEase.Data
         public DateTime CreatedDate { get; set; }
         public Booking Booking { get; set; } = null!;
         public User User { get; set; } = null!;
+        public string Emotion { get; set; }
     }
 
     // --- VIEW MODELS (DTOs) KEPT FOR COMPATIBILITY ---
