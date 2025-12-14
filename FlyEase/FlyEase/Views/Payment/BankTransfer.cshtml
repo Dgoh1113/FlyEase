@@ -1,0 +1,355 @@
+﻿@using FlyEase.Controllers
+@using FlyEase.ViewModels
+@{
+    ViewData["Title"] = "Bank Transfer Payment";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+
+    var customerInfo = Context.Session.GetObject<CustomerInfoViewModel>("CustomerInfo");
+    var finalAmount = customerInfo?.FinalAmount ?? 0;
+}
+
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <!-- Progress Bar -->
+            <partial name="_BookingProgress" />
+
+            <div class="card payment-card border-0 shadow-lg">
+                <div class="card-header bg-gradient-primary text-white py-4">
+                    <div class="d-flex align-items-center">
+                        <div class="bank-icon-container">
+                            <i class="fas fa-university fa-3x"></i>
+                        </div>
+                        <div class="ms-4">
+                            <h2 class="mb-1 fw-bold">Bank Transfer</h2>
+                            <p class="mb-0 opacity-75">Secure Online Banking Payment</p>
+                        </div>
+                        <div class="ms-auto">
+                            <span class="badge bg-white text-primary px-3 py-2">
+                                <i class="fas fa-shield-alt me-1"></i> SECURE
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card-body p-4">
+                    <!-- Payment Amount Banner -->
+                    <div class="payment-amount-banner bg-light-primary rounded-3 p-4 mb-4">
+                        <div class="text-center">
+                            <p class="text-muted mb-1">Total Amount to Pay</p>
+                            <h1 class="display-5 fw-bold text-primary">RM @finalAmount.ToString("N2")</h1>
+                            <p class="text-muted small mb-0">One-time payment • No hidden fees</p>
+                        </div>
+                    </div>
+
+                    <!-- Instructions Card -->
+                    <div class="instructions-card border rounded-3 p-4 mb-4">
+                        <h5 class="fw-bold mb-3 text-primary">
+                            <i class="fas fa-list-ol me-2"></i>Transfer Instructions
+                        </h5>
+
+                        <div class="step-list">
+                            <div class="step-item">
+                                <div class="step-number">1</div>
+                                <div class="step-content">
+                                    <h6 class="fw-bold">Login to Your Internet Banking</h6>
+                                    <p class="text-muted mb-0">Use your preferred bank's online portal or mobile app</p>
+                                </div>
+                            </div>
+
+                            <div class="step-item">
+                                <div class="step-number">2</div>
+                                <div class="step-content">
+                                    <h6 class="fw-bold">Transfer to Our Account</h6>
+                                    <div class="bank-details-card mt-2 p-3 bg-light rounded">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <p class="mb-1"><strong>Bank:</strong> Maybank Malaysia</p>
+                                                <p class="mb-1"><strong>Account Name:</strong> FlyEase Travel Sdn Bhd</p>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <p class="mb-1"><strong>Account No:</strong> <span class="text-primary fw-bold">1234 5678 9012</span></p>
+                                                <p class="mb-0"><strong>Swift Code:</strong> MBBEMYKL</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="step-item">
+                                <div class="step-number">3</div>
+                                <div class="step-content">
+                                    <h6 class="fw-bold">Enter Reference Number</h6>
+                                    <p class="text-muted mb-0">Use this reference: <code class="bg-primary text-white px-2 py-1 rounded">BOOK@(DateTime.Now.ToString("yyyyMMdd"))</code></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Verification Form -->
+                    <div class="verification-form">
+                        <h5 class="fw-bold mb-3 text-primary">
+                            <i class="fas fa-check-circle me-2"></i>Payment Verification
+                        </h5>
+
+                        <form method="post" action="/Payment/ProcessBankTransfer" id="bankTransferForm">
+                            @Html.AntiForgeryToken()
+
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <div class="form-floating">
+                                        <select class="form-select" id="bankName" name="bankName" required>
+                                            <option value="">Select your bank</option>
+                                            <option value="MAYBANK">Maybank</option>
+                                            <option value="CIMB">CIMB Bank</option>
+                                            <option value="PUBLIC">Public Bank</option>
+                                            <option value="HONGLEONG">Hong Leong Bank</option>
+                                            <option value="RHB">RHB Bank</option>
+                                            <option value="AMBANK">AmBank</option>
+                                            <option value="OCBC">OCBC Bank</option>
+                                            <option value="HSBC">HSBC Bank</option>
+                                        </select>
+                                        <label for="bankName">Your Bank *</label>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <div class="form-floating">
+                                        <input type="text" class="form-control" id="transactionId" name="transactionId"
+                                               placeholder="TRF123456789" pattern="^(BANK|TRF)\d{9,12}$" required>
+                                        <label for="transactionId">Transaction/Reference ID *</label>
+                                        <div class="form-text">
+                                            Format: BANK123456789 or TRF123456789
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <div class="form-floating">
+                                        <input type="date" class="form-control" id="transferDate" name="transferDate"
+                                               max="@DateTime.Now.ToString("yyyy-MM-dd")"
+                                               min="@DateTime.Now.AddDays(-7).ToString("yyyy-MM-dd")" required>
+                                        <label for="transferDate">Transfer Date *</label>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <div class="form-floating">
+                                        <input type="text" class="form-control" id="senderName" name="senderName"
+                                               placeholder="Your name as in bank account" required>
+                                        <label for="senderName">Sender Name *</label>
+                                    </div>
+                                </div>
+
+                                <div class="col-12">
+                                    <div class="form-floating">
+                                        <textarea class="form-control" id="notes" name="notes"
+                                                  placeholder="Additional notes (optional)" style="height: 100px"></textarea>
+                                        <label for="notes">Additional Notes (Optional)</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Security Assurance -->
+                            <div class="alert alert-light border mt-4">
+                                <div class="d-flex">
+                                    <div class="me-3 text-success">
+                                        <i class="fas fa-shield-check fa-2x"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="fw-bold mb-1">Secure & Verified</h6>
+                                        <p class="small mb-0">
+                                            Your payment will be automatically verified and confirmed immediately.
+                                            No manual approval needed.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Terms -->
+                            <div class="form-check mb-4">
+                                <input class="form-check-input" type="checkbox" id="bankTerms" required>
+                                <label class="form-check-label" for="bankTerms">
+                                    I confirm that I have completed the bank transfer with the details provided above.
+                                    I understand this payment will be <span class="fw-bold text-success">automatically verified</span>.
+                                </label>
+                            </div>
+
+                            <!-- Action Buttons -->
+                            <div class="d-flex justify-content-between mt-4 pt-3 border-top">
+                                <a href="/Payment/PaymentMethod" class="btn btn-outline-secondary btn-lg px-4">
+                                    <i class="fas fa-arrow-left me-2"></i>Back
+                                </a>
+                                <button type="submit" class="btn btn-success btn-lg px-5" id="submitBtn">
+                                    <i class="fas fa-check-circle me-2"></i>
+                                    Confirm Payment
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Bank Logos -->
+                    <div class="bank-logos mt-5 pt-4 border-top">
+                        <p class="text-center text-muted mb-3">Supported Banks</p>
+                        <div class="row g-2 justify-content-center">
+                            <div class="col-auto"><span class="bank-logo">MAYBANK</span></div>
+                            <div class="col-auto"><span class="bank-logo">CIMB</span></div>
+                            <div class="col-auto"><span class="bank-logo">PUBLIC BANK</span></div>
+                            <div class="col-auto"><span class="bank-logo">RHB</span></div>
+                            <div class="col-auto"><span class="bank-logo">HONG LEONG</span></div>
+                            <div class="col-auto"><span class="bank-logo">AM BANK</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+    <style>
+        .payment-card {
+            border-radius: 20px;
+            overflow: hidden;
+        }
+
+        .bg-gradient-primary {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%) !important;
+        }
+
+        .bg-light-primary {
+            background-color: rgba(30, 60, 114, 0.1) !important;
+        }
+
+        .bank-icon-container {
+            width: 70px;
+            height: 70px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .payment-amount-banner {
+            border: 2px dashed #1e3c72;
+            background: linear-gradient(135deg, #f8f9ff 0%, #ffffff 100%);
+        }
+
+        .step-list {
+            position: relative;
+            padding-left: 30px;
+        }
+
+        .step-item {
+            position: relative;
+            padding: 20px 0;
+            border-left: 2px solid #e9ecef;
+        }
+
+        .step-item:last-child {
+            border-left: 2px solid transparent;
+        }
+
+        .step-item::before {
+            content: '';
+            position: absolute;
+            left: -31px;
+            top: 20px;
+            width: 20px;
+            height: 20px;
+            background: #1e3c72;
+            border-radius: 50%;
+            z-index: 1;
+        }
+
+        .step-number {
+            position: absolute;
+            left: -36px;
+            top: 17px;
+            width: 30px;
+            height: 30px;
+            background: #1e3c72;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            z-index: 2;
+        }
+
+        .step-content {
+            padding-left: 20px;
+        }
+
+        .bank-details-card {
+            border-left: 4px solid #1e3c72;
+        }
+
+        .bank-logo {
+            display: inline-block;
+            padding: 8px 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            font-weight: bold;
+            color: #1e3c72;
+            border: 1px solid #dee2e6;
+        }
+
+        .form-control:focus {
+            border-color: #1e3c72;
+            box-shadow: 0 0 0 0.25rem rgba(30, 60, 114, 0.25);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            border: none;
+            transition: all 0.3s;
+        }
+
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(40, 167, 69, 0.3);
+        }
+    </style>
+
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('bankTransferForm');
+            const submitBtn = document.getElementById('submitBtn');
+
+            form.addEventListener('submit', function(e) {
+                if (!form.checkValidity()) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                } else {
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Verifying Payment...';
+
+                    // Add a small delay to show processing
+                    setTimeout(() => {
+                        submitBtn.innerHTML = '<i class="fas fa-check me-2"></i>Payment Verified!';
+                    }, 1500);
+                }
+
+                form.classList.add('was-validated');
+            }, false);
+
+            // Real-time validation for transaction ID
+            const transactionIdInput = document.getElementById('transactionId');
+            transactionIdInput.addEventListener('input', function() {
+                const pattern = /^(BANK|TRF)\d{9,12}$/;
+                if (pattern.test(this.value)) {
+                    this.classList.add('is-valid');
+                    this.classList.remove('is-invalid');
+                } else {
+                    this.classList.add('is-invalid');
+                    this.classList.remove('is-valid');
+                }
+            });
+
+            // Set default transfer date to today
+            document.getElementById('transferDate').valueAsDate = new Date();
+        });
+    </script>

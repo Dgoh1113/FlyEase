@@ -7,7 +7,7 @@
 @section Head {
     <link rel="stylesheet" href="~/css/booking.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="~/js/booking.js"></script>
+    <script src="~/js/packageDetails.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 }
 
@@ -121,13 +121,12 @@
                     <div class="mb-3">
                         <p class="fw-bold">Guests</p>
                         <div class="input-group">
-                            <button type="button" class="btn btn-outline-secondary" onclick="updatePax(-1)">-</button>
-                            <input type="number" name="people" id="paxInput" class="form-control text-center" value="1" min="1" max="10" readonly />
-                            <button type="button" class="btn btn-outline-secondary" onclick="updatePax(1)">+</button>
+                            <input type="number" name="people" id="paxInput" class="form-control text-center" value="1" min="1" max="@Model.AvailableSlots"/>
                         </div>
                     </div>
 
                     <button type="submit" class="btn btn-primary w-100 py-2 fw-bold fs-5 shadow-sm"
+                            onclick="return validateBookNow(event)"
                             @(Model.AvailableSlots == 0 ? "disabled" : "")>
                         <i class="fas fa-calendar-check me-1"></i>
                         @(Model.AvailableSlots > 0 ? "Book Now" : "Sold Out")
