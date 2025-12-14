@@ -1,283 +1,125 @@
 ﻿@model FlyEase.Data.Booking
 
 @{
-    ViewData["Title"] = "Rate Your Trip";
+    ViewData["Title"] = "Write a Review";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<style>
-    /* 1. Page Background (Overrides default layout) */
-    body {
-        background: linear-gradient(135deg, #120C34 0%, #2A1B5E 50%, #4B2C85 100%) !important;
-        background-attachment: fixed;
-        min-height: 100vh;
-        color: #fff; /* Default text white for outside card */
-    }
+<div class="container-fluid min-vh-100 d-flex justify-content-center align-items-center" style="background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);">
 
-    /* 2. Main Container */
-    .review-container {
-        max-width: 850px;
-        margin: 60px auto;
-        font-family: 'Poppins', sans-serif;
-    }
+    <div class="container py-5">
+        <div class="row justify-content-center">
+            <div class="col-lg-6 col-md-8">
 
-    /* 3. The Review Card (Glassmorphism Effect) */
-    .review-form-card {
-        background: rgba(255, 255, 255, 0.98); /* Slightly transparent white */
-        border-radius: 24px;
-        padding: 40px;
-        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
-        color: #333; /* Text inside card is dark */
-        position: relative;
-        overflow: hidden;
-    }
+                <div class="card border-0 shadow-lg overflow-hidden" style="border-radius: 20px;">
 
-        /* Decorative Top Bar */
-        .review-form-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 8px;
-            background: linear-gradient(90deg, #FFC107, #FF5722);
-        }
+                    <div class="card-header border-0 p-5 text-center text-white" style="background: linear-gradient(135deg, #0066a1 0%, #00a3e0 100%);">
+                        <div class="bg-white text-primary rounded-circle d-inline-flex justify-content-center align-items-center mb-3 shadow-sm" style="width: 80px; height: 80px; font-size: 2.5rem;">
+                            <i class="fas fa-pen-nib"></i>
+                        </div>
+                        <h2 class="fw-bold mb-1">How was your trip?</h2>
+                        <p class="mb-0 opacity-75">Share your experience with us!</p>
+                    </div>
 
-    /* 4. Header Section */
-    .review-header {
-        text-align: center;
-        margin-bottom: 30px;
-    }
+                    <div class="card-body p-5 bg-white">
 
-    .rating-big {
-        font-size: 4.5rem;
-        font-weight: 800;
-        color: #2A1B5E; /* Deep Purple */
-        line-height: 1;
-    }
+                        <div class="text-center mb-4">
+                            <h5 class="text-uppercase text-muted small fw-bold ls-1">You visited</h5>
+                            <h3 class="text-primary fw-bold">@Model.Package.PackageName</h3>
+                            <p class="text-muted"><i class="far fa-calendar-alt me-2"></i>@Model.BookingDate.ToString("dd MMM yyyy")</p>
+                        </div>
 
-    .rating-stars-gold {
-        color: #FFC107;
-        font-size: 1.5rem;
-        margin-bottom: 10px;
-        text-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    }
+                        <hr class="my-4 opacity-10">
 
-    /* 5. Star Rating Input (Interactive) */
-    .star-rating-input {
-        display: flex;
-        flex-direction: row-reverse;
-        justify-content: center; /* Centered */
-        gap: 10px;
-        margin: 20px 0;
-    }
+                        <form asp-action="Create" method="post">
+                            <input type="hidden" name="bookingId" value="@Model.BookingID" />
+                            @Html.AntiForgeryToken()
 
-        .star-rating-input input {
-            display: none;
-        }
+                            @if (TempData["Error"] != null)
+                            {
+                                <div class="alert alert-danger rounded-pill text-center mb-4">
+                                    <i class="fas fa-exclamation-circle me-2"></i> @TempData["Error"]
+                                </div>
+                            }
 
-        .star-rating-input label {
-            font-size: 2.5rem;
-            color: #e0e0e0;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
+                            <div class="mb-4 text-center">
+                                <label class="form-label fw-bold text-dark mb-2">Rate your experience</label>
+                                <div class="rating-group d-flex justify-content-center gap-3" style="font-size: 2rem; cursor: pointer;">
+                                    <input type="hidden" id="ratingInput" name="rating" value="5" />
 
-            /* Hover & Checked Logic */
-            .star-rating-input input:checked ~ label,
-            .star-rating-input label:hover,
-            .star-rating-input label:hover ~ label {
-                color: #FFC107;
-                transform: scale(1.1);
-            }
+                                    <i class="fas fa-star text-warning star-icon" data-value="1" onclick="setRating(1)"></i>
+                                    <i class="fas fa-star text-warning star-icon" data-value="2" onclick="setRating(2)"></i>
+                                    <i class="fas fa-star text-warning star-icon" data-value="3" onclick="setRating(3)"></i>
+                                    <i class="fas fa-star text-warning star-icon" data-value="4" onclick="setRating(4)"></i>
+                                    <i class="fas fa-star text-warning star-icon" data-value="5" onclick="setRating(5)"></i>
+                                </div>
+                                <div class="form-text mt-2" id="ratingText">Excellent!</div>
+                            </div>
 
-    /* 6. Form Elements */
-    .form-label {
-        font-weight: 600;
-        color: #2A1B5E;
-        margin-bottom: 8px;
-        display: block;
-    }
+                            <div class="mb-4">
+                                <label for="comment" class="form-label fw-bold text-dark">Your Feedback</label>
+                                <textarea name="comment" id="comment" rows="4" class="form-control bg-light border-0"
+                                          style="border-radius: 15px; padding: 15px;"
+                                          placeholder="Tell us what you loved or what we could improve..."></textarea>
+                            </div>
 
-    .form-control-custom {
-        width: 100%;
-        padding: 15px;
-        border: 2px solid #f0f0f0;
-        border-radius: 16px;
-        font-size: 1rem;
-        transition: 0.3s;
-        background: #fdfdfd;
-    }
+                            <div class="d-grid gap-2">
+                                <button type="submit" class="btn btn-primary btn-lg rounded-pill fw-bold shadow-sm">
+                                    Submit Review <i class="fas fa-paper-plane ms-2"></i>
+                                </button>
+                                <a asp-controller="Auth" asp-action="Profile" class="btn btn-link text-muted text-decoration-none">
+                                    Maybe later
+                                </a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
 
-        .form-control-custom:focus {
-            border-color: #4B2C85; /* Purple Focus */
-            box-shadow: 0 0 0 4px rgba(75, 44, 133, 0.1);
-            outline: none;
-        }
-
-    /* 7. Buttons */
-    .btn-submit-review {
-        background: linear-gradient(135deg, #2A1B5E 0%, #4B2C85 100%);
-        color: white;
-        padding: 15px 40px;
-        border: none;
-        border-radius: 50px;
-        font-weight: 700;
-        font-size: 1.1rem;
-        width: 100%;
-        cursor: pointer;
-        transition: transform 0.2s, box-shadow 0.2s;
-        box-shadow: 0 10px 20px rgba(42, 27, 94, 0.3);
-        margin-top: 20px;
-    }
-
-        .btn-submit-review:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 15px 30px rgba(42, 27, 94, 0.4);
-        }
-
-    /* 8. Package Info Box */
-    .package-info-box {
-        background: #F4F6F9;
-        border-radius: 16px;
-        padding: 20px;
-        display: flex;
-        align-items: center;
-        gap: 20px;
-        margin-bottom: 30px;
-        border-left: 5px solid #2A1B5E;
-    }
-
-    .package-icon {
-        width: 50px;
-        height: 50px;
-        background: white;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.5rem;
-        color: #2A1B5E;
-        box-shadow: 0 5px 15px rgba(0,0,0,0.05);
-    }
-</style>
-
-<div class="container">
-    <div class="review-container">
-
-        <div class="text-center mb-4">
-            <h1 class="fw-bold text-white">How was your trip?</h1>
-            <p class="text-white-50">Share your experience to help us improve.</p>
-        </div>
-
-        <div class="review-form-card">
-
-            <div class="review-header">
-                <div class="rating-big">5.0</div>
-                <div class="rating-stars-gold">★★★★★</div>
-                <p class="text-muted small">Average Package Rating</p>
             </div>
-
-            <div class="package-info-box">
-                <div class="package-icon">
-                    <i class="fas fa-plane-departure"></i>
-                </div>
-                <div>
-                    <h5 class="fw-bold mb-1" style="color: #2A1B5E;">@Model.Package.PackageName</h5>
-                    <p class="text-muted mb-0 small">
-                        <i class="far fa-calendar-alt me-1"></i> Travel Date: @Model.TravelDate.ToString("dd MMM yyyy")
-                    </p>
-                </div>
-            </div>
-
-            <form asp-action="Create" method="post" id="reviewForm">
-                <input type="hidden" name="bookingId" value="@Model.BookingID" />
-
-                <div class="mb-4 text-center">
-                    <label class="form-label" style="font-size: 1.1rem;">Tap stars to rate</label>
-                    <div class="star-rating-input">
-                        <input type="radio" id="star5" name="rating" value="5"><label for="star5" title="Excellent">★</label>
-                        <input type="radio" id="star4" name="rating" value="4"><label for="star4" title="Good">★</label>
-                        <input type="radio" id="star3" name="rating" value="3"><label for="star3" title="Average">★</label>
-                        <input type="radio" id="star2" name="rating" value="2"><label for="star2" title="Poor">★</label>
-                        <input type="radio" id="star1" name="rating" value="1"><label for="star1" title="Terrible">★</label>
-                    </div>
-                    <div id="ratingError" class="text-danger fw-bold small" style="display:none;">
-                        <i class="fas fa-exclamation-circle me-1"></i> Please select a star rating.
-                    </div>
-                </div>
-
-                <div class="mb-4">
-                    <label class="form-label">Write your review</label>
-                    <textarea name="comment" id="commentBox" class="form-control-custom" rows="5" placeholder="What was the highlight of your trip? (Minimum 10 characters)" required></textarea>
-                </div>
-
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label text-muted small">Reviewer Name</label>
-                        <input type="text" class="form-control-custom bg-light text-muted" value="@(Model.User?.FullName)" readonly />
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label text-muted small">Email Address</label>
-                        <input type="email" class="form-control-custom bg-light text-muted" value="@(Model.User?.Email)" readonly />
-                    </div>
-                </div>
-
-                <button type="button" onclick="submitReview()" class="btn-submit-review">
-                    Submit Review <i class="fas fa-paper-plane ms-2"></i>
-                </button>
-            </form>
         </div>
     </div>
 </div>
 
-<script>
-    function submitReview() {
-        var ratingInput = document.querySelector('input[name="rating"]:checked');
-        var errorMsg = document.getElementById('ratingError');
-        var commentBox = document.getElementById('commentBox');
+@section Scripts {
+    <script>
+        // Simple script to handle star rating visuals
+        const stars = document.querySelectorAll('.star-icon');
+        const ratingInput = document.getElementById('ratingInput');
+        const ratingText = document.getElementById('ratingText');
+        const messages = ["Terrible", "Bad", "Okay", "Good", "Excellent!"];
 
-        // Validation
-        if (!ratingInput) {
-            errorMsg.style.display = 'block';
-            // Shake animation for emphasis
-            document.querySelector('.star-rating-input').style.animation = "shake 0.5s";
-            setTimeout(() => document.querySelector('.star-rating-input').style.animation = "", 500);
-            return;
-        } else {
-            errorMsg.style.display = 'none';
+        function setRating(value) {
+            ratingInput.value = value;
+            ratingText.innerText = messages[value - 1];
+
+            stars.forEach(star => {
+                const starValue = parseInt(star.getAttribute('data-value'));
+                if (starValue <= value) {
+                    star.classList.remove('far', 'text-muted');
+                    star.classList.add('fas', 'text-warning');
+                } else {
+                    star.classList.remove('fas', 'text-warning');
+                    star.classList.add('far', 'text-muted'); // Empty star style
+                }
+            });
         }
 
-        if (commentBox.value.trim().length < 2) {
-            alert("Please write a short comment about your experience.");
-            return;
-        }
-
-        document.getElementById('reviewForm').submit();
-    }
-</script>
-
-<style>
-    /* Shake Animation for Error */
-    @@keyframes shake {
-        0% {
-            transform: translateX(0);
-        }
-
-        25% {
-            transform: translateX(-10px);
-        }
-
-        50% {
-            transform: translateX(10px);
-        }
-
-        75% {
-            transform: translateX(-10px);
-        }
-
-        100% {
-            transform: translateX(0);
-        }
-    }
-</style>
+        // Hover effects (Optional)
+        stars.forEach(star => {
+            star.addEventListener('mouseover', function() {
+                const hoverValue = this.getAttribute('data-value');
+                stars.forEach(s => {
+                    if (s.getAttribute('data-value') <= hoverValue) {
+                        s.style.transform = "scale(1.2)";
+                        s.style.transition = "transform 0.2s";
+                    }
+                });
+            });
+            star.addEventListener('mouseout', function() {
+                stars.forEach(s => {
+                    s.style.transform = "scale(1)";
+                });
+            });
+        });
+    </script>
+}
