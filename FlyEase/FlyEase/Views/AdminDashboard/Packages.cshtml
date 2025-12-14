@@ -2,7 +2,7 @@
 @model FlyEase.ViewModels.PackagesPageVM
 @{
     ViewData["Title"] = "Manage Packages";
-    Layout = "~/Views/Shared/_StaffLayout.cshtml";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
 }
 
 <!-- Leaflet CSS -->
@@ -98,7 +98,7 @@
                                 Edit
                             </button>
 
-                            <form asp-controller="StaffDashboard" asp-action="DeletePackage" asp-route-id="@p.PackageID" method="post" class="d-inline" onsubmit="return confirm('Delete package?');">
+                            <form asp-controller="AdminDashboard" asp-action="DeletePackage" asp-route-id="@p.PackageID" method="post" class="d-inline" onsubmit="return confirm('Delete package?');">
                                 <button type="submit" class="btn btn-sm btn-danger">Delete</button>
                             </form>
                         </td>
@@ -118,7 +118,7 @@
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <!-- Added id="packageForm" for JS validation -->
-            <form asp-controller="StaffDashboard" asp-action="SavePackage" method="post" enctype="multipart/form-data" id="packageForm" onsubmit="return validateForm()">
+            <form asp-controller="AdminDashboard" asp-action="SavePackage" method="post" enctype="multipart/form-data" id="packageForm" onsubmit="return validateForm()">
                 @Html.AntiForgeryToken()
                 <div class="modal-body">
                     <input type="hidden" id="p_id" asp-for="CurrentPackage.PackageID" />

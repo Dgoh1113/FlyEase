@@ -10,7 +10,7 @@ using Microsoft.AspNetCore.Authorization; // <--- Add this
 namespace FlyEase.Controllers
 {
     [Route("AdminDashboard")]
-    [Authorize(Roles = "Admin,Staff")] // <--- Allow Admin AND Staff here
+    [Authorize(Roles = "Admin")] 
     public class AdminDashboardController : Controller
     {
         private readonly FlyEaseDbContext _context;
