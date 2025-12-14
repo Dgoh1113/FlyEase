@@ -3,6 +3,8 @@
 
 @{
     var firstImg = Model.ImageURL?.Split(';').FirstOrDefault() ?? "/img/default-package.jpg";
+    // Calculate Duration
+    var duration = (Model.EndDate - Model.StartDate).Days + 1;
 }
 
 <a asp-controller="PackageDetails" asp-action="PackageDetails" asp-route-id="@Model.PackageID" class="text-decoration-none h-100">
@@ -26,8 +28,13 @@
             <h5 class="card-title text-truncate text-dark" title="@Model.PackageName">@Model.PackageName</h5>
 
             <div class="card-meta mb-2">
-                <small class="text-muted">
+                <small class="text-muted d-block text-truncate">
                     <i class="fas fa-map-marker-alt text-danger me-1"></i> @Model.Destination
+                </small>
+
+                <small class="text-secondary d-block mt-1">
+                    <i class="far fa-clock text-primary me-1"></i>
+                    @duration Days (@Model.StartDate.ToString("dd MMM") - @Model.EndDate.ToString("dd MMM"))
                 </small>
             </div>
 
