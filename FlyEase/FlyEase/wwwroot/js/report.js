@@ -175,13 +175,7 @@ function attachEventListeners() {
     // Export PDF button
     const exportPdfBtn = document.querySelector('[data-action="export-pdf"]');
     if (exportPdfBtn) {
-        exportPdfBtn.addEventListener('click', exportToPDF);
-    }
-
-    // Print button (if exists)
-    const printBtn = document.querySelector('[data-action="print"]');
-    if (printBtn) {
-        printBtn.addEventListener('click', printReport);
+        exportPdfBtn.addEventListener('click', printReport);
     }
 
     // Form submission
@@ -193,39 +187,6 @@ function attachEventListeners() {
         });
     }
 }
-
-// ========================================
-// EXPORT FUNCTIONS
-// ========================================
-
-function exportToPDF() {
-    const today = new Date().toISOString().split('T')[0];
-    const filename = `SalesReport_${today}.pdf`;
-
-    const element = document.getElementById('printable-area');
-    if (!element) {
-        console.error('Report container not found');
-        return;
-    }
-
-    // Check if html2pdf is available
-    if (typeof html2pdf === 'undefined') {
-        alert('PDF export library not loaded. Please refresh the page.');
-        return;
-    }
-
-    console.log('Exporting report to PDF...');
-    const opt = {
-        margin: 15,
-        filename: filename,
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true, logging: false },
-        jsPDF: { orientation: 'landscape', unit: 'mm', format: 'a4' }
-    };
-
-    html2pdf().set(opt).from(element).save();
-}
-
 function printReport() {
     window.print();
 }
