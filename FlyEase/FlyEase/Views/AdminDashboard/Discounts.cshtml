@@ -1,15 +1,30 @@
 ﻿@model FlyEase.ViewModels.DiscountsPageVM
-
 @{
     ViewData["Title"] = "Manage Discounts";
     Layout = "~/Views/Shared/_AdminLayout.cshtml";
 }
 
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2 class="text-primary">Manage Discounts</h2>
-    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#discountModal" onclick="clearModal()">
-        <i class="fas fa-plus me-2"></i> Add New Discount
+    <h2 class="text-primary fw-bold"><i class="fas fa-tags me-2"></i>Discount Management</h2>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#discountModal" onclick="clearDiscountModal()">
+        <i class="fas fa-plus me-2"></i>Add Discount
     </button>
+</div>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-body py-3">
+        <form method="get" asp-action="Discounts" class="row g-3">
+            <div class="col-md-10">
+                <div class="input-group">
+                    <span class="input-group-text bg-light"><i class="fas fa-search"></i></span>
+                    <input type="text" name="search" class="form-control" placeholder="Search by Discount Name or ID..." value="@Model.SearchTerm">
+                </div>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-secondary w-100">Search</button>
+            </div>
+        </form>
+    </div>
 </div>
 
 @if (TempData["Success"] != null)
@@ -27,41 +42,34 @@
     </div>
 }
 
-<div class="card shadow-sm">
+<div class="card shadow-sm border-0">
     <div class="card-body p-0">
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0">
                 <thead class="bg-light">
                     <tr>
                         <th class="ps-4">ID</th>
-                        <th>Discount Name</th>
-                        <th>Rate (%)</th>
-                        <th>Fixed Amount (RM)</th>
+                        <th>Name</th>
+                        <th>Value</th>
                         <th class="text-end pe-4">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @if (Model.Discounts.Any())
+                    @if (Model.Discounts != null && Model.Discounts.Any())
                     {
-                        foreach (var item in Model.Discounts)
+                        foreach (var d in Model.Discounts)
                         {
                             <tr>
-                                <td class="ps-4">@item.DiscountTypeID</td>
-                                <td class="fw-bold">@item.DiscountName</td>
+                                <td class="ps-4">#@d.DiscountTypeID</td>
+                                <td class="fw-bold">@d.DiscountName</td>
                                 <td>
-                                    @if (item.DiscountRate.HasValue)
+                                    @if (d.DiscountRate.HasValue && d.DiscountRate > 0)
                                     {
-                                        <span class="badge bg-info text-dark">@((item.DiscountRate.Value * 100).ToString("0.##"))%</span>
+                                        <span class="badge bg-success">@((d.DiscountRate * 100)?.ToString("0"))% OFF</span>
                                     }
-                                    else
+                                    else if (d.DiscountAmount.HasValue && d.DiscountAmount > 0)
                                     {
-                                        <span class="text-muted">-</span>
-                                    }
-                                </td>
-                                <td>
-                                    @if (item.DiscountAmount.HasValue)
-                                    {
-                                        <span class="badge bg-success">RM @item.DiscountAmount.Value.ToString("N2")</span>
+                                        <span class="badge bg-success">RM @d.DiscountAmount?.ToString("N0") OFF</span>
                                     }
                                     else
                                     {
@@ -69,15 +77,14 @@
                                     }
                                 </td>
                                 <td class="text-end pe-4">
-                                    <button class="btn btn-sm btn-outline-primary me-2"
-                                            onclick="editDiscount(@item.DiscountTypeID, '@item.DiscountName', '@item.DiscountRate', '@item.DiscountAmount')">
+                                    <button class="btn btn-sm btn-outline-primary me-1"
+                                            onclick="editDiscount(@d.DiscountTypeID, '@d.DiscountName', '@d.DiscountRate', '@d.DiscountAmount')">
                                         <i class="fas fa-edit"></i>
                                     </button>
-                                    <form asp-action="DeleteDiscount" method="post" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this discount?');">
-                                        <input type="hidden" name="id" value="@item.DiscountTypeID" />
-                                        <button type="submit" class="btn btn-sm btn-outline-danger">
-                                            <i class="fas fa-trash-alt"></i>
-                                        </button>
+
+                                    <form asp-action="DeleteDiscount" method="post" class="d-inline" onsubmit="return confirm('Delete this discount?');">
+                                        <input type="hidden" name="id" value="@d.DiscountTypeID" />
+                                        <button type="submit" class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></button>
                                     </form>
                                 </td>
                             </tr>
@@ -86,10 +93,7 @@
                     else
                     {
                         <tr>
-                            <td colspan="5" class="text-center py-5 text-muted">
-                                <i class="fas fa-tags fa-2x mb-3"></i>
-                                <p>No discounts found. Create one to get started!</p>
-                            </td>
+                            <td colspan="4" class="text-center py-4 text-muted">No discounts found.</td>
                         </tr>
                     }
                 </tbody>
@@ -98,33 +102,31 @@
     </div>
 </div>
 
-<div class="modal fade" id="discountModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
+<div class="modal fade" id="discountModal" tabindex="-1">
+    <div class="modal-dialog">
         <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="modalTitle">Add Discount</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
             <form asp-action="SaveDiscount" method="post">
-                <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title" id="modalTitle">Add New Discount</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
                 <div class="modal-body">
-                    @Html.AntiForgeryToken()
-                    <input type="hidden" asp-for="CurrentDiscount.DiscountTypeID" id="discountId" />
+                    <input type="hidden" asp-for="CurrentDiscount.DiscountTypeID" id="discId" />
 
                     <div class="mb-3">
-                        <label asp-for="CurrentDiscount.DiscountName" class="form-label">Discount Name</label>
-                        <input asp-for="CurrentDiscount.DiscountName" class="form-control" id="discountName" required placeholder="e.g. Seasonal Sale" />
+                        <label class="form-label">Discount Name</label>
+                        <input asp-for="CurrentDiscount.DiscountName" class="form-control" id="discName" required />
                     </div>
 
                     <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label asp-for="CurrentDiscount.DiscountRate" class="form-label">Percentage Rate (0-1)</label>
-                            <input asp-for="CurrentDiscount.DiscountRate" type="number" step="0.01" min="0" max="1" class="form-control" id="discountRate" placeholder="e.g. 0.10 for 10%" />
-                            <small class="text-muted">Enter 0.10 for 10%</small>
+                        <div class="col-6 mb-3">
+                            <label class="form-label">Rate (Decimal, e.g. 0.10)</label>
+                            <input asp-for="CurrentDiscount.DiscountRate" class="form-control" id="discRate" type="number" step="0.01" min="0" max="1" />
+                            <small class="text-muted">Use 0.10 for 10%</small>
                         </div>
-                        <div class="col-md-6 mb-3">
-                            <label asp-for="CurrentDiscount.DiscountAmount" class="form-label">Fixed Amount (RM)</label>
-                            <input asp-for="CurrentDiscount.DiscountAmount" type="number" step="0.01" min="0" class="form-control" id="discountAmount" placeholder="0.00" />
-                            <small class="text-muted">Fill only one: Rate or Amount</small>
+                        <div class="col-6 mb-3">
+                            <label class="form-label">Amount (RM)</label>
+                            <input asp-for="CurrentDiscount.DiscountAmount" class="form-control" id="discAmount" type="number" step="0.01" />
                         </div>
                     </div>
                 </div>
@@ -140,20 +142,18 @@
 <script>
     function editDiscount(id, name, rate, amount) {
         document.getElementById('modalTitle').innerText = 'Edit Discount';
-        document.getElementById('discountId').value = id;
-        document.getElementById('discountName').value = name;
-        document.getElementById('discountRate').value = rate;
-        document.getElementById('discountAmount').value = amount;
-
-        var myModal = new bootstrap.Modal(document.getElementById('discountModal'));
-        myModal.show();
+        document.getElementById('discId').value = id;
+        document.getElementById('discName').value = name;
+        document.getElementById('discRate').value = rate;
+        document.getElementById('discAmount').value = amount;
+        new bootstrap.Modal(document.getElementById('discountModal')).show();
     }
 
-    function clearModal() {
-        document.getElementById('modalTitle').innerText = 'Add New Discount';
-        document.getElementById('discountId').value = 0;
-        document.getElementById('discountName').value = '';
-        document.getElementById('discountRate').value = '';
-        document.getElementById('discountAmount').value = '';
+    function clearDiscountModal() {
+        document.getElementById('modalTitle').innerText = 'Add Discount';
+        document.getElementById('discId').value = 0;
+        document.getElementById('discName').value = '';
+        document.getElementById('discRate').value = '';
+        document.getElementById('discAmount').value = '';
     }
 </script>

@@ -1,38 +1,104 @@
 ﻿@model FlyEase.ViewModels.UsersPageVM
 @{
-    ViewData["Title"] = "Users"; Layout = "~/Views/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Manage Users";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
 }
 
-<div class="container mt-4">
-    @if (TempData["Success"] != null)
-    {
-        <div class="alert alert-success">@TempData["Success"]</div>
-    }
-    @if (TempData["Error"] != null)
-    {
-        <div class="alert alert-danger">@TempData["Error"]</div>
-    }
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="text-primary fw-bold"><i class="fas fa-users me-2"></i>User Management</h2>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#userModal" onclick="clearUserModal()">
+        <i class="fas fa-user-plus me-2"></i>Add New User
+    </button>
+</div>
 
-    <h2>User Management</h2>
+<div class="card shadow-sm mb-4">
+    <div class="card-body py-3">
+        <form method="get" asp-action="Users" class="row g-3 align-items-center">
+            <div class="col-md-6">
+                <div class="input-group">
+                    <span class="input-group-text bg-light"><i class="fas fa-search"></i></span>
+                    <input type="text" name="search" class="form-control" placeholder="Search by ID, Name, or Email..." value="@Model.SearchTerm">
+                </div>
+            </div>
+            <div class="col-md-4">
+                <select name="role" class="form-select">
+                    <option value="All">All Roles</option>
+                    <!option value="Admin" @(Model.RoleFilter == "Admin" ? "selected" : "")>Admin</!option>
+                    <!option value="Staff" @(Model.RoleFilter == "Staff" ? "selected" : "")>Staff</!option>
+                    <!option value="User" @(Model.RoleFilter == "User" ? "selected" : "")>User</!option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-secondary w-100">Filter</button>
+            </div>
+        </form>
+    </div>
+</div>
 
-    <div class="card shadow-sm mt-3">
-        <div class="card-body p-0">
-            <table class="table table-hover mb-0 align-middle">
-                <thead class="table-light"><tr><th>ID</th><th>Name</th><th>Email / Phone</th><th>Role</th><th>Actions</th></tr></thead>
+<div class="card shadow-sm border-0">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="bg-light">
+                    <tr>
+                        <th class="ps-4">ID</th>
+                        <th>User</th>
+                        <th>Role</th>
+                        <th>Joined</th>
+                        <th class="text-end pe-4">Actions</th>
+                    </tr>
+                </thead>
                 <tbody>
-                    @foreach (var u in Model.Users)
+                    @if (Model.Users.Any())
+                    {
+                        foreach (var user in Model.Users)
+                        {
+                            <tr>
+                                <td class="ps-4 text-muted">#@user.UserID</td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="avatar-circle bg-primary text-white me-3">
+                                            @user.FullName.Substring(0, 1).ToUpper()
+                                        </div>
+                                        <div>
+                                            <div class="fw-bold">@user.FullName</div>
+                                            <div class="small text-muted">@user.Email</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    @if (user.Role == "Admin")
+                                    {
+                                        <span class="badge bg-danger">Admin</span>
+                                    }
+                                    else if (user.Role == "Staff")
+                                    {
+                                        <span class="badge bg-info text-dark">Staff</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">User</span>
+                                    }
+                                </td>
+                                <td>@user.CreatedDate.ToString("dd MMM yyyy")</td>
+                                <td class="text-end pe-4">
+                                    <button class="btn btn-sm btn-outline-primary me-1" onclick="editUser(@user.UserID, '@user.FullName', '@user.Email', '@user.Phone', '@user.Role')">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <form asp-action="DeleteUser" method="post" class="d-inline" onsubmit="return confirm('Delete this user?');">
+                                        <input type="hidden" name="id" value="@user.UserID" />
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
                     {
                         <tr>
-                            <td>@u.UserID</td>
-                            <td>@u.FullName</td>
-                            <td>@u.Email<br /><small class="text-muted">@u.Phone</small></td>
-                            <td><span class="badge bg-secondary">@u.Role</span></td>
-                            <td>
-                                <button class="btn btn-sm btn-primary" onclick="openUserModal(@u.UserID, '@u.FullName', '@u.Email', '@u.Phone', '@u.Role')">Edit</button>
-                                <form asp-action="DeleteUser" asp-route-id="@u.UserID" method="post" class="d-inline" onsubmit="return confirm('Delete this user?');">
-                                    <button type="submit" class="btn btn-sm btn-danger">Delete</button>
-                                </form>
-                            </td>
+                            <td colspan="5" class="text-center py-4 text-muted">No users found matching your search.</td>
                         </tr>
                     }
                 </tbody>
@@ -41,42 +107,60 @@
     </div>
 </div>
 
-<!-- USER MODAL -->
-<div class="modal fade" id="userModal" tabindex="-1" aria-hidden="true">
+<div class="modal fade" id="userModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title">Edit User</h5>
+                <h5 class="modal-title" id="userModalLabel">Add/Edit User</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <form asp-action="SaveUser" method="post">
                 <div class="modal-body">
-                    <input type="hidden" id="u_id" asp-for="CurrentUser.UserID" />
-                    <div class="mb-3"><label>Name</label><input id="u_name" asp-for="CurrentUser.FullName" class="form-control" required /></div>
-                    <div class="mb-3"><label>Email</label><input id="u_email" asp-for="CurrentUser.Email" class="form-control" required /></div>
-                    <div class="mb-3"><label>Phone</label><input id="u_phone" asp-for="CurrentUser.Phone" class="form-control" /></div>
+                    <input type="hidden" asp-for="CurrentUser.UserID" id="userId" />
                     <div class="mb-3">
-                        <label>Role</label>
-                        <select id="u_role" asp-for="CurrentUser.Role" class="form-select">
+                        <label class="form-label">Full Name</label>
+                        <input asp-for="CurrentUser.FullName" class="form-control" id="userName" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Email</label>
+                        <input asp-for="CurrentUser.Email" class="form-control" id="userEmail" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Phone</label>
+                        <input asp-for="CurrentUser.Phone" class="form-control" id="userPhone" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Role</label>
+                        <select asp-for="CurrentUser.Role" class="form-select" id="userRole">
                             <option value="User">User</option>
                             <option value="Staff">Staff</option>
                             <option value="Admin">Admin</option>
                         </select>
                     </div>
                 </div>
-                <div class="modal-footer"><button type="submit" class="btn btn-primary">Save Changes</button></div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
             </form>
         </div>
     </div>
 </div>
 
 <script>
-    function openUserModal(id, name, email, phone, role) {
-        document.getElementById('u_id').value = id;
-        document.getElementById('u_name').value = name;
-        document.getElementById('u_email').value = email;
-        document.getElementById('u_phone').value = phone;
-        document.getElementById('u_role').value = role;
+    function editUser(id, name, email, phone, role) {
+        document.getElementById('userId').value = id;
+        document.getElementById('userName').value = name;
+        document.getElementById('userEmail').value = email;
+        document.getElementById('userPhone').value = phone;
+        document.getElementById('userRole').value = role;
         new bootstrap.Modal(document.getElementById('userModal')).show();
+    }
+    function clearUserModal() {
+        document.getElementById('userId').value = 0;
+        document.getElementById('userName').value = '';
+        document.getElementById('userEmail').value = '';
+        document.getElementById('userPhone').value = '';
+        document.getElementById('userRole').value = 'User';
     }
 </script>
