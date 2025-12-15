@@ -4,7 +4,6 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Http;
 
 namespace FlyEase.Data
 {
@@ -179,6 +178,10 @@ namespace FlyEase.Data
         [NotMapped]
         public double AverageRating { get; set; }
 
+        // Added this back to fix the compilation error
+        [NotMapped]
+        public int ReviewCount { get; set; }
+
         [NotMapped]
         public List<IFormFile>? ImageFiles { get; set; }
 
@@ -278,7 +281,7 @@ namespace FlyEase.Data
         public string Emotion { get; set; }
     }
 
-    // --- VIEW MODELS (DTOs) KEPT FOR COMPATIBILITY ---
+    // --- VIEW MODELS ---
     public class StaffBookingsViewModel
     {
         public string? SearchTerm { get; set; }
