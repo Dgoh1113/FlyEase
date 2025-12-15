@@ -142,3 +142,42 @@ canvas {
         border: 1px solid #ddd !important;
     }
 }
+
+/* Report Switcher Buttons */
+.btn-group {
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+    .btn-group .btn {
+        border-radius: 6px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        padding: 0.5rem 1rem;
+    }
+
+        .btn-group .btn.active {
+            background-color: #4e73df;
+            color: white;
+            box-shadow: 0 4px 8px rgba(78, 115, 223, 0.3);
+        }
+
+    .btn-group .btn-outline-primary:hover {
+        background-color: #4e73df;
+        color: white;
+    }
+
+/* Progress bars styling */
+.progress {
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.progress-bar {
+    font-size: 0.75rem;
+    font-weight: bold;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
