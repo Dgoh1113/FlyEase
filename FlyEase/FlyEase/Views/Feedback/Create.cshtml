@@ -1,4 +1,4 @@
-﻿@model FlyEase.Data.Booking
+﻿@model FlyEase.Data.Feedback
 
 @{
     ViewData["Title"] = "Write a Review";
@@ -6,45 +6,84 @@
 }
 
 <style>
-    /* Hide the actual radio circles */
+    /* Emotion Radio Styles */
     .emotion-group input[type="radio"] {
         display: none;
     }
 
-    /* Style the labels (the emojis) */
     .emotion-group label {
-        font-size: 2.5rem; /* Big emojis */
+        font-size: 2.5rem;
         cursor: pointer;
-        opacity: 0.5; /* Faded by default */
+        opacity: 0.5;
         transition: all 0.2s ease;
         margin: 0 10px;
-        filter: grayscale(100%); /* Black & white until selected */
-        /* FIX: Prevent text cursor/selection */
+        filter: grayscale(100%);
         user-select: none;
-        -webkit-user-select: none;
-        -moz-user-select: none;
     }
 
-        /* Hover Effect */
         .emotion-group label:hover {
             opacity: 1;
             transform: scale(1.2);
         }
 
-    /* Selected State (When radio is checked) */
     .emotion-group input[type="radio"]:checked + label {
         opacity: 1;
-        filter: grayscale(0%); /* Full color */
+        filter: grayscale(0%);
         transform: scale(1.3);
     }
+
+    /* === NEW STYLES FOR BUBBLE TAGS === */
+    .tag-container {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 10px;
+        margin-bottom: 20px;
+        min-height: 40px; /* Prevent jump when empty */
+    }
+
+    .feedback-tag {
+        border: 1px solid #ced4da;
+        background-color: white;
+        color: #6c757d;
+        padding: 8px 16px;
+        border-radius: 50px; /* Bubble shape */
+        font-size: 0.9rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        user-select: none;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+        .feedback-tag:hover {
+            background-color: #f8f9fa;
+            border-color: #adb5bd;
+        }
+
+        /* Active State (Selected) */
+        .feedback-tag.active {
+            background-color: #e7f1ff; /* Light Blue Bg */
+            border-color: #0d6efd; /* Blue Border */
+            color: #0d6efd; /* Blue Text */
+            font-weight: bold;
+        }
+
+        .feedback-tag .remove-icon {
+            display: none; /* Hidden by default */
+            font-size: 1.1em;
+        }
+
+        .feedback-tag.active .remove-icon {
+            display: inline-block; /* Show X when active */
+        }
 </style>
 
 <div class="container-fluid min-vh-100 d-flex justify-content-center align-items-center" style="background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);">
-
     <div class="container py-5">
         <div class="row justify-content-center">
             <div class="col-lg-6 col-md-8">
-
                 <div class="card border-0 shadow-lg overflow-hidden" style="border-radius: 20px;">
 
                     <div class="card-header border-0 p-5 text-center text-white" style="background: linear-gradient(135deg, #0066a1 0%, #00a3e0 100%);">
@@ -59,94 +98,112 @@
 
                         <div class="text-center mb-4">
                             <h5 class="text-uppercase text-muted small fw-bold ls-1">You visited</h5>
-                            <h3 class="text-primary fw-bold">@Model.Package.PackageName</h3>
-                            <p class="text-muted"><i class="far fa-calendar-alt me-2"></i>@Model.BookingDate.ToString("dd MMM yyyy")</p>
+                            <h3 class="text-primary fw-bold">@Model.Booking.Package.PackageName</h3>
+                            <p class="text-muted"><i class="far fa-calendar-alt me-2"></i>@Model.Booking.BookingDate.ToString("dd MMM yyyy")</p>
                         </div>
 
                         <hr class="my-4 opacity-10">
 
                         <form asp-action="Create" method="post">
-                            <input type="hidden" name="bookingId" value="@Model.BookingID" />
+                            <input type="hidden" asp-for="BookingID" />
                             @Html.AntiForgeryToken()
 
-                            @if (TempData["Error"] != null)
-                            {
-                                <div class="alert alert-danger rounded-pill text-center mb-4">
-                                    <i class="fas fa-exclamation-circle me-2"></i> @TempData["Error"]
-                                </div>
-                            }
+                            <div asp-validation-summary="ModelOnly" class="text-danger mb-3 text-center"></div>
 
                             <div class="mb-4 text-center">
                                 <label class="form-label fw-bold text-dark mb-2">Rate your experience</label>
                                 <div class="rating-group d-flex justify-content-center gap-3" style="font-size: 2rem; cursor: pointer;">
-                                    <input type="hidden" id="ratingInput" name="rating" value="5" />
-
-                                    <i class="fas fa-star text-warning star-icon" data-value="1" onclick="setRating(1)"></i>
+                                    <input type="hidden" id="ratingInput" asp-for="Rating" value="5" /> <i class="fas fa-star text-warning star-icon" data-value="1" onclick="setRating(1)"></i>
                                     <i class="fas fa-star text-warning star-icon" data-value="2" onclick="setRating(2)"></i>
                                     <i class="fas fa-star text-warning star-icon" data-value="3" onclick="setRating(3)"></i>
                                     <i class="fas fa-star text-warning star-icon" data-value="4" onclick="setRating(4)"></i>
                                     <i class="fas fa-star text-warning star-icon" data-value="5" onclick="setRating(5)"></i>
                                 </div>
                                 <div class="form-text mt-2" id="ratingText">Excellent!</div>
+                                <span asp-validation-for="Rating" class="text-danger"></span>
                             </div>
 
                             <div class="mb-4 text-center">
                                 <label class="form-label d-block fw-bold">How did this trip make you feel?</label>
-
                                 <div class="emotion-group d-flex justify-content-center mt-2">
-                                    <input type="radio" id="emo1" name="emotion" value="Sad" required>
-                                    <label for="emo1" title="Disappointed">😞</label>
+                                    <input type="radio" id="emo1" asp-for="Emotion" value="Sad"><label for="emo1" title="Disappointed">😞</label>
+                                    <input type="radio" id="emo2" asp-for="Emotion" value="Neutral"><label for="emo2" title="It was okay">😐</label>
+                                    <input type="radio" id="emo3" asp-for="Emotion" value="Happy"><label for="emo3" title="Happy">🙂</label>
+                                    <input type="radio" id="emo4" asp-for="Emotion" value="Excited"><label for="emo4" title="Excited">🤩</label>
+                                    <input type="radio" id="emo5" asp-for="Emotion" value="Loved"><label for="emo5" title="Loved it!">😍</label>
+                                </div>
+                                <span asp-validation-for="Emotion" class="text-danger d-block mt-2"></span>
+                            </div>
 
-                                    <input type="radio" id="emo2" name="emotion" value="Neutral">
-                                    <label for="emo2" title="It was okay">😐</label>
-
-                                    <input type="radio" id="emo3" name="emotion" value="Happy">
-                                    <label for="emo3" title="Happy">🙂</label>
-
-                                    <input type="radio" id="emo4" name="emotion" value="Excited">
-                                    <label for="emo4" title="Excited">🤩</label>
-
-                                    <input type="radio" id="emo5" name="emotion" value="Loved">
-                                    <label for="emo5" title="Loved it!">😍</label>
+                            <div class="mb-2">
+                                <label class="form-label fw-bold text-dark small text-uppercase ls-1">Quick Options</label>
+                                <div id="tagContainer" class="tag-container">
                                 </div>
                             </div>
 
                             <div class="mb-4">
-                                <label for="comment" class="form-label fw-bold text-dark">Your Feedback</label>
-                                <textarea name="comment" id="comment" rows="4" class="form-control bg-light border-0"
+                                <label asp-for="Comment" class="form-label fw-bold text-dark">Your Feedback</label>
+                                <textarea asp-for="Comment" id="comment" rows="4" class="form-control bg-light border-0"
                                           style="border-radius: 15px; padding: 15px;"
                                           placeholder="Tell us what you loved or what we could improve..."></textarea>
+                                <span asp-validation-for="Comment" class="text-danger"></span>
                             </div>
 
                             <div class="d-grid gap-2">
                                 <button type="submit" class="btn btn-primary btn-lg rounded-pill fw-bold shadow-sm">
                                     Submit Review <i class="fas fa-paper-plane ms-2"></i>
                                 </button>
-                                <a asp-controller="Auth" asp-action="Profile" class="btn btn-link text-muted text-decoration-none">
-                                    Maybe later
-                                </a>
+                                <a asp-controller="Auth" asp-action="Profile" class="btn btn-link text-muted text-decoration-none">Maybe later</a>
                             </div>
                         </form>
                     </div>
                 </div>
-
             </div>
         </div>
     </div>
 </div>
 
 @section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+
     <script>
-        // Simple script to handle star rating visuals
+        // === DATA: PRE-READY OPTIONS ===
+        const tagsData = {
+            bad: [ // 1-2 Stars
+                "Poor Environment", "Weak Wifi", "Dirty Facilities", "Bad View",
+                "Slow Service", "Noisy", "Overpriced", "Rude Staff", "Small Room"
+            ],
+            neutral: [ // 3 Stars
+                "Average Facilities", "Okay View", "Standard Service",
+                "Fair Price", "Acceptable Wifi", "Cleanliness Could Improve"
+            ],
+            good: [ // 4-5 Stars
+                "Excellent Service", "Stunning View", "Strong Wifi", "High Privacy",
+                "Great Value", "Clean & Comfortable", "Delicious Food", "Friendly Staff"
+            ]
+        };
+
         const stars = document.querySelectorAll('.star-icon');
         const ratingInput = document.getElementById('ratingInput');
         const ratingText = document.getElementById('ratingText');
+        const tagContainer = document.getElementById('tagContainer');
+        const commentBox = document.getElementById('comment');
+
         const messages = ["Terrible", "Bad", "Okay", "Good", "Excellent!"];
 
+        // Initialize with default (5 stars)
+        document.addEventListener("DOMContentLoaded", function() {
+            setRating(5);
+        });
+
         function setRating(value) {
+            // 1. Update Input & Text
             ratingInput.value = value;
             ratingText.innerText = messages[value - 1];
 
+            // 2. Update Star Visuals
             stars.forEach(star => {
                 const starValue = parseInt(star.getAttribute('data-value'));
                 if (starValue <= value) {
@@ -154,12 +211,69 @@
                     star.classList.add('fas', 'text-warning');
                 } else {
                     star.classList.remove('fas', 'text-warning');
-                    star.classList.add('far', 'text-muted'); // Empty star style
+                    star.classList.add('far', 'text-muted');
                 }
+            });
+
+            // 3. Update Bubble Tags based on Rating
+            updateTags(value);
+        }
+
+        function updateTags(rating) {
+            tagContainer.innerHTML = ""; // Clear existing
+
+            let selectedCategory = [];
+            if (rating <= 2) selectedCategory = tagsData.bad;
+            else if (rating == 3) selectedCategory = tagsData.neutral;
+            else selectedCategory = tagsData.good;
+
+            selectedCategory.forEach(text => {
+                // Create Bubble Element
+                const tag = document.createElement("div");
+                tag.className = "feedback-tag";
+                tag.innerHTML = `${text} <span class="remove-icon">&times;</span>`;
+
+                // Click Event
+                tag.onclick = function() {
+                    toggleTag(tag, text);
+                };
+
+                tagContainer.appendChild(tag);
             });
         }
 
-        // Hover effects (Optional)
+        function toggleTag(element, text) {
+            // Check if currently active
+            const isActive = element.classList.contains("active");
+            let currentComment = commentBox.value;
+
+            if (!isActive) {
+                // ADDING TAG
+                element.classList.add("active");
+
+                // Add text with comma if box is not empty
+                if (currentComment.trim() === "") {
+                    commentBox.value = text;
+                } else {
+                    commentBox.value = currentComment + ", " + text;
+                }
+            } else {
+                // REMOVING TAG (Logic to remove specific string)
+                element.classList.remove("active");
+
+                // We try to remove "Text, " or ", Text" or just "Text"
+                // This simple replace handles most cases but isn't perfect if user types manually.
+                if (currentComment.includes(text + ", ")) {
+                    commentBox.value = currentComment.replace(text + ", ", "");
+                } else if (currentComment.includes(", " + text)) {
+                    commentBox.value = currentComment.replace(", " + text, "");
+                } else {
+                    commentBox.value = currentComment.replace(text, "");
+                }
+            }
+        }
+
+        // Optional: Hover Effects for Stars
         stars.forEach(star => {
             star.addEventListener('mouseover', function() {
                 const hoverValue = this.getAttribute('data-value');
@@ -171,9 +285,7 @@
                 });
             });
             star.addEventListener('mouseout', function() {
-                stars.forEach(s => {
-                    s.style.transform = "scale(1)";
-                });
+                stars.forEach(s => { s.style.transform = "scale(1)"; });
             });
         });
     </script>

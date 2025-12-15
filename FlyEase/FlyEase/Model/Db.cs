@@ -274,10 +274,15 @@ namespace FlyEase.Data
         public int BookingID { get; set; }
         public int UserID { get; set; }
         public int Rating { get; set; }
+
+        [Required(ErrorMessage = "Please tell us about your experience.")] 
         public string? Comment { get; set; }
+      
         public DateTime CreatedDate { get; set; }
         public Booking Booking { get; set; } = null!;
-        public User User { get; set; } = null!;
+       public User User { get; set; } = null!;
+        
+        [Required(ErrorMessage = "Please select an emotion that best matches your feeling.")]
         public string Emotion { get; set; }
     }
 
