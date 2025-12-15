@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace FlyEase.Controllers
 {
-    [Authorize] // 1. Global Rule: Must be logged in to do ANYTHING here
+    [Authorize]
     public class FeedbackController : Controller
     {
         private readonly FlyEaseDbContext _context;
@@ -44,45 +44,64 @@ namespace FlyEase.Controllers
                 return RedirectToAction("Profile", "Auth");
             }
 
-            return View(booking);
+            // Create a Feedback model and populate it with the booking to pass to the View
+            var model = new Feedback
+            {
+                BookingID = bookingId,
+                Booking = booking, // Needed to display Package Name etc.
+                Rating = 5 // Default rating
+            };
+
+            return View(model);
         }
 
         // [POST] Create Review
         [HttpPost]
         [ValidateAntiForgeryToken]
-        // 1. Updated to accept 'emotion'
-        public async Task<IActionResult> Create(int bookingId, int rating, string comment, string emotion)
+        // UPDATED: Now accepts the Feedback object directly for Validation
+        public async Task<IActionResult> Create(Feedback feedback)
         {
-            if (rating < 1 || rating > 5)
-            {
-                TempData["Error"] = "Please select a star rating between 1 and 5.";
-                return RedirectToAction("Create", new { bookingId });
-            }
-
             var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
 
-            // 2. Save Feedback (including Emotion)
-            var feedback = new Feedback
+            // "Booking" and "User" are navigation properties, not form inputs, so we ignore them for validation
+            ModelState.Remove("Booking");
+            ModelState.Remove("User");
+
+            if (!ModelState.IsValid)
             {
-                BookingID = bookingId,
-                UserID = userId,
-                Rating = rating,
-                Emotion = emotion, // <--- Added here
-                Comment = comment,
-                CreatedDate = DateTime.Now
-            };
+                // Validation Failed: Reload the Booking info so the View can display it again
+                feedback.Booking = await _context.Bookings
+                    .Include(b => b.Package)
+                    .FirstOrDefaultAsync(b => b.BookingID == feedback.BookingID);
+
+                return View(feedback);
+            }
+
+            // Manually check Rating bounds if not handled by DataAnnotations
+            if (feedback.Rating < 1 || feedback.Rating > 5)
+            {
+                TempData["Error"] = "Please select a star rating between 1 and 5.";
+                // Reload booking for view
+                feedback.Booking = await _context.Bookings
+                   .Include(b => b.Package)
+                   .FirstOrDefaultAsync(b => b.BookingID == feedback.BookingID);
+                return View(feedback);
+            }
+
+            // Save Data
+            feedback.UserID = userId;
+            feedback.CreatedDate = DateTime.Now;
 
             _context.Feedbacks.Add(feedback);
             await _context.SaveChangesAsync();
 
-            // 3. Send "Thank You" Email (Preserved Logic)
+            // Send Email
             try
             {
                 var booking = await _context.Bookings
                     .Include(b => b.User)
                     .Include(b => b.Package)
-                    .FirstOrDefaultAsync(b => b.BookingID == bookingId);
-                // ... inside [HttpPost] Create method ...
+                    .FirstOrDefaultAsync(b => b.BookingID == feedback.BookingID);
 
                 if (booking != null)
                 {
@@ -91,9 +110,9 @@ namespace FlyEase.Controllers
                         booking.User.Email,
                         booking.User.FullName,
                         booking.Package.PackageName,
-                        rating,
-                        comment,
-                        emotion // <--- Add this argument
+                        feedback.Rating,
+                        feedback.Comment,
+                        feedback.Emotion
                     );
                 }
             }
@@ -133,7 +152,6 @@ namespace FlyEase.Controllers
         // ==========================================
         [HttpPost]
         [ValidateAntiForgeryToken]
-        // 1. Add 'string emotion' to the parameters
         public async Task<IActionResult> Edit(int bookingId, int rating, string comment, string emotion)
         {
             var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
@@ -145,7 +163,7 @@ namespace FlyEase.Controllers
 
             feedback.Rating = rating;
             feedback.Comment = comment;
-            feedback.Emotion = emotion; // <--- 2. Update Emotion
+            feedback.Emotion = emotion;
             feedback.CreatedDate = DateTime.Now;
 
             _context.Feedbacks.Update(feedback);
@@ -280,9 +298,8 @@ namespace FlyEase.Controllers
             return View(data);
         }
 
-    } // <--- END OF CLASS FeedbackController
+    }
 
-    // Helper Class
     public class FeedbackAnalyticsVM
     {
         public string PackageName { get; set; }
@@ -291,5 +308,4 @@ namespace FlyEase.Controllers
         public int OneStarCount { get; set; }
         public int FiveStarCount { get; set; }
     }
-
 }

@@ -37,11 +37,15 @@ namespace FlyEase.Services
             await SendEmailAsync(userEmail, $"How was your trip to {packageName}? ✈️", body);
         }
 
+        // Inside FlyEase/Services/EmailService.cs
+
         public async Task SendReviewConfirmation(string userEmail, string userName, string packageName, int rating, string comment, string emotion)
         {
+            // 1. Generate Stars String (e.g., ★★★☆☆)
             string stars = "";
             for (int i = 0; i < 5; i++) stars += (i < rating) ? "★" : "☆";
 
+            // 2. Determine Emotion Display
             string emotionDisplay = emotion switch
             {
                 "Sad" => "Disappointed 😞",
@@ -52,6 +56,39 @@ namespace FlyEase.Services
                 _ => emotion
             };
 
+            // 3. CONDITIONAL LOGIC: Subject, Message, and Coupon
+            string subject;
+            string customMessage;
+            string couponHtml = ""; // Default is empty (no coupon)
+
+            if (rating <= 2)
+            {
+                // === BAD RATING (1-2 Stars) ===
+                subject = "We're sorry to hear that... 😔";
+                customMessage = "We are truly sorry that your experience didn't meet your expectations. We take your feedback seriously and will do our best to improve. As a token of our sincere apology, please accept this discount for your next trip.";
+
+                // Inject a Coupon Block
+                couponHtml = @"
+            <div style='background-color: #fff3cd; border: 2px dashed #ffc107; border-radius: 10px; padding: 20px; text-align: center; margin: 20px 0;'>
+                <p style='color: #856404; margin: 0 0 10px 0; font-weight: bold;'>A small gift for you</p>
+                <h2 style='color: #d39e00; margin: 0; font-size: 24px; letter-spacing: 2px;'>SORRY50</h2>
+                <p style='font-size: 12px; color: #856404; margin: 5px 0 0 0;'>Use this code to get RM50 off your next booking.</p>
+            </div>";
+            }
+            else if (rating == 3)
+            {
+                // === NEUTRAL RATING (3 Stars) ===
+                subject = "Thanks for your feedback! 😐";
+                customMessage = "Thank you for your feedback. We are always looking to improve our services. If there is anything specific we can do better next time, please let us know by replying to this email!";
+            }
+            else
+            {
+                // === GOOD RATING (4-5 Stars) ===
+                subject = "We're glad you enjoyed it! 🤩";
+                customMessage = "Thank you for the great review! We are thrilled you had a good time. Is there anything else we can do to make your next experience even better? Let us know!";
+            }
+
+            // 4. Load and Replace Template
             string body = await GetTemplateHtml("Confirmation.html");
 
             if (!string.IsNullOrEmpty(body))
@@ -61,14 +98,18 @@ namespace FlyEase.Services
                            .Replace("{{Stars}}", stars)
                            .Replace("{{Emotion}}", emotionDisplay)
                            .Replace("{{Comment}}", comment)
+                           // Inject the new dynamic parts:
+                           .Replace("{{Message}}", customMessage)
+                           .Replace("{{Coupon}}", couponHtml)
                            .Replace("{{Year}}", DateTime.Now.Year.ToString());
             }
             else
             {
-                body = $"Thank you {userName} for reviewing {packageName}!";
+                // Fallback if template is missing
+                body = $"{customMessage} <br/><br/> You rated: {stars}";
             }
 
-            await SendEmailAsync(userEmail, "Thanks for your feedback! ⭐", body);
+            await SendEmailAsync(userEmail, subject, body);
         }
 
         // ==========================================

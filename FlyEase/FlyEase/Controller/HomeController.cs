@@ -4,7 +4,8 @@ using FlyEase.Data;
 using System.Linq;
 using System.Threading.Tasks;
 using System;
-using X.PagedList; // <--- ADD THIS NAMSEPACE
+using System.Collections.Generic;
+using X.PagedList; // Ensure you have installed X.PagedList.Mvc.Core
 
 namespace FlyEase.Controllers
 {
@@ -20,11 +21,10 @@ namespace FlyEase.Controllers
         // GET: /Home/Index
         public async Task<IActionResult> Index(string searchTerm, string destination, int? categoryId, decimal? minPrice, decimal? maxPrice)
         {
-            // (Index method remains unchanged)
             var query = _context.Packages
                 .Include(p => p.Category)
                 .Include(p => p.PackageInclusions)
-                .Include(p => p.Itinerary)
+                //.Include(p => p.Itinerary) // Uncomment if/when you use Itinerary in the view
                 .Include(p => p.Bookings)
                 .ThenInclude(b => b.Feedbacks)
                 .Where(p => p.AvailableSlots > 0);
@@ -57,13 +57,14 @@ namespace FlyEase.Controllers
             {
                 var ratings = p.Bookings.SelectMany(b => b.Feedbacks).Select(f => f.Rating);
                 p.AverageRating = ratings.Any() ? ratings.Average() : 0;
+                p.ReviewCount = ratings.Count();
             }
 
             return View(packages);
         }
 
         // GET: /Home/Packages
-        // UPDATED: Now supports Pagination (page parameter)
+        // Supports Pagination
         public async Task<IActionResult> Packages(string searchTerm, string destination, int? categoryId, decimal? maxPrice, DateTime? startDate, DateTime? endDate, int? page)
         {
             int pageSize = 12; // Limit to 12 items per page
@@ -73,7 +74,7 @@ namespace FlyEase.Controllers
             var query = _context.Packages
                 .Include(p => p.Category)
                 .Include(p => p.PackageInclusions)
-                .Include(p => p.Itinerary)
+                //.Include(p => p.Itinerary) 
                 .Include(p => p.Bookings)
                 .ThenInclude(b => b.Feedbacks)
                 .Where(p => p.AvailableSlots > 0);
@@ -97,7 +98,7 @@ namespace FlyEase.Controllers
             if (endDate.HasValue)
                 query = query.Where(p => p.StartDate <= endDate.Value);
 
-            // 3. Load View Data (Dropdowns & Inputs)
+            // 3. Load View Data
             ViewBag.Categories = await _context.PackageCategories.ToListAsync();
 
             ViewBag.Destinations = await _context.Packages
@@ -115,24 +116,22 @@ namespace FlyEase.Controllers
             ViewBag.EndDate = endDate?.ToString("yyyy-MM-dd");
 
             // 4. Pagination Logic
-            // We count total items first to calculate total pages
             var totalItems = await query.CountAsync();
 
-            // We fetch only the items for the current page
             var pagedData = await query
                 .OrderByDescending(p => p.PackageID)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync();
 
-            // 5. Calculate Ratings for the displayed page only
+            // 5. Calculate Ratings
             foreach (var p in pagedData)
             {
                 var ratings = p.Bookings.SelectMany(b => b.Feedbacks).Select(f => f.Rating);
                 p.AverageRating = ratings.Any() ? ratings.Average() : 0;
+                p.ReviewCount = ratings.Count();
             }
 
-            // Create the PagedList object to pass to the view
             var pagedList = new StaticPagedList<Package>(pagedData, pageNumber, pageSize, totalItems);
 
             return View(pagedList);
@@ -143,10 +142,16 @@ namespace FlyEase.Controllers
             var package = await _context.Packages
                 .Include(p => p.Category)
                 .Include(p => p.PackageInclusions)
-                .Include(p => p.Itinerary)
+                //.Include(p => p.Itinerary) 
+                .Include(p => p.Bookings)
+                    .ThenInclude(b => b.Feedbacks)
                 .FirstOrDefaultAsync(m => m.PackageID == id);
 
             if (package == null) return NotFound();
+
+            var ratings = package.Bookings.SelectMany(b => b.Feedbacks).Select(f => f.Rating);
+            package.AverageRating = ratings.Any() ? ratings.Average() : 0;
+            package.ReviewCount = ratings.Count();
 
             return View(package);
         }
