@@ -1,0 +1,145 @@
+﻿/* BEVEL BUTTON CSS - BLUE VERSION */
+
+.bevel-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+
+/* Hide the actual checkbox input */
+#bevelButton {
+    display: none;
+}
+
+/* The label becomes the button */
+.bevel {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    padding: 0 32px;
+    height: 54px;
+    /* --- BLUE GRADIENT BACKGROUND --- */
+    background: #0d6efd; /* Fallback Blue */
+    background: linear-gradient(to bottom, #0d6efd 50%, #0a58ca 50%); /* Blue to Darker Blue */
+
+    border-radius: 0px;
+    /* --- BLUE SHADOWS --- */
+    box-shadow: 0px 15px 25px -10px rgba(0, 0, 0, 0.5), inset 0px 0px 0px 0px rgba(13, 110, 253, 0), inset 0px -27px 0px 0px #0a58ca;
+    /* --- CHANGED FONT TO POPPINS --- */
+    font-family: 'Poppins', sans-serif;
+    font-weight: 600; /* Make text bold enough */
+    font-size: 20px;
+    text-align: center;
+    /* --- BLUE TEXT SHADOWS --- */
+    text-shadow: 0px 3px 5px #0a58ca, 0px 5px 10px #0a58ca, 0px 5px 10px #0a58ca, 0px 5px 10px #0a58ca, 0px 5px 10px #0a58ca;
+    color: #fff;
+    letter-spacing: 0.5px;
+    overflow: hidden;
+    cursor: pointer;
+    user-select: none;
+    transform: scale(1.01);
+    transition: all 0.2s ease-in-out;
+    width: auto;
+    min-width: 220px;
+}
+
+    /* The angled sides (pseudo-elements) */
+    .bevel:before, .bevel:after {
+        content: " ";
+        width: 27px;
+        max-width: 50%;
+        height: 100%;
+        position: absolute;
+        top: 0;
+        transition: all 0.135s cubic-bezier(0.74, 0.16, 0.24, 0.92);
+        transition-delay: 0.15s;
+    }
+
+    .bevel:before {
+        left: 0;
+        /* --- BLUE LEFT ANGLE --- */
+        background: linear-gradient(45deg, transparent 66.6%, #0d6efd 66.6%), linear-gradient(-45deg, #0a58ca 33.3%, transparent 33.3%), linear-gradient(to right, #0d6efd, #0a58ca);
+    }
+
+    .bevel:after {
+        right: 0;
+        /* --- BLUE RIGHT ANGLE --- */
+        background: linear-gradient(-45deg, transparent 66.6%, #0d6efd 66.6%), linear-gradient(45deg, #0a58ca 33.3%, transparent 33.3%), linear-gradient(to left, #0d6efd, #0a58ca);
+    }
+
+    .bevel:hover {
+        transform: scale(1.07);
+        box-shadow: 0px 25px 40px -5px rgba(0, 0, 0, 0.3), inset 0px 0px 0px 0px rgba(13, 110, 253, 0), inset 0px -27px 0px 0px #0a58ca;
+    }
+
+/* Checked / Active State (Pressed Down) */
+#bevelButton:checked ~ .bevel {
+    padding: 0 18.5px;
+    background: transparent;
+    /* --- PRESSED SHADOWS --- */
+    box-shadow: 0px 5px 15px -5px rgba(0, 0, 0, 0.3), inset 0px 0px 0px 4px #0d6efd, inset 0px 0px 0px 0px #0a58ca;
+    border-radius: 10px;
+    font-size: 20px;
+    font-weight: 700;
+    text-shadow: none;
+    color: #0d6efd;
+    transform: scale(0.9) rotate(-2deg);
+    transition: all 0.45s cubic-bezier(0.6, -0.9, 0.39, 1.65);
+    transition-delay: 0.135s;
+}
+
+    #bevelButton:checked ~ .bevel:before {
+        transform: translateX(-100%);
+        transition-delay: 0s;
+    }
+
+    #bevelButton:checked ~ .bevel:after {
+        transform: translateX(100%);
+        transition-delay: 0s;
+    }
+
+/* --- Existing Styles --- */
+.contact-hero {
+    background: linear-gradient(135deg, #0d6efd 0%, #198754 100%);
+}
+
+.contact-icon {
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.bg-light-primary {
+    background-color: rgba(13, 110, 253, 0.1);
+}
+
+.social-links a {
+    transition: transform 0.3s;
+}
+
+    .social-links a:hover {
+        transform: translateY(-3px);
+    }
+
+.accordion-button:not(.collapsed) {
+    background-color: rgba(13, 110, 253, 0.1);
+    color: #0d6efd;
+}
+
+.map-container {
+    border-radius: 0 0 0.375rem 0.375rem;
+    overflow: hidden;
+}
+
+.card {
+    border-radius: 15px;
+}
+
+.card-header {
+    border-radius: 15px 15px 0 0 !important;
+}
+

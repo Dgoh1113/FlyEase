@@ -115,28 +115,31 @@
                         <input type="hidden" asp-for="FinalAmount" />
                         <input type="hidden" asp-for="DepositAmount" />
 
-                        <h5 class="fw-bold mb-3">Payment Option</h5>
-                        <div class="payment-type-selector">
-                            
-                            <label class="flex-grow-1">
-                                <input type="radio" asp-for="PaymentType" value="Full" class="payment-type-input" checked onchange="updateTotalDisplay('full')">
-                                <div class="payment-type-option">
-                                    <div class="small text-muted text-uppercase mb-1">Pay Full Amount</div>
-                                    <div class="amount-highlight text-primary">RM @Model.FinalAmount.ToString("N2")</div>
-                                </div>
-                            </label>
+                       <h5 class="fw-bold mb-3">Payment Option</h5>
+<div class="payment-type-selector">
+    
+    <label class="flex-grow-1">
+        <input type="radio" asp-for="PaymentType" value="Full" class="payment-type-input" checked onchange="updateTotalDisplay('full')">
+        <div class="payment-type-option">
+            <div class="small text-muted text-uppercase mb-1">Pay Full Amount</div>
+            <div class="amount-highlight text-primary">RM @Model.FinalAmount.ToString("N2")</div>
+        </div>
+    </label>
 
-                            <label class="flex-grow-1">
-                                <input type="radio" asp-for="PaymentType" value="Deposit" class="payment-type-input" onchange="updateTotalDisplay('deposit')">
-                                <div class="payment-type-option">
-                                    <div class="small text-muted text-uppercase mb-1">
-                                        Pay Deposit (30%) <span class="deposit-badge">Reserve Spot</span>
-                                    </div>
-                                    <div class="amount-highlight text-warning">RM @Model.DepositAmount.ToString("N2")</div>
-                                </div>
-                            </label>
+    @if (ViewBag.AllowDeposit == true)
+    {
+        <label class="flex-grow-1">
+            <input type="radio" asp-for="PaymentType" value="Deposit" class="payment-type-input" onchange="updateTotalDisplay('deposit')">
+            <div class="payment-type-option">
+                <div class="small text-muted text-uppercase mb-1">
+                    Pay Deposit (30%) <span class="deposit-badge">Reserve Spot</span>
+                </div>
+                <div class="amount-highlight text-warning">RM @Model.DepositAmount.ToString("N2")</div>
+            </div>
+        </label>
+    }
 
-                        </div>
+</div>
 
                         <h5 class="fw-bold mb-4 mt-5">Select Method</h5>
                         <span asp-validation-for="SelectedMethod" class="text-danger d-block mb-3"></span>

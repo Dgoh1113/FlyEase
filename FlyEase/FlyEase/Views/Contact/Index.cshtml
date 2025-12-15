@@ -3,9 +3,10 @@
     ViewData["Title"] = "Contact Us - FlyEase Travel";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="~/css/packagemanagement.css" />
 
 <div class="contact-page">
-    <!-- Hero Section -->
     <div class="contact-hero bg-primary text-white py-5 mb-5">
         <div class="container">
             <div class="row">
@@ -18,7 +19,6 @@
     </div>
 
     <div class="container">
-        <!-- Success/Error Messages -->
         @if (TempData["SuccessMessage"] != null)
         {
             <div class="alert alert-success alert-dismissible fade show" role="alert">
@@ -36,7 +36,6 @@
         }
 
         <div class="row">
-            <!-- Contact Form -->
             <div class="col-lg-7 mb-5">
                 <div class="card shadow-sm border-0">
                     <div class="card-header bg-white border-0 pt-4">
@@ -48,7 +47,6 @@
                         <form method="post" asp-action="SubmitContact" id="contactForm">
                             @Html.AntiForgeryToken()
 
-                            <!-- Add this after the form opening tag -->
                             <div id="form-status" class="alert alert-info" style="display: none;">
                                 <i class="fas fa-spinner fa-spin me-2"></i>Sending your message...
                             </div>
@@ -87,17 +85,16 @@
                                 <div class="form-text">Maximum 5000 characters</div>
                             </div>
 
-                            <div class="d-grid">
-                                <button type="submit" class="btn btn-primary btn-lg">
-                                    <i class="fas fa-paper-plane me-2"></i>Send Message
-                                </button>
+                            <div class="d-grid justify-content-center pt-3 pb-3 bevel-container">
+                                <input type="checkbox" name="bevelButton" id="bevelButton">
+                                <label class="bevel" for="bevelButton">Send Message</label>
                             </div>
+
                         </form>
                     </div>
                 </div>
             </div>
 
-            <!-- Contact Information -->
             <div class="col-lg-5">
                 <div class="card shadow-sm border-0 mb-4">
                     <div class="card-header bg-white border-0 pt-4">
@@ -107,7 +104,6 @@
                     </div>
                     <div class="card-body p-4">
                         <div class="contact-info">
-                            <!-- Address -->
                             <div class="d-flex mb-4">
                                 <div class="contact-icon bg-light-primary rounded-circle p-3 me-3">
                                     <i class="fas fa-map-marker-alt text-primary fa-lg"></i>
@@ -122,7 +118,6 @@
                                 </div>
                             </div>
 
-                            <!-- Phone -->
                             <div class="d-flex mb-4">
                                 <div class="contact-icon bg-light-primary rounded-circle p-3 me-3">
                                     <i class="fas fa-phone text-primary fa-lg"></i>
@@ -136,7 +131,6 @@
                                 </div>
                             </div>
 
-                            <!-- Email -->
                             <div class="d-flex mb-4">
                                 <div class="contact-icon bg-light-primary rounded-circle p-3 me-3">
                                     <i class="fas fa-envelope text-primary fa-lg"></i>
@@ -144,12 +138,11 @@
                                 <div>
                                     <h5 class="h6 mb-1">Email Us</h5>
                                     <p class="mb-0">
-                                        <a href="FlyEaseSC@gmail.com" class="text-decoration-none">FlyEaseSC@gmail.com</a><br>
+                                        <a href="mailto:FlyEaseSC@gmail.com" class="text-decoration-none">FlyEaseSC@gmail.com</a><br>
                                     </p>
                                 </div>
                             </div>
 
-                            <!-- Social Media -->
                             <div class="d-flex">
                                 <div class="contact-icon bg-light-primary rounded-circle p-3 me-3">
                                     <i class="fas fa-hashtag text-primary fa-lg"></i>
@@ -176,7 +169,6 @@
                     </div>
                 </div>
 
-                <!-- FAQ Section -->
                 <div class="card shadow-sm border-0">
                     <div class="card-header bg-white border-0 pt-4">
                         <h3 class="card-title h4 mb-0">
@@ -185,7 +177,6 @@
                     </div>
                     <div class="card-body p-4">
                         <div class="accordion" id="faqAccordion">
-                            <!-- FAQ 1 -->
                             <div class="accordion-item border-0 mb-2">
                                 <h2 class="accordion-header" id="faq1">
                                     <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse1">
@@ -199,7 +190,6 @@
                                 </div>
                             </div>
 
-                            <!-- FAQ 2 -->
                             <div class="accordion-item border-0 mb-2">
                                 <h2 class="accordion-header" id="faq2">
                                     <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse2">
@@ -213,7 +203,6 @@
                                 </div>
                             </div>
 
-                            <!-- FAQ 3 -->
                             <div class="accordion-item border-0">
                                 <h2 class="accordion-header" id="faq3">
                                     <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse3">
@@ -238,7 +227,6 @@
             </div>
         </div>
 
-        <!-- Map Section -->
         <div class="row mt-5">
             <div class="col-12">
                 <div class="card shadow-sm border-0">
@@ -248,7 +236,6 @@
                         </h3>
                     </div>
                     <div class="card-body p-0">
-                        <!-- Google Maps Embed -->
                         <div class="map-container" style="height: 400px; background: #f8f9fa;">
                             <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3983.775382838917!2d101.7122350758314!3d3.153637753314463!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x31cc37d12d669c1f%3A0x9e3afdd17c8a9056!2sPETRONAS%20Twin%20Towers!5e0!3m2!1sen!2smy!4v1700000000000!5m2!1sen!2smy"
                                     width="100%"
@@ -266,8 +253,110 @@
     </div>
 </div>
 
-<!-- Custom CSS for Contact Page -->
 <style>
+    /* BEVEL BUTTON CSS - BLUE VERSION */
+
+    .bevel-container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+    }
+
+    /* Hide the actual checkbox input */
+    #bevelButton {
+        display: none;
+    }
+
+    /* The label becomes the button */
+    .bevel {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        padding: 0 32px;
+        height: 54px;
+        /* --- BLUE GRADIENT BACKGROUND --- */
+        background: #0d6efd; /* Fallback Blue */
+        background: linear-gradient(to bottom, #0d6efd 50%, #0a58ca 50%); /* Blue to Darker Blue */
+
+        border-radius: 0px;
+        /* --- BLUE SHADOWS --- */
+        box-shadow: 0px 15px 25px -10px rgba(0, 0, 0, 0.5), inset 0px 0px 0px 0px rgba(13, 110, 253, 0), inset 0px -27px 0px 0px #0a58ca;
+        /* --- CHANGED FONT TO POPPINS --- */
+        font-family: 'Poppins', sans-serif;
+        font-weight: 600; /* Make text bold enough */
+        font-size: 20px;
+        text-align: center;
+        /* --- BLUE TEXT SHADOWS --- */
+        text-shadow: 0px 3px 5px #0a58ca, 0px 5px 10px #0a58ca, 0px 5px 10px #0a58ca, 0px 5px 10px #0a58ca, 0px 5px 10px #0a58ca;
+        color: #fff;
+        letter-spacing: 0.5px;
+        overflow: hidden;
+        cursor: pointer;
+        user-select: none;
+        transform: scale(1.01);
+        transition: all 0.2s ease-in-out;
+        width: auto;
+        min-width: 220px;
+    }
+
+        /* The angled sides (pseudo-elements) */
+        .bevel:before, .bevel:after {
+            content: " ";
+            width: 27px;
+            max-width: 50%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            transition: all 0.135s cubic-bezier(0.74, 0.16, 0.24, 0.92);
+            transition-delay: 0.15s;
+        }
+
+        .bevel:before {
+            left: 0;
+            /* --- BLUE LEFT ANGLE --- */
+            background: linear-gradient(45deg, transparent 66.6%, #0d6efd 66.6%), linear-gradient(-45deg, #0a58ca 33.3%, transparent 33.3%), linear-gradient(to right, #0d6efd, #0a58ca);
+        }
+
+        .bevel:after {
+            right: 0;
+            /* --- BLUE RIGHT ANGLE --- */
+            background: linear-gradient(-45deg, transparent 66.6%, #0d6efd 66.6%), linear-gradient(45deg, #0a58ca 33.3%, transparent 33.3%), linear-gradient(to left, #0d6efd, #0a58ca);
+        }
+
+        .bevel:hover {
+            transform: scale(1.07);
+            box-shadow: 0px 25px 40px -5px rgba(0, 0, 0, 0.3), inset 0px 0px 0px 0px rgba(13, 110, 253, 0), inset 0px -27px 0px 0px #0a58ca;
+        }
+
+    /* Checked / Active State (Pressed Down) */
+    #bevelButton:checked ~ .bevel {
+        padding: 0 18.5px;
+        background: transparent;
+        /* --- PRESSED SHADOWS --- */
+        box-shadow: 0px 5px 15px -5px rgba(0, 0, 0, 0.3), inset 0px 0px 0px 4px #0d6efd, inset 0px 0px 0px 0px #0a58ca;
+        border-radius: 10px;
+        font-size: 20px;
+        font-weight: 700;
+        text-shadow: none;
+        color: #0d6efd;
+        transform: scale(0.9) rotate(-2deg);
+        transition: all 0.45s cubic-bezier(0.6, -0.9, 0.39, 1.65);
+        transition-delay: 0.135s;
+    }
+
+        #bevelButton:checked ~ .bevel:before {
+            transform: translateX(-100%);
+            transition-delay: 0s;
+        }
+
+        #bevelButton:checked ~ .bevel:after {
+            transform: translateX(100%);
+            transition-delay: 0s;
+        }
+
+    /* --- Existing Styles --- */
     .contact-hero {
         background: linear-gradient(135deg, #0d6efd 0%, #198754 100%);
     }
@@ -312,23 +401,26 @@
 </style>
 
 @section Scripts {
-    <!-- Client-side validation -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validate/1.19.3/jquery.validate.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validation-unobtrusive/3.2.12/jquery.validate.unobtrusive.min.js"></script>
 
     <script>
-        document.getElementById('contactForm')?.addEventListener('submit', function(e) {
-            const submitButton = this.querySelector('button[type="submit"]');
-            const formStatus = document.getElementById('form-status');
+        // HANDLE BEVEL BUTTON CLICK
+        document.getElementById('bevelButton').addEventListener('change', function() {
+            if(this.checked) {
+                const form = document.getElementById('contactForm');
+                const formStatus = document.getElementById('form-status');
 
-            if (submitButton && formStatus) {
-                // Show processing status
-                formStatus.style.display = 'block';
-                submitButton.disabled = true;
-                submitButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Sending...';
+                // Show 'Sending' status
+                if (formStatus) {
+                    formStatus.style.display = 'block';
+                    formStatus.scrollIntoView({ behavior: 'smooth' });
+                }
 
-                // Scroll to status message
-                formStatus.scrollIntoView({ behavior: 'smooth' });
+                // Delay slightly to allow the "button press" animation to be seen
+                setTimeout(() => {
+                    form.submit();
+                }, 600);
             }
         });
     </script>

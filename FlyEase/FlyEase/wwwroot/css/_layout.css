@@ -37,7 +37,7 @@ body {
     font-family: 'Poppins', sans-serif !important;
     background-color: var(--bg-body);
     /* CHANGED: Use variable instead of 'black' so it switches to white in dark mode */
-    color: var(--text-main);
+    color: black;
     line-height: 1.6;
 }
 
@@ -62,7 +62,7 @@ a {
     overflow: hidden;
     margin-bottom: 24px;
     /* Added: Ensure text inside cards is correct color */
-    color: var(--text-main);
+    color: black;
 }
 
     .card:hover, .package-card:hover {
@@ -102,7 +102,7 @@ header.fixed-top {
     margin-right: 15px;
     transition: transform 0.2s ease, background-color 0.2s ease;
     /* Added: Ensure brand text uses theme color */
-    color: var(--text-main);
+    color:black;
 }
 
 .navbar-brand {
@@ -116,7 +116,7 @@ header.fixed-top {
     border: none !important;
     box-shadow: none !important;
     height: 10%; /* Be careful with % height, usually auto or px is safer */
-    color: var(--text-main); /* Ensure icon is visible */
+    color: black; /* Ensure icon is visible */
 }
 
     .btn-hamburger:hover {
@@ -190,12 +190,12 @@ header.fixed-top {
     font-size: 0.85rem;
     box-shadow: 0 4px 15px rgba(0, 102, 161, 0.2);
     border: none;
-    color: white; /* Buttons usually keep white text if they have background */
+    color: black; /* Buttons usually keep white text if they have background */
 }
 
 .btn-primary {
     background: var(--grad-header);
-    color: white;
+    color: black;
 }
 
     .btn-primary:hover {
@@ -232,7 +232,7 @@ header.fixed-top {
 #flybot-header {
     background: var(--grad-header);
     border-radius: 20px 20px 0 0;
-    color: white;
+    color: black;
 }
 
 /* =========================================
@@ -336,7 +336,7 @@ html {
 /* Card header styling */
 .booking-header {
     background: linear-gradient(135deg, #0066a1 0%, #00a3e0 100%);
-    color: white;
+    color: black;
     border-radius: 15px 15px 0 0 !important;
     padding: 2rem !important;
 }
