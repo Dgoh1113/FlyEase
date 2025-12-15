@@ -1,4 +1,7 @@
-﻿@model FlyEase.ViewModels.BookingsPageVM
+﻿@using X.PagedList
+@using X.PagedList.Mvc.Core
+@model FlyEase.ViewModels.BookingsPageVM
+
 @{
     ViewData["Title"] = "Manage Bookings";
     Layout = "~/Views/Shared/_AdminLayout.cshtml";
@@ -10,24 +13,20 @@
 
 <div class="card shadow-sm mb-4">
     <div class="card-body py-3">
-        <form method="get" asp-action="Bookings" class="row g-3 align-items-center">
-            <div class="col-md-6">
-                <div class="input-group">
-                    <span class="input-group-text bg-light"><i class="fas fa-search"></i></span>
-                    <input type="text" name="search" class="form-control" placeholder="Search by Booking ID or Package Name..." value="@Model.SearchTerm">
-                </div>
+        <form method="get" asp-action="Bookings" class="row g-3">
+            <div class="col-md-7">
+                <input type="text" name="search" class="form-control" placeholder="Search by Booking ID or Package Name..." value="@Model.SearchTerm">
             </div>
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <select name="status" class="form-select">
                     <option value="All">All Statuses</option>
-                    <!option value="Completed" @(Model.StatusFilter == "Completed" ? "selected" : "")>Completed</!option>
-                    <!option value="Pending" @(Model.StatusFilter == "Pending" ? "selected" : "")>Pending</!option>
-                    <!option value="Confirmed" @(Model.StatusFilter == "Confirmed" ? "selected" : "")>Confirmed</!option>
-                    <!option value="Cancelled" @(Model.StatusFilter == "Cancelled" ? "selected" : "")>Cancelled</!option>
+                    <option value="Completed" selected="@(Model.StatusFilter == "Completed")">Completed</option>
+                    <option value="Pending" selected="@(Model.StatusFilter == "Pending")">Pending</option>
+                    <option value="Cancelled" selected="@(Model.StatusFilter == "Cancelled")">Cancelled</option>
                 </select>
             </div>
             <div class="col-md-2">
-                <button type="submit" class="btn btn-secondary w-100">Filter</button>
+                <button type="submit" class="btn btn-secondary w-100">Search</button>
             </div>
         </form>
     </div>
@@ -36,19 +35,20 @@
 <div class="card shadow-sm border-0">
     <div class="card-body p-0">
         <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
+            <table class="table table-hover table-sm align-middle mb-0" style="font-size: 0.9rem;">
                 <thead class="bg-light">
                     <tr>
                         <th class="ps-4">ID</th>
                         <th>User</th>
                         <th>Package</th>
-                        <th>Travel Date</th>
+                        <th>Date</th>
+                        <th>Total</th>
                         <th>Status</th>
                         <th class="text-end pe-4">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @if (Model.Bookings.Any())
+                    @if (Model.Bookings != null && Model.Bookings.Any())
                     {
                         foreach (var b in Model.Bookings)
                         {
@@ -56,22 +56,26 @@
                                 <td class="ps-4">#@b.BookingID</td>
                                 <td>
                                     <div class="fw-bold">@b.User?.FullName</div>
-                                    <div class="small text-muted">@b.User?.Email</div>
+                                    <small class="text-muted">@b.User?.Email</small>
                                 </td>
                                 <td>@b.Package?.PackageName</td>
-                                <td>@b.TravelDate.ToString("dd MMM yyyy")</td>
+                                <td>@b.BookingDate.ToString("MMM dd, yyyy")</td>
+                                <td class="fw-bold text-success">RM @b.FinalAmount.ToString("N2")</td>
                                 <td>
-                                    @{
-                                        string badgeClass = b.BookingStatus switch
-                                        {
-                                            "Completed" => "bg-success",
-                                            "Confirmed" => "bg-primary",
-                                            "Pending" => "bg-warning text-dark",
-                                            "Cancelled" => "bg-danger",
-                                            _ => "bg-secondary"
-                                        };
+                                    @if (b.BookingStatus == "Completed")
+                                    {
+                                        <span class="badge bg-success">Completed</span>
                                     }
-                                    <span class="badge @badgeClass">@b.BookingStatus</span>
+                                    else if (b.BookingStatus == "Pending")
+                                    {
+
+                                        <span class="badge bg-warning text-dark">Pending</span>
+                                    }
+                                    else
+                                    {
+
+                                        <span class="badge bg-danger">@b.BookingStatus</span>
+                                    }
                                 </td>
                                 <td class="text-end pe-4">
                                     <button class="btn btn-sm btn-outline-primary me-1"
@@ -80,9 +84,7 @@
                                     </button>
                                     <form asp-action="DeleteBooking" method="post" class="d-inline" onsubmit="return confirm('Delete this booking?');">
                                         <input type="hidden" name="id" value="@b.BookingID" />
-                                        <button type="submit" class="btn btn-sm btn-outline-danger">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
+                                        <button type="submit" class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></button>
                                     </form>
                                 </td>
                             </tr>
@@ -90,59 +92,26 @@
                     }
                     else
                     {
-                        <tr>
-                            <td colspan="6" class="text-center py-4 text-muted">No bookings found.</td>
-                        </tr>
+                        <tr><td colspan="7" class="text-center py-4 text-muted">No bookings found.</td></tr>
                     }
                 </tbody>
             </table>
         </div>
     </div>
-</div>
 
-<div class="modal fade" id="bookingModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title">Edit Booking Status</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <form asp-action="UpdateBookingStatus" method="post">
-                <div class="modal-body">
-                    <input type="hidden" asp-for="CurrentBooking.BookingID" id="bookingId" />
+    <div class="card-footer bg-white py-3">
+        <div class="d-flex justify-content-between align-items-center">
+            <small class="text-muted">
+                Page @(Model.Bookings.PageCount < Model.Bookings.PageNumber ? 0 : Model.Bookings.PageNumber) of @Model.Bookings.PageCount
+            </small>
 
-                    <div class="alert alert-info">
-                        <small><i class="fas fa-info-circle"></i> If you select <strong>Completed</strong>, a review invitation email will be sent automatically.</small>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Status</label>
-                        <select asp-for="CurrentBooking.BookingStatus" class="form-select" id="bookingStatus">
-                            <option value="Pending">Pending</option>
-                            <option value="Confirmed">Confirmed</option>
-                            <option value="Completed">Completed</option>
-                            <option value="Cancelled">Cancelled</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Travel Date</label>
-                        <input asp-for="CurrentBooking.TravelDate" type="date" class="form-control" id="bookingDate" />
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="submit" class="btn btn-primary">Save Changes</button>
-                </div>
-            </form>
+            @Html.PagedListPager(Model.Bookings, page => Url.Action("Bookings", new { page, search = Model.SearchTerm, status = Model.StatusFilter }),
+            new PagedListRenderOptions
+            {
+                LiElementClasses = new string[] { "page-item" },
+                PageClasses = new string[] { "page-link" },
+                UlElementClasses = new string[] { "pagination", "pagination-sm", "mb-0" }
+            })
         </div>
     </div>
 </div>
-
-<script>
-    function editBooking(id, status, date) {
-        document.getElementById('bookingId').value = id;
-        document.getElementById('bookingStatus').value = status;
-        document.getElementById('bookingDate').value = date;
-        new bootstrap.Modal(document.getElementById('bookingModal')).show();
-    }
-</script>

@@ -1,415 +1,111 @@
-﻿@using System.Text.Json
+﻿@using X.PagedList
+@using X.PagedList.Mvc.Core
 @model FlyEase.ViewModels.PackagesPageVM
+
 @{
     ViewData["Title"] = "Manage Packages";
     Layout = "~/Views/Shared/_AdminLayout.cshtml";
 }
 
-<!-- Leaflet CSS -->
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="text-primary fw-bold"><i class="fas fa-box-open me-2"></i>Package Management</h2>
+    <a href="@Url.Action("PackageManagement", "PackageManagement")" class="btn btn-primary">
+        <i class="fas fa-plus me-2"></i>Create New Package
+    </a>
+</div>
 
-<style>
-    /* Images */
-    .img-preview-wrapper {
-        position: relative;
-        display: inline-block;
-        margin: 5px;
-    }
-
-        .img-preview-wrapper img {
-            width: 80px;
-            height: 80px;
-            object-fit: cover;
-            border-radius: 5px;
-            border: 1px solid #ccc;
-        }
-
-    .btn-remove-img {
-        position: absolute;
-        top: -5px;
-        right: -5px;
-        background: red;
-        color: white;
-        border-radius: 50%;
-        border: none;
-        width: 20px;
-        height: 20px;
-        font-size: 12px;
-        cursor: pointer;
-    }
-
-    /* Map */
-    #staffMap {
-        height: 300px;
-        width: 100%;
-        border-radius: 5px;
-        border: 1px solid #ccc;
-        margin-top: 10px;
-    }
-</style>
-
-<div class="container mt-4">
-    @if (TempData["Success"] != null)
-    {
-        <div class="alert alert-success">@TempData["Success"]</div>
-    }
-    @if (TempData["Error"] != null)
-    {
-        <div class="alert alert-danger">@TempData["Error"]</div>
-    }
-
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h2>Packages</h2>
-        <!-- Open modal for new package (Pass 0) -->
-        <button class="btn btn-primary" onclick="openPkgModal(0)">+ New Package</button>
-    </div>
-
-    <div class="table-responsive card shadow-sm">
-        <table class="table align-middle table-hover mb-0">
-            <thead class="table-light">
-                <tr><th>Image</th><th>Name</th><th>Price</th><th>Slots</th><th>Actions</th></tr>
-            </thead>
-            <tbody>
-                @foreach (var p in Model.Packages)
-                {
-                    var firstImg = p.ImageURL?.Split(';').FirstOrDefault() ?? "/img/default-package.jpg";
-
-                    // Fix for Circular Reference: Select only needed properties
-                    string itineraryJson = JsonSerializer.Serialize(p.Itinerary
-                    .OrderBy(i => i.DayNumber)
-                    .Select(i => new
-                    {
-                        i.DayNumber,
-                        i.Title,
-                        i.ActivityDescription
-                    }));
-
-                    <tr>
-                        <td><img src="@firstImg" width="50" height="50" class="rounded"></td>
-                        <td><strong>@p.PackageName</strong><br /><small>@p.Destination</small></td>
-                        <td>RM @p.Price.ToString("N0")</td>
-                        <td>@p.AvailableSlots</td>
-                        <td>
-                            <!-- Edit Button: Pass all data including Itinerary -->
-                            <button class="btn btn-sm btn-primary"
-                                    onclick='openPkgModal(@p.PackageID, "@p.PackageName", "@p.Destination", @p.Price, @p.AvailableSlots,
-                                        "@p.StartDate.ToString("yyyy-MM-dd")", "@p.EndDate.ToString("yyyy-MM-dd")", @p.CategoryID,
-                                        `@p.Description`, "@p.ImageURL", @p.Latitude, @p.Longitude, @Html.Raw(itineraryJson))'>
-                                Edit
-                            </button>
-
-                            <form asp-controller="AdminDashboard" asp-action="DeletePackage" asp-route-id="@p.PackageID" method="post" class="d-inline" onsubmit="return confirm('Delete package?');">
-                                <button type="submit" class="btn btn-sm btn-danger">Delete</button>
-                            </form>
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
+<div class="card shadow-sm mb-4">
+    <div class="card-body py-3">
+        <form method="get" asp-action="Packages" class="row g-3">
+            <div class="col-md-10">
+                <input type="text" name="search" class="form-control" placeholder="Search by Package Name..." value="@Model.SearchTerm">
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-secondary w-100">Search</button>
+            </div>
+        </form>
     </div>
 </div>
 
-<!-- MODAL -->
-<div class="modal fade" id="pkgModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title" id="pkgTitle">Manage Package</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <!-- Added id="packageForm" for JS validation -->
-            <form asp-controller="AdminDashboard" asp-action="SavePackage" method="post" enctype="multipart/form-data" id="packageForm" onsubmit="return validateForm()">
-                @Html.AntiForgeryToken()
-                <div class="modal-body">
-                    <input type="hidden" id="p_id" asp-for="CurrentPackage.PackageID" />
-                    <div id="deletedImagesContainer"></div>
+<div class="card shadow-sm border-0">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover table-sm align-middle mb-0" style="font-size: 0.9rem;">
+                <thead class="bg-light">
+                    <tr>
+                        <th class="ps-4">ID</th>
+                        <th>Image</th>
+                        <th>Name</th>
+                        <th>Category</th>
+                        <th>Price</th>
+                        <th>Slots</th>
+                        <th>Rating</th>
+                        <th class="text-end pe-4">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.Packages != null && Model.Packages.Any())
+                    {
+                        foreach (var p in Model.Packages)
+                        {
+                            var firstImage = !string.IsNullOrEmpty(p.ImageURL) ? p.ImageURL.Split(';', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() : "/img/default-package.jpg";
+                            <tr>
+                                <td class="ps-4">#@p.PackageID</td>
+                                <td>
+                                    <img src="@firstImage" alt="pkg" style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px;" />
+                                </td>
+                                <td class="fw-bold">@p.PackageName</td>
+                                <td>@p.Category?.CategoryName</td>
+                                <td class="text-success fw-bold">RM @p.Price.ToString("N2")</td>
+                                <td>
+                                    @if (p.AvailableSlots < 5)
+                                    {
+                                        <span class="text-danger fw-bold">@p.AvailableSlots left</span>
+                                    }
+                                    else
+                                    {
 
-                    <!-- Basic Info -->
-                    <div class="row">
-                        <div class="col-md-6 mb-3"><label>Name</label><input id="p_name" asp-for="CurrentPackage.PackageName" class="form-control" required /></div>
-                        <div class="col-md-6 mb-3"><label>Destination</label><input id="p_dest" asp-for="CurrentPackage.Destination" class="form-control" required /></div>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-6 mb-3"><label>Price (RM)</label><input type="number" id="p_price" asp-for="CurrentPackage.Price" class="form-control" required min="1" /></div>
-                        <div class="col-md-6 mb-3"><label>Slots</label><input type="number" id="p_slots" asp-for="CurrentPackage.AvailableSlots" class="form-control" required min="1" /></div>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label>Start Date</label>
-                            <!-- Added onchange to sync days -->
-                            <input type="date" id="p_start" asp-for="CurrentPackage.StartDate" class="form-control" required onchange="syncItineraryDays()" />
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label>End Date</label>
-                            <!-- Added onchange to sync days -->
-                            <input type="date" id="p_end" asp-for="CurrentPackage.EndDate" class="form-control" required onchange="syncItineraryDays()" />
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        <label>Category</label>
-                        <select id="p_cat" asp-for="CurrentPackage.CategoryID" class="form-select" required asp-items="@(new SelectList(Model.Categories, "CategoryID", "CategoryName"))">
-                            <option value="">-- Select Category --</option>
-                        </select>
-                    </div>
-                    <div class="mb-3"><label>Description</label><textarea id="p_desc" asp-for="CurrentPackage.Description" class="form-control" rows="2" required></textarea></div>
+                                        <span>@p.AvailableSlots</span>
+                                    }
+                                </td>
+                                <td>
+                                    <span class="text-warning"><i class="fas fa-star"></i></span> @p.AverageRating.ToString("0.0")
+                                </td>
+                                <td class="text-end pe-4">
+                                    <form asp-controller="PackageManagement" asp-action="Edit" method="post" class="d-inline">
+                                        <input type="hidden" name="id" value="@p.PackageID" />
+                                        <button type="submit" class="btn btn-sm btn-outline-primary me-1"><i class="fas fa-edit"></i></button>
+                                    </form>
+                                    <form asp-action="DeletePackage" method="post" class="d-inline" onsubmit="return confirm('Delete package?');">
+                                        <input type="hidden" name="id" value="@p.PackageID" />
+                                        <button type="submit" class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></button>
+                                    </form>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr><td colspan="8" class="text-center py-4 text-muted">No packages found.</td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
 
-                    <!-- MAP SECTION -->
-                    <div class="card p-3 bg-light mb-3 border">
-                        <label class="fw-bold">Location</label>
-                        <div class="input-group mb-2">
-                            <input type="text" id="locSearch" class="form-control" placeholder="Search place (e.g. KLCC)...">
-                            <button type="button" class="btn btn-secondary" onclick="searchLocation()">Search</button>
-                        </div>
-                        <div id="staffMap"></div>
-                        <small class="text-muted">Drag marker to pinpoint.</small>
-                        <input type="hidden" id="p_lat" asp-for="CurrentPackage.Latitude" />
-                        <input type="hidden" id="p_long" asp-for="CurrentPackage.Longitude" />
-                    </div>
+    <div class="card-footer bg-white py-3">
+        <div class="d-flex justify-content-between align-items-center">
+            <small class="text-muted">
+                Page @(Model.Packages.PageCount < Model.Packages.PageNumber ? 0 : Model.Packages.PageNumber) of @Model.Packages.PageCount
+            </small>
 
-                    <!-- ITINERARY BUILDER -->
-                    <div class="card p-3 bg-light mb-3 border">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <h5 class="mb-0">Itinerary (Auto-Synced with Dates)</h5>
-                            <!-- Button kept for edge cases, but mostly auto now -->
-                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="addDay()">+ Add Extra Day</button>
-                        </div>
-                        <div id="itineraryContainer" style="max-height: 400px; overflow-y: auto;"></div>
-                        <small class="text-danger d-none" id="itineraryError">Every day must have a Title and Description.</small>
-                    </div>
-
-                    <!-- IMAGES -->
-                    <div class="mb-3">
-                        <label class="fw-bold">Images</label>
-                        <div id="currentImagesPreview" class="border p-2 rounded bg-white mb-2"></div>
-                        <input type="file" asp-for="CurrentPackage.ImageFiles" class="form-control" multiple accept="image/*" />
-                    </div>
-                </div>
-                <div class="modal-footer"><button type="submit" class="btn btn-primary">Save Package</button></div>
-            </form>
+            @Html.PagedListPager(Model.Packages, page => Url.Action("Packages", new { page, search = Model.SearchTerm }),
+            new PagedListRenderOptions
+            {
+                LiElementClasses = new string[] { "page-item" },
+                PageClasses = new string[] { "page-link" },
+                UlElementClasses = new string[] { "pagination", "pagination-sm", "mb-0" }
+            })
         </div>
     </div>
 </div>
-
-<!-- LEAFLET JS -->
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
-<script>
-    let map, marker;
-    let itineraryIndex = 0;
-
-    function openPkgModal(id, name, dest, price, slots, start, end, cat, desc, imageUrls, lat, lng, itineraryData) {
-        // 1. Set Basic Fields
-        document.getElementById('pkgTitle').innerText = id === 0 ? "Create Package" : "Edit Package";
-        document.getElementById('p_id').value = id === 0 ? "" : id;
-        document.getElementById('p_name').value = name || "";
-        document.getElementById('p_dest').value = dest || "";
-        document.getElementById('p_price').value = price || 0;
-        document.getElementById('p_slots').value = slots || 1;
-        document.getElementById('p_start').value = start || new Date().toISOString().split('T')[0];
-        document.getElementById('p_end').value = end || new Date().toISOString().split('T')[0];
-        if(cat) document.getElementById('p_cat').value = cat;
-        document.getElementById('p_desc').value = desc || "";
-
-        // 2. Setup Images
-        const prevContainer = document.getElementById('currentImagesPreview');
-        const delContainer = document.getElementById('deletedImagesContainer');
-        prevContainer.innerHTML = ''; delContainer.innerHTML = '';
-        if (imageUrls && imageUrls.trim() !== "") {
-            imageUrls.split(';').forEach(url => {
-                if(!url) return;
-                const div = document.createElement('div'); div.className = 'img-preview-wrapper';
-                div.innerHTML = `<img src="${url}"><button type="button" class="btn-remove-img" onclick="removeImg(this, '${url}')">×</button>`;
-                prevContainer.appendChild(div);
-            });
-        } else { prevContainer.innerHTML = '<small class="text-muted">No images.</small>'; }
-
-        // 3. Setup Map
-        const curLat = (lat && lat !== 0) ? lat : 3.1390;
-        const curLng = (lng && lng !== 0) ? lng : 101.6869;
-        document.getElementById('p_lat').value = curLat;
-        document.getElementById('p_long').value = curLng;
-
-        const modalEl = document.getElementById('pkgModal');
-        modalEl.addEventListener('shown.bs.modal', function () {
-            if (map) {
-                map.invalidateSize();
-                map.setView([curLat, curLng], 13);
-                marker.setLatLng([curLat, curLng]);
-            } else {
-                map = L.map('staffMap').setView([curLat, curLng], 13);
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
-                marker = L.marker([curLat, curLng], {draggable: true}).addTo(map);
-                marker.on('dragend', function(e) {
-                    var pos = marker.getLatLng();
-                    document.getElementById('p_lat').value = pos.lat;
-                    document.getElementById('p_long').value = pos.lng;
-                });
-            }
-        }, { once: true });
-
-        // 4. Setup Itinerary
-        const itContainer = document.getElementById('itineraryContainer');
-        itContainer.innerHTML = "";
-        itineraryIndex = 0;
-
-        if (itineraryData && itineraryData.length > 0) {
-            itineraryData.forEach(d => addDay(d.DayNumber, d.Title, d.ActivityDescription));
-        } else {
-            // New package: try to sync with default dates immediately
-            syncItineraryDays();
-        }
-
-        new bootstrap.Modal(modalEl).show();
-    }
-
-    // Helper: Remove Image
-    function removeImg(btn, url) {
-        btn.parentElement.remove();
-        // Visual removal only. Add hidden input if you implemented backend delete logic
-    }
-
-    // Helper: Map Search
-    async function searchLocation() {
-        const q = document.getElementById('locSearch').value;
-        if(!q) return;
-        try {
-            const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}`);
-            const data = await res.json();
-            if(data.length > 0) {
-                const lat = data[0].lat; const lon = data[0].lon;
-                map.setView([lat, lon], 13);
-                marker.setLatLng([lat, lon]);
-                document.getElementById('p_lat').value = lat;
-                document.getElementById('p_long').value = lon;
-            } else { alert("Location not found"); }
-        } catch(e) { alert("Search failed"); }
-    }
-
-    // === ITINERARY LOGIC ===
-    function addDay(dayNum = null, title = "", desc = "") {
-        const container = document.getElementById('itineraryContainer');
-        const displayDay = dayNum || (container.children.length + 1);
-
-        const html = `
-        <div class="card mb-2 p-3 bg-white border itinerary-row" id="row_${itineraryIndex}">
-            <div class="d-flex justify-content-between">
-                <strong>Day <span class="day-label">${displayDay}</span></strong>
-                <button type="button" class="btn btn-sm btn-outline-danger py-0" onclick="removeDay(this)">&times;</button>
-            </div>
-            <div class="row mt-2">
-                <div class="col-3">
-                    <!-- Read-only visual day number -->
-                    <input type="number" class="form-control form-control-sm day-input" name="CurrentPackage.Itinerary[${itineraryIndex}].DayNumber" value="${displayDay}" readonly />
-                </div>
-                <div class="col-9">
-                    <input type="text" class="form-control form-control-sm title-input" name="CurrentPackage.Itinerary[${itineraryIndex}].Title" value="${title}" placeholder="Title (e.g. Arrival)" required />
-                </div>
-            </div>
-            <div class="mt-1">
-                <textarea name="CurrentPackage.Itinerary[${itineraryIndex}].ActivityDescription" class="form-control form-control-sm desc-input" rows="2" placeholder="Details..." required>${desc}</textarea>
-            </div>
-        </div>`;
-        container.insertAdjacentHTML('beforeend', html);
-        itineraryIndex++;
-    }
-
-    function removeDay(btn) {
-        btn.closest('.itinerary-row').remove();
-        reorderDays();
-    }
-
-    function reorderDays() {
-        const rows = document.querySelectorAll('.itinerary-row');
-        rows.forEach((row, index) => {
-            const newDay = index + 1;
-            // Update visual label
-            row.querySelector('.day-label').innerText = newDay;
-            // Update hidden input value
-            row.querySelector('.day-input').value = newDay;
-
-            // Fix Name attributes for binding
-            const inputs = row.querySelectorAll('input, textarea');
-            inputs.forEach(input => {
-               if(input.name) {
-                   input.name = input.name.replace(/Itinerary\[\d+\]/, `Itinerary[${index}]`);
-               }
-            });
-        });
-        // Reset index so next add continues correctly
-        itineraryIndex = rows.length;
-    }
-
-    // === AUTO SYNC DATE LOGIC ===
-    function syncItineraryDays() {
-        const startStr = document.getElementById('p_start').value;
-        const endStr = document.getElementById('p_end').value;
-
-        if (!startStr || !endStr) return;
-
-        const start = new Date(startStr);
-        const end = new Date(endStr);
-        const diffTime = end - start;
-
-        if (diffTime < 0) return; // Invalid dates
-
-        // Calculate total days (inclusive)
-        const totalDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-
-        const container = document.getElementById('itineraryContainer');
-        const currentCount = container.children.length;
-
-        if (totalDays > currentCount) {
-            // Add needed days
-            for (let i = currentCount + 1; i <= totalDays; i++) {
-                addDay(i);
-            }
-        } else if (totalDays < currentCount) {
-            // Remove extra days from the bottom
-            const rows = container.querySelectorAll('.itinerary-row');
-            for (let i = currentCount - 1; i >= totalDays; i--) {
-                rows[i].remove();
-            }
-            reorderDays();
-        }
-    }
-
-    // === NEW: VALIDATION FUNCTION ===
-    function validateForm() {
-        const rows = document.querySelectorAll('.itinerary-row');
-        let isValid = true;
-        const errorMsg = document.getElementById('itineraryError');
-
-        // Check if we have at least one day if dates are selected
-        const startVal = document.getElementById('p_start').value;
-        const endVal = document.getElementById('p_end').value;
-        if(startVal && endVal && rows.length === 0) {
-             isValid = false;
-        }
-
-        // Loop through all itinerary rows
-        rows.forEach(row => {
-            const title = row.querySelector('.title-input').value.trim();
-            const desc = row.querySelector('.desc-input').value.trim();
-
-            if (!title || !desc) {
-                isValid = false;
-                // Highlight empty fields
-                if(!title) row.querySelector('.title-input').classList.add('is-invalid');
-                if(!desc) row.querySelector('.desc-input').classList.add('is-invalid');
-            } else {
-                row.querySelector('.title-input').classList.remove('is-invalid');
-                row.querySelector('.desc-input').classList.remove('is-invalid');
-            }
-        });
-
-        if (!isValid) {
-            errorMsg.classList.remove('d-none');
-            // Scroll to the error
-            errorMsg.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            return false; // Prevent submission
-        } else {
-            errorMsg.classList.add('d-none');
-            return true; // Allow submission
-        }
-    }
-</script>

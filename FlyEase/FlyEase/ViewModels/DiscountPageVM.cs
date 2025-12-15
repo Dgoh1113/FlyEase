@@ -1,12 +1,17 @@
-﻿using FlyEase.Data;
+﻿using System.Collections.Generic;
+using FlyEase.Data;
+using X.PagedList; // <--- VITAL: Add this using statement
 
-public class DiscountsPageVM
+namespace FlyEase.ViewModels
 {
-    public List<DiscountType> Discounts { get; set; } = new List<DiscountType>();
+    // Class name matches Controller: "DiscountPageVM" (Singular)
+    public class DiscountPageVM
+    {
+        // CHANGED: List -> IPagedList
+        public IPagedList<DiscountType> Discounts { get; set; }
 
-    // The object used for Creating or Editing a specific discount
-    public DiscountType CurrentDiscount { get; set; } = new DiscountType();
+        public DiscountType CurrentDiscount { get; set; } = new DiscountType();
 
-    // Search
-    public string? SearchTerm { get; set; }
+        public string? SearchTerm { get; set; }
+    }
 }

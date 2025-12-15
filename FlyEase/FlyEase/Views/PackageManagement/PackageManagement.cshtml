@@ -88,6 +88,12 @@
         border: 1px solid #ccc;
         margin-top: 10px;
     }
+
+    /* Error Text Styling */
+    .text-danger {
+        font-size: 0.875em;
+        margin-top: 0.25rem;
+    }
 </style>
 
 <div class="management-hero">
@@ -123,11 +129,14 @@
                     <div class="form-row">
                         <div class="form-group">
                             <label class="form-label">Package Name</label>
-                            <input class="form-control" name="PackageName" value="@Model.Package.PackageName" required />
+                            <input class="form-control @(ViewData.ModelState["PackageName"]?.Errors.Any() == true ? "is-invalid" : "")"
+                                   name="PackageName" value="@Model.Package.PackageName" required />
+                            <div class="invalid-feedback d-block">@Html.ValidationMessage("PackageName")</div>
                         </div>
                         <div class="form-group">
                             <label class="form-label">Category</label>
-                            <select class="form-control" name="CategoryID" id="categorySelect">
+                            <select class="form-control @(ViewData.ModelState["CategoryID"]?.Errors.Any() == true ? "is-invalid" : "")"
+                                    name="CategoryID" id="categorySelect">
                                 <option value="">Select Category or Type New One</option>
                                 @foreach (var category in Model.Categories)
                                 {
@@ -136,6 +145,8 @@
                                     </option>
                                 }
                             </select>
+                            <div class="invalid-feedback d-block">@Html.ValidationMessage("CategoryID")</div>
+
                             <div class="mt-2" id="newCategoryGroup" style="@(string.IsNullOrWhiteSpace(Model.NewCategoryName) && Model.SelectedCategoryId.HasValue ? "display: none;" : "")">
                                 <small class="text-muted">Or enter new category:</small>
                                 <input type="text" class="form-control mt-1" name="NewCategoryName" id="newCategoryInput" placeholder="Type new category name" value="@Model.NewCategoryName" />
@@ -145,17 +156,23 @@
 
                     <div class="form-group">
                         <label class="form-label">Description</label>
-                        <textarea class="form-control" name="Description" rows="3">@Model.Package.Description</textarea>
+                        <textarea class="form-control @(ViewData.ModelState["Description"]?.Errors.Any() == true ? "is-invalid" : "")"
+                                  name="Description" rows="3">@Model.Package.Description</textarea>
+                        <div class="invalid-feedback d-block">@Html.ValidationMessage("Description")</div>
                     </div>
 
                     <div class="form-row">
                         <div class="form-group">
                             <label class="form-label">Country</label>
-                            <input class="form-control" name="Destination" value="@Model.Package.Destination" required />
+                            <input class="form-control @(ViewData.ModelState["Destination"]?.Errors.Any() == true ? "is-invalid" : "")"
+                                   name="Destination" value="@Model.Package.Destination" required />
+                            <div class="invalid-feedback d-block">@Html.ValidationMessage("Destination")</div>
                         </div>
                         <div class="form-group">
                             <label class="form-label">Price</label>
-                            <input class="form-control" name="Price" type="number" step="0.01" value="@Model.Package.Price" required />
+                            <input class="form-control @(ViewData.ModelState["Price"]?.Errors.Any() == true ? "is-invalid" : "")"
+                                   name="Price" type="number" step="0.01" value="@Model.Package.Price" required />
+                            <div class="invalid-feedback d-block">@Html.ValidationMessage("Price")</div>
                         </div>
                     </div>
 
@@ -174,21 +191,27 @@
                     <div class="form-row">
                         <div class="form-group">
                             <label class="form-label">Start Date</label>
-                            <input class="form-control" name="StartDate" id="startDate" type="date"
+                            <input class="form-control @(ViewData.ModelState["StartDate"]?.Errors.Any() == true ? "is-invalid" : "")"
+                                   name="StartDate" id="startDate" type="date"
                                    value="@(Model.Package.StartDate == default ? "" : Model.Package.StartDate.ToString("yyyy-MM-dd"))"
                                    required onchange="syncItineraryDays()" />
+                            <div class="invalid-feedback d-block">@Html.ValidationMessage("StartDate")</div>
                         </div>
                         <div class="form-group">
                             <label class="form-label">End Date</label>
-                            <input class="form-control" name="EndDate" id="endDate" type="date"
+                            <input class="form-control @(ViewData.ModelState["EndDate"]?.Errors.Any() == true ? "is-invalid" : "")"
+                                   name="EndDate" id="endDate" type="date"
                                    value="@(Model.Package.EndDate == default ? "" : Model.Package.EndDate.ToString("yyyy-MM-dd"))"
                                    required onchange="syncItineraryDays()" />
+                            <div class="invalid-feedback d-block">@Html.ValidationMessage("EndDate")</div>
                         </div>
                     </div>
 
                     <div class="form-group">
                         <label class="form-label">Available Slots</label>
-                        <input class="form-control" name="AvailableSlots" type="number" value="@(Model.Package.AvailableSlots == 0 ? "" : Model.Package.AvailableSlots.ToString())" required />
+                        <input class="form-control @(ViewData.ModelState["AvailableSlots"]?.Errors.Any() == true ? "is-invalid" : "")"
+                               name="AvailableSlots" type="number" value="@(Model.Package.AvailableSlots == 0 ? "" : Model.Package.AvailableSlots.ToString())" required />
+                        <div class="invalid-feedback d-block">@Html.ValidationMessage("AvailableSlots")</div>
                     </div>
 
                     <div class="form-group">
@@ -260,18 +283,26 @@
                                                 <input type="number" class="form-control form-control-sm day-input" name="Itinerary[@i].DayNumber" value="@day.DayNumber" readonly />
                                             </div>
                                             <div class="col-md-10">
-                                                <input type="text" class="form-control form-control-sm title-input" name="Itinerary[@i].Title" value="@day.Title" placeholder="Title (e.g. Arrival)" required />
+                                                <input type="text"
+                                                       class="form-control form-control-sm title-input @(ViewData.ModelState[$"Itinerary[{i}].Title"]?.Errors.Any() == true ? "is-invalid" : "")"
+                                                       name="Itinerary[@i].Title" value="@day.Title" placeholder="Title (e.g. Arrival)" required />
+                                                <div class="invalid-feedback d-block">@Html.ValidationMessage($"Itinerary[{i}].Title")</div>
                                             </div>
                                         </div>
                                         <div class="mt-2">
-                                            <textarea class="form-control form-control-sm desc-input" name="Itinerary[@i].ActivityDescription" rows="2" placeholder="Description of activities..." required>@day.ActivityDescription</textarea>
+                                            <textarea class="form-control form-control-sm desc-input @(ViewData.ModelState[$"Itinerary[{i}].ActivityDescription"]?.Errors.Any() == true ? "is-invalid" : "")"
+                                              name="Itinerary[@i].ActivityDescription" rows="2" placeholder="Description of activities..." required>@day.ActivityDescription</textarea>
+                                            <div class="invalid-feedback d-block">@Html.ValidationMessage($"Itinerary[{i}].ActivityDescription")</div>
                                         </div>
                                     </div>
                                 }
                             }
                         </div>
                         <button type="button" class="btn btn-outline-secondary mt-2 w-100" onclick="addItineraryRow()">+ Add Extra Day</button>
-                        <small class="text-danger d-none" id="itineraryError">Every day must have a Title and Description.</small>
+
+                        <small class="text-danger d-none" id="itineraryError" style="font-size: 1rem; font-weight: bold;">
+                            <i class="fas fa-exclamation-circle"></i> Please fill in the Title and Description for all itinerary days.
+                        </small>
                     </div>
 
                     <div class="form-actions">
@@ -298,7 +329,6 @@
                     {
                         var firstImage = !string.IsNullOrEmpty(package.ImageURL) ? package.ImageURL.Split(';', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() : "/img/default-package.jpg";
                         var bookingCount = package.Bookings?.Count(b => b.BookingStatus != "Cancelled") ?? 0;
-
                         <div class="package-management-card">
                             <div class="package-image">
                                 <img src="@firstImage" alt="@package.PackageName" onerror="this.src='/img/default-package.jpg'" />
@@ -312,7 +342,6 @@
                                     <form id="delete-form-@package.PackageID" method="post" action="@Url.Action("Delete")">
                                         @Html.AntiForgeryToken()
                                         <input type="hidden" name="id" value="@package.PackageID" />
-
                                         <button type="button" class="btn-delete" onclick="confirmDelete(@package.PackageID, @bookingCount)">
                                             <i class="fas fa-trash"></i>
                                         </button>
@@ -344,16 +373,15 @@
 
 @section Scripts {
     <script>
-        // --- DELETE CONFIRMATION LOGIC ---
+        // --- 1. DELETE CONFIRMATION LOGIC ---
         function confirmDelete(packageId, bookingCount) {
             if (bookingCount > 0) {
-                // Special Warning for Active Bookings
                 Swal.fire({
                     title: '⚠️ Active Bookings Found!',
                     html: `This package has <b>${bookingCount} active bookings</b>.<br>
                            Deleting it will <b>automatically cancel</b> all bookings,
                            <b>refund</b> the payments, and <b>notify</b> users via email.<br><br>
-                           Please wait <b><span id="timer" style="color:red; font-size:1.5em;">3</span></b> seconds to confirm...`,
+                           Please wait <b><span id="timer" style="color:red;font-size:1.5em;">3</span></b> seconds to confirm...`,
                     icon: 'warning',
                     showCancelButton: true,
                     confirmButtonColor: '#d33',
@@ -382,7 +410,6 @@
                     }
                 });
             } else {
-                // Standard Delete Confirmation
                 Swal.fire({
                     title: 'Delete Package?',
                     text: "You won't be able to revert this!",
@@ -399,20 +426,23 @@
             }
         }
 
-        // --- MAP LOGIC (Keep existing) ---
+        // --- 2. MAP LOGIC ---
         let map, marker;
         function initMap() {
+            if (!document.getElementById('adminMap')) return;
+
             let lat = parseFloat(document.getElementById('p_lat').value) || 3.1390;
             let lng = parseFloat(document.getElementById('p_long').value) || 101.6869;
 
-            if(lat === 0 && lng === 0) { lat = 3.1390; lng = 101.6869; }
+            if (lat === 0 && lng === 0) { lat = 3.1390; lng = 101.6869; }
 
             map = L.map('adminMap').setView([lat, lng], 13);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '&copy; OpenStreetMap'
             }).addTo(map);
-            marker = L.marker([lat, lng], {draggable: true}).addTo(map);
-            marker.on('dragend', function(e) {
+
+            marker = L.marker([lat, lng], { draggable: true }).addTo(map);
+            marker.on('dragend', function (e) {
                 var position = marker.getLatLng();
                 document.getElementById('p_lat').value = position.lat;
                 document.getElementById('p_long').value = position.lng;
@@ -421,12 +451,12 @@
 
         async function searchLocation() {
             const query = document.getElementById('locSearch').value;
-            if(!query) return;
+            if (!query) return;
 
             try {
                 const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`);
                 const data = await res.json();
-                if(data && data.length > 0) {
+                if (data && data.length > 0) {
                     const lat = data[0].lat;
                     const lon = data[0].lon;
                     map.setView([lat, lon], 13);
@@ -436,16 +466,18 @@
                 } else {
                     alert("Location not found.");
                 }
-            } catch(e) { console.error(e); }
+            } catch (e) { console.error(e); }
         }
 
-        document.addEventListener("DOMContentLoaded", function() {
+        document.addEventListener("DOMContentLoaded", function () {
             initMap();
         });
 
-        // --- ITINERARY LOGIC (Keep existing) ---
+        // --- 3. ITINERARY LOGIC ---
         let itineraryIndex = @(Model.Itinerary?.Count ?? 0);
+
         function createItineraryRowHTML(index, dayNumber, title = "", desc = "") {
+            // Note: We added validation containers below inputs
             return `
                 <div class="card mb-2 p-3 bg-light border itinerary-row">
                     <div class="d-flex justify-content-between">
@@ -458,10 +490,12 @@
                         </div>
                         <div class="col-md-10">
                             <input type="text" class="form-control form-control-sm title-input" name="Itinerary[${index}].Title" value="${title}" placeholder="Title (e.g. Arrival)" required />
+                            <div class="invalid-feedback d-none">Title is required</div>
                         </div>
                     </div>
                     <div class="mt-2">
                         <textarea class="form-control form-control-sm desc-input" name="Itinerary[${index}].ActivityDescription" rows="2" placeholder="Description..." required>${desc}</textarea>
+                        <div class="invalid-feedback d-none">Description is required</div>
                     </div>
                 </div>`;
         }
@@ -475,11 +509,16 @@
             div.innerHTML = createItineraryRowHTML(itineraryIndex, displayDay, title, desc);
             container.appendChild(div.firstElementChild);
             itineraryIndex++;
+
+            if (dayNum === null) {
+                updatePackageEndDate();
+            }
         }
 
         function removeItineraryRow(btn) {
             btn.closest('.itinerary-row').remove();
             reorderDays();
+            updatePackageEndDate();
         }
 
         function reorderDays() {
@@ -496,6 +535,20 @@
             itineraryIndex = rows.length;
         }
 
+        function updatePackageEndDate() {
+            const startInput = document.getElementById('startDate');
+            const endInput = document.getElementById('endDate');
+            const rows = document.getElementsByClassName('itinerary-row');
+
+            if (startInput.value && rows.length > 0) {
+                const startDate = new Date(startInput.value);
+                const totalDays = rows.length;
+                const newEndDate = new Date(startDate);
+                newEndDate.setDate(startDate.getDate() + (totalDays - 1));
+                endInput.value = newEndDate.toISOString().split('T')[0];
+            }
+        }
+
         function syncItineraryDays() {
             const startStr = document.getElementById('startDate').value;
             const endStr = document.getElementById('endDate').value;
@@ -505,6 +558,7 @@
             const end = new Date(endStr);
             const diffTime = end - start;
             if (diffTime < 0) return;
+
             const totalDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
             const container = document.getElementById('itinerary-container');
             let currentRows = container.getElementsByClassName('itinerary-row').length;
@@ -518,7 +572,7 @@
             }
         }
 
-        // --- VALIDATION ---
+        // --- 4. VALIDATION LOGIC ---
         function validateForm() {
             const rows = document.querySelectorAll('.itinerary-row');
             let isValid = true;
@@ -526,19 +580,38 @@
 
             const startVal = document.getElementById('startDate').value;
             const endVal = document.getElementById('endDate').value;
-            if(startVal && endVal && rows.length === 0) isValid = false;
+
+            // Check rows
             rows.forEach(row => {
-                const title = row.querySelector('.title-input').value.trim();
-                const desc = row.querySelector('.desc-input').value.trim();
-                if (!title || !desc) {
+                const titleInput = row.querySelector('.title-input');
+                const descInput = row.querySelector('.desc-input');
+                const title = titleInput.value.trim();
+                const desc = descInput.value.trim();
+
+                if (!title) {
                     isValid = false;
-                    if(!title) row.querySelector('.title-input').classList.add('is-invalid');
-                    if(!desc) row.querySelector('.desc-input').classList.add('is-invalid');
+                    titleInput.classList.add('is-invalid');
+                    // Show client-side error msg
+                    const fb = titleInput.nextElementSibling;
+                    if(fb && fb.classList.contains('invalid-feedback')) fb.classList.remove('d-none');
                 } else {
-                    row.querySelector('.title-input').classList.remove('is-invalid');
-                    row.querySelector('.desc-input').classList.remove('is-invalid');
+                    titleInput.classList.remove('is-invalid');
+                    const fb = titleInput.nextElementSibling;
+                    if(fb && fb.classList.contains('invalid-feedback')) fb.classList.add('d-none');
+                }
+
+                if (!desc) {
+                    isValid = false;
+                    descInput.classList.add('is-invalid');
+                    const fb = descInput.nextElementSibling;
+                    if(fb && fb.classList.contains('invalid-feedback')) fb.classList.remove('d-none');
+                } else {
+                    descInput.classList.remove('is-invalid');
+                    const fb = descInput.nextElementSibling;
+                    if(fb && fb.classList.contains('invalid-feedback')) fb.classList.add('d-none');
                 }
             });
+
             if (!isValid) {
                 errorMsg.classList.remove('d-none');
                 errorMsg.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -548,7 +621,7 @@
             return true;
         }
 
-        // --- EXISTING IMAGE/INCLUSION LOGIC ---
+        // --- 5. IMAGE/INCLUSION LOGIC ---
         const dt = new DataTransfer();
         function handleFileSelect(input) {
             const container = document.getElementById('previewContainer');
@@ -573,7 +646,7 @@
             for (let i = 0; i < dt.files.length; i++) {
                 const file = dt.files[i];
                 const reader = new FileReader();
-                reader.onload = function(e) {
+                reader.onload = function (e) {
                     const div = document.createElement('div');
                     div.className = 'gallery-item';
                     div.innerHTML = `<img src="${e.target.result}" /><span class="remove-btn" onclick="removeNewFile(${i})">&times;</span>`;
@@ -601,7 +674,7 @@
             if (element.classList.contains('deleted')) {
                 element.classList.remove('deleted');
                 const input = document.querySelector(`input[name="DeleteImagePaths"][value="${path}"]`);
-                if(input) input.remove();
+                if (input) input.remove();
             } else {
                 element.classList.add('deleted');
                 const input = document.createElement('input');
@@ -625,11 +698,11 @@
             const grp = document.getElementById('newCategoryGroup');
             if (sel && grp) {
                 grp.style.display = sel.value === '' ? 'block' : 'none';
-                if(sel.value !== '') document.getElementById('newCategoryInput').value = '';
+                if (sel.value !== '') document.getElementById('newCategoryInput').value = '';
             }
         }
 
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             const sel = document.getElementById('categorySelect');
             if (sel) { sel.addEventListener('change', toggleNewCategoryInput); toggleNewCategoryInput(); }
 
@@ -642,7 +715,24 @@
                     if (e && e.value === '') e.value = '@Model.Package.EndDate.ToString("yyyy-MM-dd")';
                     </text>
             }
+
+            // --- AUTO SCROLL TO ERROR ON LOAD ---
+            // If server returned error, find the first invalid input
+            const isSuccess = '@Model.IsSuccess'.toLowerCase() === 'false';
+            if(isSuccess) {
+               // Wait a tick for rendering
+               setTimeout(() => {
+                   const firstError = document.querySelector('.is-invalid, .input-validation-error');
+                   const alertBox = document.querySelector('.alert-danger');
+
+                   if(firstError) {
+                       firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                       firstError.focus();
+                   } else if (alertBox) {
+                       alertBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                   }
+               }, 100);
+            }
         });
-    </script>
     </script>
 }

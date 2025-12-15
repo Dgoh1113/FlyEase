@@ -1,4 +1,7 @@
-﻿@model FlyEase.ViewModels.DiscountsPageVM
+﻿@using X.PagedList
+@using X.PagedList.Mvc.Core
+@model FlyEase.ViewModels.DiscountPageVM
+
 @{
     ViewData["Title"] = "Manage Discounts";
     Layout = "~/Views/Shared/_AdminLayout.cshtml";
@@ -15,10 +18,7 @@
     <div class="card-body py-3">
         <form method="get" asp-action="Discounts" class="row g-3">
             <div class="col-md-10">
-                <div class="input-group">
-                    <span class="input-group-text bg-light"><i class="fas fa-search"></i></span>
-                    <input type="text" name="search" class="form-control" placeholder="Search by Discount Name or ID..." value="@Model.SearchTerm">
-                </div>
+                <input type="text" name="search" class="form-control" placeholder="Search by Name or ID..." value="@Model.SearchTerm">
             </div>
             <div class="col-md-2">
                 <button type="submit" class="btn btn-secondary w-100">Search</button>
@@ -27,30 +27,18 @@
     </div>
 </div>
 
-@if (TempData["Success"] != null)
-{
-    <div class="alert alert-success alert-dismissible fade show">
-        @TempData["Success"]
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
-}
-@if (TempData["Error"] != null)
-{
-    <div class="alert alert-danger alert-dismissible fade show">
-        @TempData["Error"]
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
-}
-
 <div class="card shadow-sm border-0">
     <div class="card-body p-0">
         <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
+            <table class="table table-hover table-sm align-middle mb-0" style="font-size: 0.9rem;">
                 <thead class="bg-light">
                     <tr>
                         <th class="ps-4">ID</th>
                         <th>Name</th>
                         <th>Value</th>
+                        <th>Conditions</th>
+                        <th>Status</th>
+                        <th>Validity</th>
                         <th class="text-end pe-4">Actions</th>
                     </tr>
                 </thead>
@@ -71,18 +59,54 @@
                                     {
                                         <span class="badge bg-success">RM @d.DiscountAmount?.ToString("N0") OFF</span>
                                     }
-                                    else
+                                </td>
+                                <td>
+                                    @if (d.MinSpend.HasValue)
+                                    {
+                                        <div class="small text-muted">Min Spend: RM @d.MinSpend</div>
+                                    }
+                                    @if (d.MinPax.HasValue)
+                                    {
+                                        <div class="small text-muted">Min Pax: @d.MinPax</div>
+                                    }
+                                    @if (!d.MinSpend.HasValue && !d.MinPax.HasValue)
                                     {
                                         <span class="text-muted">-</span>
                                     }
                                 </td>
+                                <td>
+                                    @if (d.IsActive)
+                                    {
+                                        <span class="badge bg-primary">Active</span>
+                                    }
+                                    else
+                                    {
+
+                                        <span class="badge bg-secondary">Inactive</span>
+                                    }
+                                </td>
+                                <td>
+                                    <small class="d-block text-muted">
+                                        @(d.StartDate.HasValue? d.StartDate.Value.ToShortDateString() : "Any") -
+                                        @(d.EndDate.HasValue? d.EndDate.Value.ToShortDateString() : "Any")
+                                    </small>
+                                </td>
                                 <td class="text-end pe-4">
                                     <button class="btn btn-sm btn-outline-primary me-1"
-                                            onclick="editDiscount(@d.DiscountTypeID, '@d.DiscountName', '@d.DiscountRate', '@d.DiscountAmount')">
+                                            onclick="editDiscount(
+                                                        @d.DiscountTypeID,
+                                                        '@Html.Raw(d.DiscountName?.Replace("'", "\\'"))',
+                                                        '@d.DiscountRate?.ToString(System.Globalization.CultureInfo.InvariantCulture)',
+                                                        '@d.DiscountAmount?.ToString(System.Globalization.CultureInfo.InvariantCulture)',
+                                                        '@d.MinPax',
+                                                        '@d.MinSpend?.ToString(System.Globalization.CultureInfo.InvariantCulture)',
+                                                        '@(d.StartDate?.ToString("yyyy-MM-dd"))',
+                                                        '@(d.EndDate?.ToString("yyyy-MM-dd"))',
+                                                        '@d.IsActive.ToString().ToLower()'
+                                                    )">
                                         <i class="fas fa-edit"></i>
                                     </button>
-
-                                    <form asp-action="DeleteDiscount" method="post" class="d-inline" onsubmit="return confirm('Delete this discount?');">
+                                    <form asp-action="DeleteDiscount" method="post" class="d-inline" onsubmit="return confirm('Delete?');">
                                         <input type="hidden" name="id" value="@d.DiscountTypeID" />
                                         <button type="submit" class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></button>
                                     </form>
@@ -92,68 +116,26 @@
                     }
                     else
                     {
-                        <tr>
-                            <td colspan="4" class="text-center py-4 text-muted">No discounts found.</td>
-                        </tr>
+                        <tr><td colspan="7" class="text-center py-4 text-muted">No discounts found.</td></tr>
                     }
                 </tbody>
             </table>
         </div>
     </div>
-</div>
 
-<div class="modal fade" id="discountModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title" id="modalTitle">Add Discount</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <form asp-action="SaveDiscount" method="post">
-                <div class="modal-body">
-                    <input type="hidden" asp-for="CurrentDiscount.DiscountTypeID" id="discId" />
+    <div class="card-footer bg-white py-3">
+        <div class="d-flex justify-content-between align-items-center">
+            <small class="text-muted">
+                Page @(Model.Discounts.PageCount < Model.Discounts.PageNumber ? 0 : Model.Discounts.PageNumber) of @Model.Discounts.PageCount
+            </small>
 
-                    <div class="mb-3">
-                        <label class="form-label">Discount Name</label>
-                        <input asp-for="CurrentDiscount.DiscountName" class="form-control" id="discName" required />
-                    </div>
-
-                    <div class="row">
-                        <div class="col-6 mb-3">
-                            <label class="form-label">Rate (Decimal, e.g. 0.10)</label>
-                            <input asp-for="CurrentDiscount.DiscountRate" class="form-control" id="discRate" type="number" step="0.01" min="0" max="1" />
-                            <small class="text-muted">Use 0.10 for 10%</small>
-                        </div>
-                        <div class="col-6 mb-3">
-                            <label class="form-label">Amount (RM)</label>
-                            <input asp-for="CurrentDiscount.DiscountAmount" class="form-control" id="discAmount" type="number" step="0.01" />
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="submit" class="btn btn-primary">Save Changes</button>
-                </div>
-            </form>
+            @Html.PagedListPager(Model.Discounts, page => Url.Action("Discounts", new { page, search = Model.SearchTerm }),
+            new PagedListRenderOptions
+            {
+                LiElementClasses = new string[] { "page-item" },
+                PageClasses = new string[] { "page-link" },
+                UlElementClasses = new string[] { "pagination", "pagination-sm", "mb-0" }
+            })
         </div>
     </div>
 </div>
-
-<script>
-    function editDiscount(id, name, rate, amount) {
-        document.getElementById('modalTitle').innerText = 'Edit Discount';
-        document.getElementById('discId').value = id;
-        document.getElementById('discName').value = name;
-        document.getElementById('discRate').value = rate;
-        document.getElementById('discAmount').value = amount;
-        new bootstrap.Modal(document.getElementById('discountModal')).show();
-    }
-
-    function clearDiscountModal() {
-        document.getElementById('modalTitle').innerText = 'Add Discount';
-        document.getElementById('discId').value = 0;
-        document.getElementById('discName').value = '';
-        document.getElementById('discRate').value = '';
-        document.getElementById('discAmount').value = '';
-    }
-</script>

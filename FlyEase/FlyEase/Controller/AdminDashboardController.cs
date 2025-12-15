@@ -10,6 +10,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using FlyEase.Services;
+using X.PagedList; // <--- Required
 
 namespace FlyEase.Controllers
 {
@@ -89,32 +90,40 @@ namespace FlyEase.Controllers
         }
 
         // ==========================================
-        // 2. USERS MANAGEMENT (Updated with Search & Filter)
+        // 2. USERS MANAGEMENT (Paginated like Home)
         // ==========================================
         [HttpGet("Users")]
-        public async Task<IActionResult> Users(string? search = null, string? role = null)
+        public async Task<IActionResult> Users(string? search = null, string? role = null, int? page = 1)
         {
+            int pageSize = 5;
+            int pageNumber = page ?? 1;
+
             var query = _context.Users.AsQueryable();
 
-            // Search by ID, Name, or Email
             if (!string.IsNullOrEmpty(search))
             {
-                // Note: For integer ID search, we convert to string or try parse
                 query = query.Where(u =>
                     u.UserID.ToString().Contains(search) ||
                     u.FullName.Contains(search) ||
                     u.Email.Contains(search));
             }
 
-            // Filter by Role
             if (!string.IsNullOrEmpty(role) && role != "All")
             {
                 query = query.Where(u => u.Role == role);
             }
 
+            // Pagination Logic from HomeController
+            var totalItems = await query.CountAsync();
+            var pagedData = await query
+                .OrderByDescending(u => u.CreatedDate)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
             var vm = new UsersPageVM
             {
-                Users = await query.OrderByDescending(u => u.CreatedDate).ToListAsync(),
+                Users = new StaticPagedList<User>(pagedData, pageNumber, pageSize, totalItems),
                 SearchTerm = search,
                 RoleFilter = role
             };
@@ -161,23 +170,24 @@ namespace FlyEase.Controllers
         }
 
         // ==========================================
-        // 3. BOOKINGS MANAGEMENT (Updated with Search)
+        // 3. BOOKINGS MANAGEMENT (Paginated like Home)
         // ==========================================
         [HttpGet("Bookings")]
-        public async Task<IActionResult> Bookings(string? search = null, string status = "All")
+        public async Task<IActionResult> Bookings(string? search = null, string status = "All", int? page = 1)
         {
+            int pageSize = 5;
+            int pageNumber = page ?? 1;
+
             var query = _context.Bookings
                 .Include(b => b.User)
                 .Include(b => b.Package)
                 .AsQueryable();
 
-            // Filter by Status
             if (status != "All" && !string.IsNullOrEmpty(status))
             {
                 query = query.Where(b => b.BookingStatus == status);
             }
 
-            // Search by Booking ID or Package Name
             if (!string.IsNullOrEmpty(search))
             {
                 query = query.Where(b =>
@@ -185,9 +195,17 @@ namespace FlyEase.Controllers
                     b.Package.PackageName.Contains(search));
             }
 
+            // Pagination Logic from HomeController
+            var totalItems = await query.CountAsync();
+            var pagedData = await query
+                .OrderByDescending(b => b.BookingDate)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
             var vm = new BookingsPageVM
             {
-                Bookings = await query.OrderByDescending(b => b.BookingDate).ToListAsync(),
+                Bookings = new StaticPagedList<Booking>(pagedData, pageNumber, pageSize, totalItems),
                 SearchTerm = search,
                 StatusFilter = status
             };
@@ -217,8 +235,6 @@ namespace FlyEase.Controllers
         public async Task<IActionResult> UpdateBookingStatus(BookingsPageVM model)
         {
             var input = model.CurrentBooking;
-
-            // 1. Fetch Booking with related data
             var booking = await _context.Bookings
                 .Include(b => b.User)
                 .Include(b => b.Package)
@@ -226,14 +242,10 @@ namespace FlyEase.Controllers
 
             if (booking != null)
             {
-                // 2. Logic to prevent sending duplicate emails if simply saving
                 bool isJustCompleted = (input.BookingStatus == "Completed" && booking.BookingStatus != "Completed");
-
-                // 3. Update Status
                 booking.BookingStatus = input.BookingStatus;
                 await _context.SaveChangesAsync();
 
-                // 4. Send Email ONLY if status changed to Completed
                 if (isJustCompleted)
                 {
                     try
@@ -242,15 +254,10 @@ namespace FlyEase.Controllers
                         if (!string.IsNullOrEmpty(booking.Package.ImageURL))
                         {
                             var images = booking.Package.ImageURL.Split(';');
-                            if (images.Length > 0)
-                            {
-                                packageImage = images[0];
-                            }
+                            if (images.Length > 0) packageImage = images[0];
                         }
 
-                        // Send the email (assuming EmailService is injected or created here for now)
-                        // Ideally inject via Constructor
-                        var emailService = new EmailService();
+                        var emailService = new EmailService(); // Ideally use Dependency Injection
                         await emailService.SendReviewInvitation(
                             booking.User.Email,
                             booking.User.FullName,
@@ -289,33 +296,42 @@ namespace FlyEase.Controllers
         }
 
         // ==========================================
-        // 4. PACKAGES MANAGEMENT (Updated with Search)
+        // 4. PACKAGES MANAGEMENT (Paginated like Home)
         // ==========================================
         [HttpGet("Packages")]
-        public async Task<IActionResult> Packages(string? search = null)
+        public async Task<IActionResult> Packages(string? search = null, int? page = 1)
         {
+            int pageSize = 5;
+            int pageNumber = page ?? 1;
+
             var query = _context.Packages
                 .Include(p => p.Category)
                 .Include(p => p.Bookings).ThenInclude(b => b.Feedbacks)
                 .AsQueryable();
 
-            // Search by Name
             if (!string.IsNullOrEmpty(search))
             {
                 query = query.Where(p => p.PackageName.Contains(search));
             }
 
-            var packages = await query.OrderByDescending(p => p.PackageID).ToListAsync();
+            // Pagination Logic from HomeController
+            var totalItems = await query.CountAsync();
+            var pagedData = await query
+                .OrderByDescending(p => p.PackageID)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
 
-            foreach (var p in packages)
+            // Calculate ratings for only the visible page
+            foreach (var p in pagedData)
             {
-                var feedbacks = p.Bookings.SelectMany(b => b.Feedbacks).ToList();
-                p.AverageRating = feedbacks.Any() ? feedbacks.Average(f => f.Rating) : 0;
+                var ratings = p.Bookings.SelectMany(b => b.Feedbacks).Select(f => f.Rating);
+                p.AverageRating = ratings.Any() ? ratings.Average() : 0;
             }
 
             var vm = new PackagesPageVM
             {
-                Packages = packages,
+                Packages = new StaticPagedList<Package>(pagedData, pageNumber, pageSize, totalItems),
                 Categories = await _context.PackageCategories.ToListAsync(),
                 CurrentPackage = new Package(),
                 SearchTerm = search
@@ -375,6 +391,8 @@ namespace FlyEase.Controllers
                     existing.AvailableSlots = input.AvailableSlots;
                     existing.Description = input.Description;
                     existing.ImageURL = input.ImageURL;
+                    existing.Latitude = input.Latitude;
+                    existing.Longitude = input.Longitude;
 
                     _context.Packages.Update(existing);
                     TempData["Success"] = "Package updated successfully!";
@@ -613,11 +631,14 @@ namespace FlyEase.Controllers
         }
 
         // ==========================================
-        // 7. DISCOUNTS (Updated with Search)
+        // 7. DISCOUNTS (Paginated like Home)
         // ==========================================
         [HttpGet("Discounts")]
-        public async Task<IActionResult> Discounts(string? search = null)
+        public async Task<IActionResult> Discounts(string? search = null, int? page = 1)
         {
+            int pageSize = 5;
+            int pageNumber = page ?? 1;
+
             var query = _context.DiscountTypes.AsQueryable();
 
             if (!string.IsNullOrEmpty(search))
@@ -627,9 +648,17 @@ namespace FlyEase.Controllers
                     d.DiscountName.Contains(search));
             }
 
-            var vm = new DiscountsPageVM
+            // Pagination Logic from HomeController
+            var totalItems = await query.CountAsync();
+            var pagedData = await query
+                .OrderBy(d => d.DiscountName)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            var vm = new DiscountPageVM
             {
-                Discounts = await query.ToListAsync(),
+                Discounts = new StaticPagedList<DiscountType>(pagedData, pageNumber, pageSize, totalItems),
                 SearchTerm = search
             };
             return View(vm);
@@ -637,7 +666,7 @@ namespace FlyEase.Controllers
 
         [HttpPost("SaveDiscount")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> SaveDiscount(DiscountsPageVM model)
+        public async Task<IActionResult> SaveDiscount(DiscountPageVM model)
         {
             var input = model.CurrentDiscount;
 
@@ -647,23 +676,31 @@ namespace FlyEase.Controllers
                 return RedirectToAction(nameof(Discounts));
             }
 
+            // Basic Validation for Rate/Amount
+            if (input.DiscountRate == null && input.DiscountAmount == null)
+            {
+                TempData["Error"] = "Please specify either a Discount Rate or a Fixed Amount.";
+                return RedirectToAction(nameof(Discounts));
+            }
+
             if (input.DiscountTypeID == 0)
             {
-                // --- CREATE ---
                 _context.DiscountTypes.Add(input);
                 TempData["Success"] = "Discount created successfully!";
             }
             else
             {
-                // --- UPDATE ---
                 var existing = await _context.DiscountTypes.FindAsync(input.DiscountTypeID);
                 if (existing != null)
                 {
                     existing.DiscountName = input.DiscountName;
                     existing.DiscountRate = input.DiscountRate;
                     existing.DiscountAmount = input.DiscountAmount;
-
-                    // Removed: MinPax, MinSpend, StartDate, EndDate, IsActive
+                    existing.MinPax = input.MinPax;
+                    existing.MinSpend = input.MinSpend;
+                    existing.StartDate = input.StartDate;
+                    existing.EndDate = input.EndDate;
+                    existing.IsActive = input.IsActive;
 
                     _context.DiscountTypes.Update(existing);
                     TempData["Success"] = "Discount updated successfully!";
