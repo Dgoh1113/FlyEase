@@ -1,0 +1,531 @@
+﻿/* =========================================
+   SCROLL SNAP CONTAINER (Quick Scroll Effect)
+   ========================================= */
+.main-content {
+    height: 100vh;
+    overflow-y: scroll;
+    scroll-snap-type: y mandatory; /* Forces snapping to sections */
+    scroll-behavior: smooth;
+    width: 100%;
+    position: relative;
+}
+
+    /* Hide scrollbar for cleaner look */
+    .main-content::-webkit-scrollbar {
+        display: none;
+    }
+
+.main-content {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+/* =========================================
+   HERO SLIDER SECTION
+   ========================================= */
+.home-hero-container {
+    position: relative;
+    width: 100%;
+    height: 100vh !important;
+    min-height: 600px;
+    scroll-snap-align: start; /* Snap point */
+    scroll-snap-stop: always;
+    overflow: hidden;
+    margin: 0;
+}
+
+/* Slider Wrapper */
+.slider-area-wrapper {
+    display: flex;
+    padding: 0;
+    overflow: hidden;
+    background: #000;
+    height: 100%;
+    width: 100%;
+}
+
+/* Main Slider (80%) */
+.swiper-container.main-slider {
+    width: 80%;
+    height: 100%;
+    float: left;
+    transition: opacity .6s ease, transform .3s ease;
+}
+
+/* Thumbnails (20%) */
+.swiper-container.nav-slider {
+    width: 20%;
+    padding-left: 5px;
+    background: #111;
+}
+
+    .swiper-container.nav-slider .swiper-slide {
+        cursor: pointer;
+        opacity: 0.4;
+        transition: opacity .3s ease;
+    }
+
+        .swiper-container.nav-slider .swiper-slide.swiper-slide-active {
+            opacity: 1;
+            border: 2px solid #0d6efd; /* Accent Primary */
+        }
+
+        .swiper-container.nav-slider .swiper-slide .content {
+            width: 100%;
+        }
+
+            .swiper-container.nav-slider .swiper-slide .content .title {
+                font-size: 18px;
+                margin-bottom: 5px;
+            }
+
+/* Navigation Buttons */
+.swiper-container:hover .swiper-button-prev,
+.swiper-container:hover .swiper-button-next {
+    transform: translateX(0);
+    opacity: 1;
+    visibility: visible;
+}
+
+.swiper-container.loading {
+    opacity: 0;
+    visibility: hidden;
+}
+
+/* Slide Common Styles */
+.swiper-slide {
+    overflow: hidden;
+    backface-visibility: hidden;
+    position: relative;
+}
+
+    .swiper-slide .slide-bgimg {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-position: center;
+        background-size: cover;
+        margin: 0;
+    }
+
+        /* Gradient Overlay */
+        .swiper-slide .slide-bgimg::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            background: linear-gradient(to right, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0) 100%);
+        }
+
+    .swiper-slide .entity-img {
+        display: none;
+    }
+
+    /* Slide Content */
+    .swiper-slide .content {
+        position: absolute;
+        top: 35%;
+        left: 0;
+        width: 60%;
+        padding-left: 5%;
+        color: #fff;
+        z-index: 10;
+        text-shadow: 0 2px 15px rgba(0,0,0,0.8);
+    }
+
+        .swiper-slide .content .title {
+            font-size: 4em;
+            font-weight: 800;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: -1px;
+            line-height: 1;
+        }
+
+        .swiper-slide .content .caption {
+            display: block;
+            transform: translateX(50px);
+            opacity: 0;
+            transition: opacity .3s ease, transform .7s ease;
+            max-width: 600px;
+            background: rgba(0,0,0,0.4);
+            padding: 20px;
+            border-radius: 10px;
+            backdrop-filter: blur(5px);
+            border-left: 4px solid #ffc107;
+        }
+
+            .swiper-slide .content .caption.show {
+                transform: translateX(0);
+                opacity: 1;
+            }
+
+.swiper-slide-active .content .fade-in-btn {
+    opacity: 1 !important;
+}
+
+/* Buttons */
+[class^="swiper-button-"] {
+    width: 44px;
+    opacity: 0;
+    visibility: hidden;
+    transition: all .3s ease;
+    color: #fff;
+}
+
+.swiper-button-prev {
+    transform: translateX(50px);
+}
+
+.swiper-button-next {
+    transform: translateX(-50px);
+}
+
+/* =========================================
+   CONCEPTS SECTION (Categories)
+   ========================================= */
+.concepts-section {
+    width: 100%;
+    background: #000;
+    font-family: 'Poppins', sans-serif;
+    text-transform: uppercase;
+}
+
+.concept {
+    position: relative;
+    height: 100vh;
+    width: 100%;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    /* Snap Logic */
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+}
+
+    /* Hover Overlay */
+    .concept::before {
+        content: "";
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        top: 0;
+        left: 0;
+        background: radial-gradient(rgba(0, 0, 0, 0.3), transparent);
+        opacity: 0;
+        transition: all 1s cubic-bezier(0.19, 1, 0.22, 1);
+        z-index: 1;
+    }
+
+    .concept:hover::before {
+        opacity: 0.5;
+    }
+
+    .concept h1 {
+        position: relative;
+        color: #fff;
+        font-weight: 900;
+        font-size: 60px;
+        text-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        z-index: 2;
+        margin: 0;
+    }
+
+/* --- 1. DESERT (Grid Hover) --- */
+.concept-one {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+    padding: 0;
+}
+
+    .concept-one h1 {
+        position: absolute;
+        margin: auto;
+        left: 0;
+        right: 0;
+        top: 50%;
+        transform: translateY(-50%);
+        text-align: center;
+        transition: 0.5s ease;
+        letter-spacing: 25px;
+        pointer-events: none;
+    }
+
+    .concept-one .hover {
+        z-index: 3;
+        width: 100%;
+        height: 100%;
+    }
+
+    .concept-one .hover-1:hover ~ h1 {
+        left: 30px;
+        margin-top: -10px;
+    }
+
+    .concept-one .hover-2:hover ~ h1 {
+        margin-top: -10px;
+    }
+
+    .concept-one .hover-3:hover ~ h1 {
+        right: 30px;
+        margin-top: -10px;
+    }
+
+    .concept-one .hover-4:hover ~ h1 {
+        left: 30px;
+    }
+
+    .concept-one .hover-6:hover ~ h1 {
+        right: 30px;
+    }
+
+    .concept-one .hover-7:hover ~ h1 {
+        left: 30px;
+        margin-top: -50px;
+    }
+
+    .concept-one .hover-8:hover ~ h1 {
+        margin-top: -50px;
+    }
+
+    .concept-one .hover-9:hover ~ h1 {
+        right: 30px;
+        margin-top: -50px;
+    }
+
+/* --- 2. CITY (Outline to Fill) --- */
+.concept-two {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+    .concept-two .word-wrapper {
+        display: flex;
+        gap: 20px;
+        z-index: 5;
+    }
+
+    .concept-two .char-box {
+        position: relative;
+        cursor: pointer;
+    }
+
+    .concept-two h1 {
+        color: transparent;
+        -webkit-text-stroke: 2px #fff;
+        transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .concept-two .char-box:hover h1 {
+        transform: scale(1.5);
+        color: #fff;
+        -webkit-text-stroke: 2px transparent;
+        text-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+    }
+
+/* --- 3. TOWN (Split Hover) --- */
+.concept-three .word {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    width: 100%;
+    z-index: 5;
+}
+
+.concept-three .char-col {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    width: 120px;
+    position: relative;
+}
+
+.concept-three .hover-top, .concept-three .hover-bottom {
+    flex: 1;
+    z-index: 6;
+}
+
+.concept-three h1 {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    transition: 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+    pointer-events: none;
+}
+
+.concept-three .hover-top:hover ~ h1 {
+    margin-top: -20px;
+}
+
+.concept-three .hover-bottom:hover ~ h1 {
+    margin-top: 20px;
+}
+
+/* --- 4. MOUNTAIN (Bounce) --- */
+.concept-five .word {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 5;
+}
+
+    .concept-five .word:hover .char:nth-child(even) {
+        top: 20px;
+    }
+
+    .concept-five .word:hover .char:nth-child(odd) {
+        top: -20px;
+    }
+
+.concept-five .char {
+    position: relative;
+    top: 0;
+    transition: 0.5s cubic-bezier(0.19, 1, 0.22, 1);
+    font: 900 60px Montserrat, sans-serif;
+    color: white;
+    text-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+    margin: 0 5px;
+}
+
+/* --- 5. BEACH (Rotate) --- */
+.concept-six .word {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 5;
+}
+
+.concept-six .char {
+    transition: 0.3s ease-in-out;
+    font: 900 60px Montserrat, sans-serif;
+    color: white;
+    text-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+    margin: 0 2px;
+}
+
+.concept-six .word:hover .char:nth-child(1) {
+    margin-top: -30px;
+    transform: rotate(-20deg);
+}
+
+.concept-six .word:hover .char:nth-child(2) {
+    margin: -40px 0 0 10px;
+    transform: rotate(5deg);
+}
+
+.concept-six .word:hover .char:nth-child(3) {
+    margin: 15px 0 0 10px;
+    transform: rotate(12deg);
+}
+
+.concept-six .word:hover .char:nth-child(4) {
+    margin: -25px 0 0;
+    transform: rotate(5deg);
+}
+
+.concept-six .word:hover .char:nth-child(5) {
+    margin: -40px 5px 0;
+    transform: rotate(-10deg);
+}
+
+/* --- 6. WATERFALL (Falling Text) --- */
+.concept-eight .word {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 5;
+}
+
+.concept-eight .char {
+    position: relative;
+    font: 900 60px Montserrat, sans-serif;
+    color: white;
+    text-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+    margin: 0 2px;
+}
+
+    .concept-eight .char::before {
+        content: attr(data-content);
+        position: absolute;
+        top: 0;
+        left: 0;
+        color: rgba(255, 255, 255, 0.8);
+        opacity: 0;
+    }
+
+.concept-eight .word:hover .char::before {
+    animation: falls 1s ease forwards;
+}
+
+.concept-eight .word:hover .char:nth-child(1)::before {
+    animation: falls 0.9s ease 0.2s forwards;
+}
+
+.concept-eight .word:hover .char:nth-child(odd)::before {
+    animation: falls 1s ease 0.3s forwards;
+}
+
+@keyframes falls {
+    0% {
+        opacity: 0;
+        top: 0;
+    }
+
+    20% {
+        opacity: 1;
+    }
+
+    100% {
+        opacity: 0;
+        top: 100px;
+    }
+}
+
+/* Mobile Adjustments */
+@media (max-width: 767.98px) {
+    .home-hero-container {
+        height: 100vh;
+    }
+
+    .slider-area-wrapper {
+        flex-direction: column;
+    }
+
+    .swiper-container.main-slider {
+        width: 100%;
+        height: 75%;
+    }
+
+    .swiper-container.nav-slider {
+        width: 100%;
+        height: 25%;
+        padding-left: 0;
+        padding-top: 5px;
+    }
+
+    .swiper-slide .content .title {
+        font-size: 2.5em;
+    }
+
+    .swiper-slide .content {
+        width: 90%;
+        top: 20%;
+    }
+
+    .concept h1 {
+        font-size: 40px;
+    }
+}

@@ -31,11 +31,11 @@
     </script>
 
     <style>
-        /* =========================================
-                   INTEGRATED SIDEBAR CSS
-                   ========================================= */
+        /* [Keep your existing CSS here...] */
+        /* ... (The Sidebar CSS you added previously) ... */
+
         :root {
-            --bg--primary: var(--bg-card); /* Adapted to FlyEase Theme Variables */
+            --bg--primary: var(--bg-card);
             --bg--active: rgba(13, 110, 253, 0.1);
             --bg--hover: rgba(0, 0, 0, 0.05);
             --bg--focus: var(--bg-card);
@@ -43,18 +43,17 @@
             --gray--secondary: var(--text-main);
             --dark--primary: var(--text-main);
             --dark--secondary: var(--text-muted);
-            --accent--primary: #0d6efd; /* Bootstrap Primary Blue */
+            --accent--primary: #0d6efd;
             --accent--secondary: #0a58ca;
             --expanded: 16.875rem;
-            --collapsed: 4.5rem; /* Slightly wider to fit icons nicely */
+            --collapsed: 4.5rem;
             --svg: 1.25rem;
-            --item: 3rem; /* Taller touch targets */
-            --brad-outer: 0px; /* Flush with edge */
+            --item: 3rem;
+            --brad-outer: 0px;
             --frame-space: 0rem;
             --brad-inner: 12px;
         }
 
-        /* RESET BODY FOR LAYOUT (Overriding user snippet to fit full page) */
         body {
             box-sizing: border-box;
             margin: 0;
@@ -64,7 +63,6 @@
             overflow-x: hidden;
         }
 
-        /* LAYOUT WRAPPER */
         .layout-wrapper {
             display: flex;
             width: 100%;
@@ -74,7 +72,7 @@
         /* SIDEBAR STYLES */
         .vertical-sidebar {
             display: flex;
-            width: var(--collapsed); /* Start collapsed */
+            width: var(--collapsed);
             position: sticky;
             top: 0;
             height: 100vh;
@@ -84,7 +82,6 @@
             transition: width 300ms ease-out;
         }
 
-            /* Checked state expands the sidebar container */
             .vertical-sidebar:has(:checked) {
                 width: var(--expanded);
             }
@@ -110,11 +107,11 @@
         .sidebar__toggle-container {
             height: var(--item);
             display: flex;
-            justify-content: center; /* Centered when collapsed */
+            justify-content: center;
         }
 
         .vertical-sidebar:has(:checked) .sidebar__toggle-container {
-            justify-content: flex-end; /* Right align when expanded */
+            justify-content: flex-end;
         }
 
         .nav__toggle {
@@ -147,7 +144,6 @@
             fill: currentColor;
         }
 
-        /* LOGO AREA */
         figure.sidebar-logo {
             display: flex;
             flex-direction: column;
@@ -183,7 +179,6 @@
             color: var(--text-muted);
         }
 
-        /* LINKS LIST */
         .sidebar__wrapper {
             display: flex;
             flex-flow: column;
@@ -235,6 +230,7 @@
             padding: 0 0.75rem;
             color: var(--text-main);
             transition: background-color 0.2s;
+            cursor: pointer;
         }
 
         .icon {
@@ -262,13 +258,11 @@
             color: var(--accent--primary);
         }
 
-        /* Active State logic via ASP.NET */
         .sidebar__link.active {
             background-color: var(--bg--active);
             color: var(--accent--primary);
         }
 
-        /* TOGGLE ICONS LOGIC */
         .vertical-sidebar:not(:has(:checked)) .toggle--open {
             opacity: 1;
         }
@@ -285,7 +279,6 @@
             opacity: 1;
         }
 
-        /* Tooltip for collapsed state */
         [data-tooltip] {
             position: relative;
         }
@@ -309,6 +302,14 @@
 
         input[type="checkbox"] {
             display: none;
+        }
+
+        .sidebar-lang-btn {
+            width: 100%;
+            border: none;
+            background: none;
+            text-align: left;
+            padding: 0;
         }
     </style>
 
@@ -400,6 +401,34 @@
                             <h2 class="sidebar__item--heading">Account</h2>
                         </li>
 
+                        <li class="sidebar__item">
+                            <a class="sidebar__link" href="#" onclick="toggleTheme(); return false;" data-tooltip="Switch Theme">
+                                <span class="icon">
+                                    <svg width="16" height="16" fill="currentColor" class="bi bi-gear" viewBox="0 0 16 16">
+                                        <path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492M5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0" />
+                                        <path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1-.52-1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1-1.255-.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.377l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 0 0 2.692-1.115z" />
+                                    </svg>
+                                </span>
+                                <span class="text">Mode</span>
+                            </a>
+                        </li>
+
+                        <li class="sidebar__item dropend">
+                            <button class="sidebar__link sidebar-lang-btn" data-bs-toggle="dropdown" aria-expanded="false" data-tooltip="Language">
+                                <span class="icon">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                        <path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8zm7.5-6.923c-.67.204-1.335.82-1.887 1.855A7.97 7.97 0 0 0 5.145 4H7.5V1.077zM4.09 4a9.267 9.267 0 0 1 .64-1.539 6.7 6.7 0 0 1 .597-.933A7.025 7.025 0 0 0 2.255 4H4.09zm-.582 3.5c.03-.877.138-1.718.312-2.5H1.674a6.958 6.958 0 0 0-.656 2.5h2.49zM4.847 5a12.5 12.5 0 0 0-.338 2.5H7.5V5H4.847zM8.5 5v2.5h2.99a12.495 12.495 0 0 0-.337-2.5H8.5zM4.51 8.5a12.5 12.5 0 0 0 .337 2.5H7.5V8.5H4.51zm3.99 0V11h2.653c.187-.765.306-1.608.338-2.5H8.5zM5.145 12c.138.386.295.744.468 1.068.552 1.035 1.218 1.65 1.887 1.855V12H5.145zm.182 2.472a6.696 6.696 0 0 1-.597-.933A9.268 9.268 0 0 1 4.09 12H2.255a7.024 7.024 0 0 0 3.072 2.472z" />
+                                    </svg>
+                                </span>
+                                <span class="text">Language</span>
+                            </button>
+                            <ul class="dropdown-menu shadow border-0">
+                                <li><a class="dropdown-item d-flex align-items-center" asp-controller="Language" asp-action="SetLanguage" asp-route-culture="en" asp-route-returnUrl="@Context.Request.Path"><img src="https://flagcdn.com/w20/us.png" class="me-3"> English</a></li>
+                                <li><a class="dropdown-item d-flex align-items-center" asp-controller="Language" asp-action="SetLanguage" asp-route-culture="ms" asp-route-returnUrl="@Context.Request.Path"><img src="https://flagcdn.com/w20/my.png" class="me-3"> Malay</a></li>
+                                <li><a class="dropdown-item d-flex align-items-center" asp-controller="Language" asp-action="SetLanguage" asp-route-culture="zh-CN" asp-route-returnUrl="@Context.Request.Path"><img src="https://flagcdn.com/w20/cn.png" class="me-3"> Chinese</a></li>
+                            </ul>
+                        </li>
+
                         @if (User.Identity != null && User.Identity.IsAuthenticated)
                         {
                             <li class="sidebar__item">
@@ -436,46 +465,37 @@
                                 </a>
                             </li>
                         }
-
-                        <li class="sidebar__item">
-                            <a class="sidebar__link" href="#" onclick="toggleTheme(); return false;" data-tooltip="Switch Theme">
-                                <span class="icon">
-                                    <svg width="16" height="16" fill="currentColor" class="bi bi-gear" viewBox="0 0 16 16">
-                                        <path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492M5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0" />
-                                        <path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.377l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 0 0 2.692-1.115z" />
-                                    </svg>
-                                </span>
-                                <span class="text">Mode</span>
-                            </a>
-                        </li>
                     </ul>
                 </section>
             </nav>
         </aside>
 
         <div class="flex-grow-1 d-flex flex-column" style="min-width: 0;">
-            <header class="sticky-top bg-body border-bottom py-2 px-3 shadow-sm d-flex justify-content-end align-items-center">
-                <div class="dropdown">
-                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle d-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown">
-                        <i class="fas fa-globe"></i> <span class="d-none d-sm-inline">Language</span>
-                    </button>
-                    <ul class="dropdown-menu dropdown-menu-end shadow border-0">
-                        <li><a class="dropdown-item d-flex align-items-center" asp-controller="Language" asp-action="SetLanguage" asp-route-culture="en" asp-route-returnUrl="@Context.Request.Path"><img src="https://flagcdn.com/w20/us.png" class="me-3"> English</a></li>
-                        <li><a class="dropdown-item d-flex align-items-center" asp-controller="Language" asp-action="SetLanguage" asp-route-culture="ms" asp-route-returnUrl="@Context.Request.Path"><img src="https://flagcdn.com/w20/my.png" class="me-3"> Bahasa Melayu</a></li>
-                        <li><a class="dropdown-item d-flex align-items-center" asp-controller="Language" asp-action="SetLanguage" asp-route-culture="zh-CN" asp-route-returnUrl="@Context.Request.Path"><img src="https://flagcdn.com/w20/cn.png" class="me-3"> 中文</a></li>
-                    </ul>
-                </div>
-            </header>
 
             <main class="flex-grow-1">
-                @RenderBody()
+                @* CONDITIONAL PADDING:
+                   - Removes padding ('p-0') only for Home/Index to allow full-screen sliders.
+                   - Keeps padding ('p-4') for all other pages to ensure content isn't flush against the sidebar.
+                *@
+                @{
+                    var isHomePage = ViewContext.RouteData.Values["controller"]?.ToString() == "Home" &&
+                    ViewContext.RouteData.Values["action"]?.ToString() == "Index";
+                    var containerClass = isHomePage ? "container-fluid p-0" : "container-fluid p-4";
+                }
+
+                <div class="@containerClass">
+                    @RenderBody()
+                </div>
             </main>
 
-            <footer class="mt-auto py-3 bg-light border-top">
-                <div class="container text-center">
-                    <p class="text-muted small mb-0">© 2025 FlyEase Travel. All Rights Reserved.</p>
-                </div>
-            </footer>
+            @if (!isHomePage)
+            {
+                <footer class="mt-auto py-3 bg-light border-top">
+                    <div class="container text-center">
+                        <p class="text-muted small mb-0">© 2025 FlyEase Travel. All Rights Reserved.</p>
+                    </div>
+                </footer>
+            }
         </div>
     </div>
 
@@ -488,11 +508,9 @@
     @await RenderSectionAsync("Scripts", required: false)
 
     <script>
-        // Initialize Theme
         document.addEventListener("DOMContentLoaded", function() {
             const html = document.documentElement;
             const currentTheme = html.getAttribute('data-bs-theme');
-            // updateIcon(currentTheme); // No longer needed as we use generic SVGs
         });
 
         function toggleTheme() {
