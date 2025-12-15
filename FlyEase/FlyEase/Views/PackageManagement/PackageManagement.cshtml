@@ -115,7 +115,6 @@
                       action="@(Model.EditingPackageId == null ? Url.Action("Create") : Url.Action("Update"))"
                       enctype="multipart/form-data" id="packageForm" onsubmit="return validateForm()">
                     @Html.AntiForgeryToken()
-
                     @if (Model.EditingPackageId.HasValue)
                     {
                         <input type="hidden" name="PackageID" value="@Model.EditingPackageId.Value" />
@@ -171,6 +170,7 @@
                         <input type="hidden" id="p_lat" name="Latitude" value="@Model.Package.Latitude" />
                         <input type="hidden" id="p_long" name="Longitude" value="@Model.Package.Longitude" />
                     </div>
+
                     <div class="form-row">
                         <div class="form-group">
                             <label class="form-label">Start Date</label>
@@ -273,6 +273,7 @@
                         <button type="button" class="btn btn-outline-secondary mt-2 w-100" onclick="addItineraryRow()">+ Add Extra Day</button>
                         <small class="text-danger d-none" id="itineraryError">Every day must have a Title and Description.</small>
                     </div>
+
                     <div class="form-actions">
                         @if (Model.EditingPackageId == null)
                         {
@@ -296,6 +297,8 @@
                     @foreach (var package in Model.Packages)
                     {
                         var firstImage = !string.IsNullOrEmpty(package.ImageURL) ? package.ImageURL.Split(';', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() : "/img/default-package.jpg";
+                        var bookingCount = package.Bookings?.Count(b => b.BookingStatus != "Cancelled") ?? 0;
+
                         <div class="package-management-card">
                             <div class="package-image">
                                 <img src="@firstImage" alt="@package.PackageName" onerror="this.src='/img/default-package.jpg'" />
@@ -305,10 +308,14 @@
                                         <input type="hidden" name="id" value="@package.PackageID" />
                                         <button type="submit" class="btn-edit"><i class="fas fa-edit"></i></button>
                                     </form>
-                                    <form method="post" action="@Url.Action("Delete")" onsubmit="return confirm('Delete package?');">
+
+                                    <form id="delete-form-@package.PackageID" method="post" action="@Url.Action("Delete")">
                                         @Html.AntiForgeryToken()
                                         <input type="hidden" name="id" value="@package.PackageID" />
-                                        <button type="submit" class="btn-delete"><i class="fas fa-trash"></i></button>
+
+                                        <button type="button" class="btn-delete" onclick="confirmDelete(@package.PackageID, @bookingCount)">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
                                     </form>
                                 </div>
                             </div>
@@ -316,6 +323,10 @@
                                 <h4>@package.PackageName</h4>
                                 <div class="package-category"><strong>Category:</strong> @package.Category?.CategoryName</div>
                                 <div class="package-price">$@package.Price.ToString("N2")</div>
+                                @if (bookingCount > 0)
+                                {
+                                    <span class="badge bg-warning text-dark mt-1">@bookingCount Active Booking(s)</span>
+                                }
                             </div>
                         </div>
                     }
@@ -333,7 +344,62 @@
 
 @section Scripts {
     <script>
-        // --- MAP LOGIC ---
+        // --- DELETE CONFIRMATION LOGIC ---
+        function confirmDelete(packageId, bookingCount) {
+            if (bookingCount > 0) {
+                // Special Warning for Active Bookings
+                Swal.fire({
+                    title: '⚠️ Active Bookings Found!',
+                    html: `This package has <b>${bookingCount} active bookings</b>.<br>
+                           Deleting it will <b>automatically cancel</b> all bookings,
+                           <b>refund</b> the payments, and <b>notify</b> users via email.<br><br>
+                           Please wait <b><span id="timer" style="color:red; font-size:1.5em;">3</span></b> seconds to confirm...`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#d33',
+                    cancelButtonColor: '#3085d6',
+                    confirmButtonText: 'Yes, Delete & Refund',
+                    didOpen: () => {
+                        Swal.showLoading();
+                        const confirmBtn = Swal.getConfirmButton();
+                        confirmBtn.setAttribute('disabled', '');
+                        let timeLeft = 3;
+                        const timerInterval = setInterval(() => {
+                            timeLeft--;
+                            const timerEl = document.getElementById('timer');
+                            if(timerEl) timerEl.textContent = timeLeft;
+
+                            if (timeLeft <= 0) {
+                                clearInterval(timerInterval);
+                                Swal.hideLoading();
+                                confirmBtn.removeAttribute('disabled');
+                            }
+                        }, 1000);
+                    }
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        document.getElementById('delete-form-' + packageId).submit();
+                    }
+                });
+            } else {
+                // Standard Delete Confirmation
+                Swal.fire({
+                    title: 'Delete Package?',
+                    text: "You won't be able to revert this!",
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#d33',
+                    cancelButtonColor: '#3085d6',
+                    confirmButtonText: 'Yes, delete it!'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        document.getElementById('delete-form-' + packageId).submit();
+                    }
+                });
+            }
+        }
+
+        // --- MAP LOGIC (Keep existing) ---
         let map, marker;
         function initMap() {
             let lat = parseFloat(document.getElementById('p_lat').value) || 3.1390;
@@ -377,9 +443,8 @@
             initMap();
         });
 
-        // --- ITINERARY LOGIC ---
+        // --- ITINERARY LOGIC (Keep existing) ---
         let itineraryIndex = @(Model.Itinerary?.Count ?? 0);
-
         function createItineraryRowHTML(index, dayNumber, title = "", desc = "") {
             return `
                 <div class="card mb-2 p-3 bg-light border itinerary-row">
@@ -440,7 +505,6 @@
             const end = new Date(endStr);
             const diffTime = end - start;
             if (diffTime < 0) return;
-
             const totalDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
             const container = document.getElementById('itinerary-container');
             let currentRows = container.getElementsByClassName('itinerary-row').length;
@@ -463,7 +527,6 @@
             const startVal = document.getElementById('startDate').value;
             const endVal = document.getElementById('endDate').value;
             if(startVal && endVal && rows.length === 0) isValid = false;
-
             rows.forEach(row => {
                 const title = row.querySelector('.title-input').value.trim();
                 const desc = row.querySelector('.desc-input').value.trim();
@@ -476,7 +539,6 @@
                     row.querySelector('.desc-input').classList.remove('is-invalid');
                 }
             });
-
             if (!isValid) {
                 errorMsg.classList.remove('d-none');
                 errorMsg.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -488,7 +550,6 @@
 
         // --- EXISTING IMAGE/INCLUSION LOGIC ---
         const dt = new DataTransfer();
-
         function handleFileSelect(input) {
             const container = document.getElementById('previewContainer');
             const clearBtn = document.getElementById('clearNewBtn');
@@ -549,12 +610,10 @@
             }
         }
 
-        // FIXED: name="Inclusions" (No Index)
         function addInclusion() {
             const container = document.getElementById('inclusions-container');
             const div = document.createElement('div');
             div.className = 'inclusion-item mb-2';
-            // FIX IS HERE: name="Inclusions" instead of name="Inclusions[${inclusionIndex}]"
             div.innerHTML = `<div class="input-group"><input type="text" class="form-control" name="Inclusions" placeholder="Enter item" /><button type="button" class="btn btn-danger" onclick="removeInclusion(this)">Remove</button></div>`;
             container.appendChild(div);
         }
@@ -584,5 +643,6 @@
                     </text>
             }
         });
+    </script>
     </script>
 }

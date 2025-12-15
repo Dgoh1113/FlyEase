@@ -2,21 +2,27 @@
 using Microsoft.EntityFrameworkCore;
 using FlyEase.Data;
 using FlyEase.ViewModels;
-using Microsoft.AspNetCore.Authorization; // <--- 1. ADD THIS NAMESPACE
+using Microsoft.AspNetCore.Authorization;
+using FlyEase.Services;
 
 namespace FlyEase.Controllers
 {
-    [Authorize(Roles = "Admin")]
+    // Allow both Admin and Staff to manage packages
+    [Authorize(Roles = "Admin, Staff")]
     public class PackageManagementController : Controller
     {
         private readonly FlyEaseDbContext _context;
         private readonly IWebHostEnvironment _environment;
+        private readonly StripeService _stripeService;
+        private readonly EmailService _emailService;
         private const long MAX_UPLOAD_BYTES = 104857600;
 
-        public PackageManagementController(FlyEaseDbContext context, IWebHostEnvironment environment)
+        public PackageManagementController(FlyEaseDbContext context, IWebHostEnvironment environment, StripeService stripeService, EmailService emailService)
         {
             _context = context;
             _environment = environment;
+            _stripeService = stripeService;
+            _emailService = emailService;
         }
 
         public async Task<IActionResult> PackageManagement()
@@ -64,8 +70,6 @@ namespace FlyEase.Controllers
                     EndDate = request.EndDate,
                     AvailableSlots = request.AvailableSlots,
                     ImageURL = string.Join(";", imagePaths),
-
-                    // === SAVE LOCATION ===
                     Latitude = request.Latitude,
                     Longitude = request.Longitude
                 };
@@ -194,8 +198,6 @@ namespace FlyEase.Controllers
                 existingPackage.StartDate = request.StartDate;
                 existingPackage.EndDate = request.EndDate;
                 existingPackage.AvailableSlots = request.AvailableSlots;
-
-                // === UPDATE LOCATION ===
                 existingPackage.Latitude = request.Latitude;
                 existingPackage.Longitude = request.Longitude;
 
@@ -243,29 +245,81 @@ namespace FlyEase.Controllers
             }
         }
 
+        // =========================================================
+        // UPDATED DELETE LOGIC: FORCE DELETE WITH REFUND
+        // =========================================================
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Delete(int id)
         {
-            var package = await _context.Packages.FindAsync(id);
+            var package = await _context.Packages
+                .Include(p => p.Bookings)
+                    .ThenInclude(b => b.Payments)
+                .Include(p => p.Bookings)
+                    .ThenInclude(b => b.User)
+                .FirstOrDefaultAsync(p => p.PackageID == id);
+
             if (package != null)
             {
-                if (await _context.Bookings.AnyAsync(b => b.PackageID == id))
+                // 1. Process Refunds & Notifications for existing bookings
+                if (package.Bookings.Any())
                 {
-                    var vm = await LoadViewModelAsync();
-                    vm.Message = "Cannot delete package with bookings.";
-                    vm.IsSuccess = false;
-                    return View("PackageManagement", vm);
+                    // Create a list to iterate over safely while modifying the context
+                    var bookingsToDelete = package.Bookings.ToList();
+
+                    foreach (var booking in bookingsToDelete)
+                    {
+                        decimal refundedAmount = 0;
+
+                        // Refund Payments
+                        foreach (var payment in booking.Payments)
+                        {
+                            if ((payment.PaymentStatus == "Completed" || payment.PaymentStatus == "Deposit")
+                                && !string.IsNullOrEmpty(payment.TransactionID))
+                            {
+                                // Stripe Refund
+                                if (payment.PaymentMethod.Contains("Credit Card") || payment.PaymentMethod.Contains("Stripe"))
+                                {
+                                    try
+                                    {
+                                        await _stripeService.RefundPaymentAsync(payment.TransactionID);
+                                        refundedAmount += payment.AmountPaid;
+                                    }
+                                    catch
+                                    {
+                                        // If refund fails, we proceed with delete as per "Force Delete" instruction
+                                    }
+                                }
+                            }
+                        }
+
+                        // Send Email Notification
+                        if (booking.User != null)
+                        {
+                            await _emailService.SendRefundNotification(
+                                booking.User.Email,
+                                booking.User.FullName,
+                                package.PackageName,
+                                refundedAmount
+                            );
+                        }
+
+                        // *** CRITICAL FIX: Remove the booking to resolve the Constraint Exception ***
+                        // This allows the package to be deleted since the dependent records are gone.
+                        _context.Bookings.Remove(booking);
+                    }
                 }
 
+                // 2. Delete Images
                 var images = package.ImageURL?.Split(';', StringSplitOptions.RemoveEmptyEntries);
                 if (images != null) foreach (var img in images) DeleteImageFile(img);
 
+                // 3. Delete Package
                 _context.Packages.Remove(package);
                 await _context.SaveChangesAsync();
 
                 var successVm = await LoadViewModelAsync();
-                successVm.Message = "Deleted successfully";
+                successVm.Message = "Package force deleted. Refunds processed and bookings removed.";
                 successVm.IsSuccess = true;
                 return View("PackageManagement", successVm);
             }
@@ -318,7 +372,12 @@ namespace FlyEase.Controllers
         {
             return new PackageManagementViewModel
             {
-                Packages = await _context.Packages.Include(p => p.Category).Include(p => p.PackageInclusions).OrderByDescending(p => p.PackageID).ToListAsync(),
+                Packages = await _context.Packages
+                    .Include(p => p.Category)
+                    .Include(p => p.PackageInclusions)
+                    .Include(p => p.Bookings) // Required for frontend check
+                    .OrderByDescending(p => p.PackageID)
+                    .ToListAsync(),
                 Categories = await _context.PackageCategories.OrderBy(c => c.CategoryName).ToListAsync()
             };
         }

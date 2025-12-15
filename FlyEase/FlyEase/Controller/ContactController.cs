@@ -1,22 +1,49 @@
-﻿using FlyEase.Services;
+﻿using FlyEase.Data; // Needed for DbContext
+using FlyEase.Services;
 using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel.DataAnnotations;
+using System.Security.Claims; // Needed for User Claims
 
 namespace FlyEase.Controllers
 {
     public class ContactController : Controller
     {
         private readonly IEmailService _emailService;
+        private readonly FlyEaseDbContext _context; // 1. Add DbContext
 
-        public ContactController(IEmailService emailService)
+        // 2. Inject DbContext in Constructor
+        public ContactController(IEmailService emailService, FlyEaseDbContext context)
         {
             _emailService = emailService;
+            _context = context;
         }
 
         // GET: Contact page
-        public IActionResult Index()
+        public async Task<IActionResult> Index()
         {
-            return View();
+            var model = new ContactViewModel();
+
+            // 3. Check if user is logged in
+            if (User.Identity != null && User.Identity.IsAuthenticated)
+            {
+                // Get User ID from the session claim
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+                if (int.TryParse(userIdClaim, out int userId))
+                {
+                    // Fetch user details from DB
+                    var user = await _context.Users.FindAsync(userId);
+                    if (user != null)
+                    {
+                        // 4. Auto-fill the model
+                        model.Name = user.FullName;
+                        model.Email = user.Email; // This auto-fills the Gmail/Email
+                        model.Phone = user.Phone;
+                    }
+                }
+            }
+
+            return View(model);
         }
 
         // POST: Handle contact form submission

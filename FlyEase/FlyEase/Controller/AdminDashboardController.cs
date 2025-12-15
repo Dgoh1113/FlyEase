@@ -15,7 +15,6 @@ namespace FlyEase.Controllers
 {
     [Route("AdminDashboard")]
     [Authorize(Roles = "Admin")]
-
     public class AdminDashboardController : Controller
     {
         private readonly FlyEaseDbContext _context;
@@ -90,12 +89,35 @@ namespace FlyEase.Controllers
         }
 
         // ==========================================
-        // 2. USERS MANAGEMENT
+        // 2. USERS MANAGEMENT (Updated with Search & Filter)
         // ==========================================
         [HttpGet("Users")]
-        public async Task<IActionResult> Users()
+        public async Task<IActionResult> Users(string? search = null, string? role = null)
         {
-            var vm = new UsersPageVM { Users = await _context.Users.OrderByDescending(u => u.CreatedDate).ToListAsync() };
+            var query = _context.Users.AsQueryable();
+
+            // Search by ID, Name, or Email
+            if (!string.IsNullOrEmpty(search))
+            {
+                // Note: For integer ID search, we convert to string or try parse
+                query = query.Where(u =>
+                    u.UserID.ToString().Contains(search) ||
+                    u.FullName.Contains(search) ||
+                    u.Email.Contains(search));
+            }
+
+            // Filter by Role
+            if (!string.IsNullOrEmpty(role) && role != "All")
+            {
+                query = query.Where(u => u.Role == role);
+            }
+
+            var vm = new UsersPageVM
+            {
+                Users = await query.OrderByDescending(u => u.CreatedDate).ToListAsync(),
+                SearchTerm = search,
+                RoleFilter = role
+            };
             return View(vm);
         }
 
@@ -139,15 +161,36 @@ namespace FlyEase.Controllers
         }
 
         // ==========================================
-        // 3. BOOKINGS MANAGEMENT
+        // 3. BOOKINGS MANAGEMENT (Updated with Search)
         // ==========================================
         [HttpGet("Bookings")]
-        public async Task<IActionResult> Bookings(string status = "All")
+        public async Task<IActionResult> Bookings(string? search = null, string status = "All")
         {
-            var query = _context.Bookings.Include(b => b.User).Include(b => b.Package).AsQueryable();
-            if (status != "All" && !string.IsNullOrEmpty(status)) query = query.Where(b => b.BookingStatus == status);
+            var query = _context.Bookings
+                .Include(b => b.User)
+                .Include(b => b.Package)
+                .AsQueryable();
 
-            var vm = new BookingsPageVM { Bookings = await query.OrderByDescending(b => b.BookingDate).ToListAsync() };
+            // Filter by Status
+            if (status != "All" && !string.IsNullOrEmpty(status))
+            {
+                query = query.Where(b => b.BookingStatus == status);
+            }
+
+            // Search by Booking ID or Package Name
+            if (!string.IsNullOrEmpty(search))
+            {
+                query = query.Where(b =>
+                    b.BookingID.ToString().Contains(search) ||
+                    b.Package.PackageName.Contains(search));
+            }
+
+            var vm = new BookingsPageVM
+            {
+                Bookings = await query.OrderByDescending(b => b.BookingDate).ToListAsync(),
+                SearchTerm = search,
+                StatusFilter = status
+            };
             return View(vm);
         }
 
@@ -195,7 +238,6 @@ namespace FlyEase.Controllers
                 {
                     try
                     {
-                        // Extract the first image if available (ImageURL format: "img1.jpg;img2.jpg")
                         string packageImage = "";
                         if (!string.IsNullOrEmpty(booking.Package.ImageURL))
                         {
@@ -206,14 +248,15 @@ namespace FlyEase.Controllers
                             }
                         }
 
-                        // Send the email
+                        // Send the email (assuming EmailService is injected or created here for now)
+                        // Ideally inject via Constructor
                         var emailService = new EmailService();
                         await emailService.SendReviewInvitation(
                             booking.User.Email,
                             booking.User.FullName,
                             booking.BookingID,
                             booking.Package.PackageName,
-                            packageImage // <--- Pass the image here
+                            packageImage
                         );
 
                         TempData["Success"] = "Booking marked Completed & Review Email Sent!";
@@ -246,16 +289,23 @@ namespace FlyEase.Controllers
         }
 
         // ==========================================
-        // 4. PACKAGES MANAGEMENT
+        // 4. PACKAGES MANAGEMENT (Updated with Search)
         // ==========================================
         [HttpGet("Packages")]
-        public async Task<IActionResult> Packages()
+        public async Task<IActionResult> Packages(string? search = null)
         {
-            var packages = await _context.Packages
+            var query = _context.Packages
                 .Include(p => p.Category)
                 .Include(p => p.Bookings).ThenInclude(b => b.Feedbacks)
-                .OrderByDescending(p => p.PackageID)
-                .ToListAsync();
+                .AsQueryable();
+
+            // Search by Name
+            if (!string.IsNullOrEmpty(search))
+            {
+                query = query.Where(p => p.PackageName.Contains(search));
+            }
+
+            var packages = await query.OrderByDescending(p => p.PackageID).ToListAsync();
 
             foreach (var p in packages)
             {
@@ -267,7 +317,8 @@ namespace FlyEase.Controllers
             {
                 Packages = packages,
                 Categories = await _context.PackageCategories.ToListAsync(),
-                CurrentPackage = new Package()
+                CurrentPackage = new Package(),
+                SearchTerm = search
             };
             return View(vm);
         }
@@ -312,9 +363,7 @@ namespace FlyEase.Controllers
             }
             else
             {
-                var existing = await _context.Packages
-                    .FirstOrDefaultAsync(p => p.PackageID == input.PackageID);
-
+                var existing = await _context.Packages.FirstOrDefaultAsync(p => p.PackageID == input.PackageID);
                 if (existing != null)
                 {
                     existing.PackageName = input.PackageName;
@@ -326,7 +375,6 @@ namespace FlyEase.Controllers
                     existing.AvailableSlots = input.AvailableSlots;
                     existing.Description = input.Description;
                     existing.ImageURL = input.ImageURL;
-                    // existing.MapUrl = input.MapUrl; 
 
                     _context.Packages.Update(existing);
                     TempData["Success"] = "Package updated successfully!";
@@ -358,9 +406,8 @@ namespace FlyEase.Controllers
         }
 
         // ==========================================
-        // 5. SALES REPORT
-        // ==========================================ok
-
+        // 5. SALES REPORT (Unchanged)
+        // ==========================================
         [HttpGet("Report")]
         public async Task<IActionResult> Report(
             [FromQuery] DateTime? startDate = null,
@@ -369,11 +416,9 @@ namespace FlyEase.Controllers
             [FromQuery] string paymentMethodFilter = "All",
             [FromQuery] string bookingStatusFilter = "All")
         {
-            // Set default dates (last 30 days)
             var end = endDate ?? DateTime.Now;
             var start = startDate ?? DateTime.Now.AddDays(-30);
 
-            // Initialize ViewModel
             var vm = new SalesReportVM
             {
                 StartDate = start,
@@ -383,7 +428,6 @@ namespace FlyEase.Controllers
                 BookingStatusFilter = bookingStatusFilter
             };
 
-            // ========== FETCH ALL DATA NEEDED FOR REPORT ==========
             var bookingsQuery = _context.Bookings
                 .Include(b => b.User)
                 .Include(b => b.Package)
@@ -397,7 +441,6 @@ namespace FlyEase.Controllers
                 .ThenInclude(b => b.Package)
                 .AsQueryable();
 
-            // ========== APPLY DATE FILTERS ==========
             switch (dateFilterType.ToLower())
             {
                 case "payment":
@@ -412,17 +455,14 @@ namespace FlyEase.Controllers
                     break;
             }
 
-            // ========== APPLY STATUS FILTERS ==========
             if (bookingStatusFilter != "All" && !string.IsNullOrEmpty(bookingStatusFilter))
             {
                 bookingsQuery = bookingsQuery.Where(b => b.BookingStatus == bookingStatusFilter);
             }
 
-            // Execute queries
             var bookings = await bookingsQuery.ToListAsync();
             var payments = await paymentsQuery.ToListAsync();
 
-            // ========== CALCULATE SUMMARY STATISTICS ==========
             vm.TotalBookings = bookings.Count;
             vm.TotalPayments = payments.Count;
             vm.TotalRevenue = payments.Where(p => p.PaymentStatus == "Completed").Sum(p => p.AmountPaid);
@@ -436,57 +476,30 @@ namespace FlyEase.Controllers
             vm.FailedPayments = payments.Where(p => p.PaymentStatus == "Failed").Sum(p => p.AmountPaid);
 
             vm.AverageBookingValue = bookings.Count > 0 ? bookings.Average(b => b.FinalAmount) : 0;
+            vm.PaymentSuccessRate = payments.Count > 0 ? (decimal)(payments.Count(p => p.PaymentStatus == "Completed") * 100.0 / payments.Count) : 0;
 
-            // Payment Success Rate: (Completed Payments / Total Payments) * 100
-            vm.PaymentSuccessRate = payments.Count > 0
-                ? (decimal)(payments.Count(p => p.PaymentStatus == "Completed") * 100.0 / payments.Count)
-                : 0;
-
-            // ========== BUILD REVENUE CHART DATA (Daily breakdown) ==========
             var revenuByDay = bookings
-                .GroupBy(b => dateFilterType.ToLower() == "payment"
-                    ? b.Payments.FirstOrDefault()?.PaymentDate.Date ?? b.BookingDate.Date
-                    : dateFilterType.ToLower() == "travel"
-                    ? b.TravelDate.Date
-                    : b.BookingDate.Date)
+                .GroupBy(b => dateFilterType.ToLower() == "payment" ? b.Payments.FirstOrDefault()?.PaymentDate.Date ?? b.BookingDate.Date : dateFilterType.ToLower() == "travel" ? b.TravelDate.Date : b.BookingDate.Date)
                 .OrderBy(g => g.Key)
-                .Select(g => new
-                {
-                    Date = g.Key,
-                    Revenue = g.Sum(b => b.FinalAmount)
-                })
+                .Select(g => new { Date = g.Key, Revenue = g.Sum(b => b.FinalAmount) })
                 .ToList();
 
             vm.RevenueChartDates = revenuByDay.Select(r => r.Date.ToString("dd MMM")).ToList();
             vm.RevenueChartValues = revenuByDay.Select(r => r.Revenue).ToList();
 
-            // ========== BUILD PAYMENT METHOD PIE CHART DATA ==========
             var paymentByMethod = payments
                 .Where(p => paymentMethodFilter == "All" || p.PaymentMethod.Contains(paymentMethodFilter))
                 .GroupBy(p => ExtractPaymentMethod(p.PaymentMethod))
-                .Select(g => new
-                {
-                    Method = g.Key,
-                    Amount = g.Sum(p => p.AmountPaid),
-                    Count = g.Count()
-                })
-                .OrderByDescending(x => x.Amount)
-                .ToList();
+                .Select(g => new { Method = g.Key, Amount = g.Sum(p => p.AmountPaid), Count = g.Count() })
+                .OrderByDescending(x => x.Amount).ToList();
 
             vm.PaymentMethodLabels = paymentByMethod.Select(p => $"{p.Method} ({p.Count})").ToList();
             vm.PaymentMethodValues = paymentByMethod.Select(p => p.Amount).ToList();
             vm.PaymentMethodColors = GenerateColors(paymentByMethod.Count);
 
-            // ========== BUILD BOOKING STATUS CHART DATA ==========
             vm.BookingStatusLabels = new List<string> { "Completed", "Pending", "Cancelled" };
-            vm.BookingStatusValues = new List<int>
-            {
-                vm.CompletedBookings,
-                vm.PendingBookings,
-                vm.CancelledBookings
-            };
+            vm.BookingStatusValues = new List<int> { vm.CompletedBookings, vm.PendingBookings, vm.CancelledBookings };
 
-            // ========== BUILD DETAILED TABLE DATA ==========
             foreach (var booking in bookings.OrderByDescending(b => b.BookingDate))
             {
                 var totalPaid = booking.Payments.Where(p => p.PaymentStatus == "Completed").Sum(p => p.AmountPaid);
@@ -510,44 +523,22 @@ namespace FlyEase.Controllers
                     LastPaymentDate = lastPayment?.PaymentDate
                 };
 
-                // Apply payment method filter
                 if (paymentMethodFilter != "All")
                 {
-                    if (!detail.PaymentMethod.Contains(paymentMethodFilter))
-                        continue;
+                    if (!detail.PaymentMethod.Contains(paymentMethodFilter)) continue;
                 }
-
                 vm.Details.Add(detail);
             }
 
-            // ========== POPULATE DROPDOWN OPTIONS ==========
-            vm.AvailablePaymentMethods = new List<string>
-            {
-                "All",
-                "Credit Card",
-                "Bank Transfer",
-                "Touch 'n Go",
-                "Cash Payment"
-            };
-
-            vm.AvailableBookingStatuses = new List<string>
-            {
-                "All",
-                "Completed",
-                "Pending",
-                "Cancelled"
-            };
+            vm.AvailablePaymentMethods = new List<string> { "All", "Credit Card", "Bank Transfer", "Touch 'n Go", "Cash Payment" };
+            vm.AvailableBookingStatuses = new List<string> { "All", "Completed", "Pending", "Cancelled" };
 
             return View(vm);
         }
 
-        // ========== HELPER METHODS ==========
         private string ExtractPaymentMethod(string paymentMethodText)
         {
-            // Extract clean payment method name from stored text
-            // Examples: "Bank Transfer (Verified: BANK123456789)" -> "Bank Transfer"
-            if (paymentMethodText.Contains("("))
-                return paymentMethodText.Substring(0, paymentMethodText.IndexOf("(")).Trim();
+            if (paymentMethodText.Contains("(")) return paymentMethodText.Substring(0, paymentMethodText.IndexOf("(")).Trim();
             return paymentMethodText;
         }
 
@@ -561,51 +552,30 @@ namespace FlyEase.Controllers
 
         private List<string> GenerateColors(int count)
         {
-            var colors = new List<string>
-            {
-                "#4E73DF", // Blue
-                "#1CC88A", // Green
-                "#36B9CC", // Cyan
-                "#F6C23E", // Yellow
-                "#E74A3B", // Red
-                "#858796", // Gray
-                "#FF6B6B", // Light Red
-                "#4ECDC4"  // Teal
-            };
-
-            while (colors.Count < count)
-            {
-                colors.AddRange(colors);
-            }
-
+            var colors = new List<string> { "#4E73DF", "#1CC88A", "#36B9CC", "#F6C23E", "#E74A3B", "#858796", "#FF6B6B", "#4ECDC4" };
+            while (colors.Count < count) colors.AddRange(colors);
             return colors.Take(count).ToList();
         }
 
         // ==========================================
-        // 6. ANALYTICS (Updated Logic)
+        // 6. ANALYTICS (Unchanged)
         // ==========================================
         [HttpGet("Analytics")]
         public async Task<IActionResult> Analytics()
         {
-            // 1. Fetch Data
             var allFeedback = await _context.Feedbacks
                 .Include(f => f.User)
-                .Include(f => f.Booking).ThenInclude(b => b.Package) // Include Package for popularity stats
+                .Include(f => f.Booking).ThenInclude(b => b.Package)
                 .OrderByDescending(f => f.CreatedDate)
                 .ToListAsync();
 
-            if (!allFeedback.Any())
-            {
-                return View(new FeedbackAnalyticsViewModel());
-            }
+            if (!allFeedback.Any()) return View(new FeedbackAnalyticsViewModel());
 
-            // 2. Calculate General Stats
             var totalReviews = allFeedback.Count;
             var averageRating = allFeedback.Average(f => f.Rating);
             var positiveCount = allFeedback.Count(f => f.Rating >= 4);
             var positivePercentage = totalReviews > 0 ? (double)positiveCount / totalReviews * 100 : 0;
 
-            // 3. NEW: Calculate Popularity (Group by Package Name)
             var packageStats = allFeedback
                 .GroupBy(f => f.Booking.Package.PackageName)
                 .Select(g => new PopularPackageViewModel
@@ -619,29 +589,114 @@ namespace FlyEase.Controllers
             var mostPopular = packageStats.OrderByDescending(p => p.AverageRating).ThenByDescending(p => p.ReviewCount).FirstOrDefault();
             var leastPopular = packageStats.OrderBy(p => p.AverageRating).ThenByDescending(p => p.ReviewCount).FirstOrDefault();
 
-            // 4. Prepare Chart Data
             var ratingCounts = new Dictionary<int, int>
-    {
-        { 5, allFeedback.Count(f => f.Rating == 5) },
-        { 4, allFeedback.Count(f => f.Rating == 4) },
-        { 3, allFeedback.Count(f => f.Rating == 3) },
-        { 2, allFeedback.Count(f => f.Rating == 2) },
-        { 1, allFeedback.Count(f => f.Rating == 1) }
-    };
+            {
+                { 5, allFeedback.Count(f => f.Rating == 5) },
+                { 4, allFeedback.Count(f => f.Rating == 4) },
+                { 3, allFeedback.Count(f => f.Rating == 3) },
+                { 2, allFeedback.Count(f => f.Rating == 2) },
+                { 1, allFeedback.Count(f => f.Rating == 1) }
+            };
 
-            // 5. Map to ViewModel
             var viewModel = new FeedbackAnalyticsViewModel
             {
                 AverageRating = averageRating,
                 TotalReviews = totalReviews,
                 PositivePercentage = positivePercentage,
                 RatingCounts = ratingCounts,
-                RecentReviews = allFeedback.Take(10).ToList(), // Took 10 for the bottom list
+                RecentReviews = allFeedback.Take(10).ToList(),
                 MostPopularPackage = mostPopular,
                 LeastPopularPackage = leastPopular
             };
 
             return View(viewModel);
+        }
+
+        // ==========================================
+        // 7. DISCOUNTS (Updated with Search)
+        // ==========================================
+        [HttpGet("Discounts")]
+        public async Task<IActionResult> Discounts(string? search = null)
+        {
+            var query = _context.DiscountTypes.AsQueryable();
+
+            if (!string.IsNullOrEmpty(search))
+            {
+                query = query.Where(d =>
+                    d.DiscountTypeID.ToString().Contains(search) ||
+                    d.DiscountName.Contains(search));
+            }
+
+            var vm = new DiscountsPageVM
+            {
+                Discounts = await query.ToListAsync(),
+                SearchTerm = search
+            };
+            return View(vm);
+        }
+
+        [HttpPost("SaveDiscount")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SaveDiscount(DiscountsPageVM model)
+        {
+            var input = model.CurrentDiscount;
+
+            if (string.IsNullOrEmpty(input.DiscountName))
+            {
+                TempData["Error"] = "Discount Name is required.";
+                return RedirectToAction(nameof(Discounts));
+            }
+
+            if (input.DiscountTypeID == 0)
+            {
+                // --- CREATE ---
+                _context.DiscountTypes.Add(input);
+                TempData["Success"] = "Discount created successfully!";
+            }
+            else
+            {
+                // --- UPDATE ---
+                var existing = await _context.DiscountTypes.FindAsync(input.DiscountTypeID);
+                if (existing != null)
+                {
+                    existing.DiscountName = input.DiscountName;
+                    existing.DiscountRate = input.DiscountRate;
+                    existing.DiscountAmount = input.DiscountAmount;
+
+                    // Removed: MinPax, MinSpend, StartDate, EndDate, IsActive
+
+                    _context.DiscountTypes.Update(existing);
+                    TempData["Success"] = "Discount updated successfully!";
+                }
+                else
+                {
+                    TempData["Error"] = "Discount not found.";
+                }
+            }
+
+            await _context.SaveChangesAsync();
+            return RedirectToAction(nameof(Discounts));
+        }
+
+        [HttpPost("DeleteDiscount")]
+        public async Task<IActionResult> DeleteDiscount(int id)
+        {
+            var discount = await _context.DiscountTypes.FindAsync(id);
+            if (discount != null)
+            {
+                bool isUsed = await _context.BookingDiscounts.AnyAsync(bd => bd.DiscountTypeID == id);
+                if (isUsed)
+                {
+                    TempData["Error"] = "Cannot delete this discount because it has been applied to existing bookings.";
+                }
+                else
+                {
+                    _context.DiscountTypes.Remove(discount);
+                    await _context.SaveChangesAsync();
+                    TempData["Success"] = "Discount deleted successfully.";
+                }
+            }
+            return RedirectToAction(nameof(Discounts));
         }
     }
 }

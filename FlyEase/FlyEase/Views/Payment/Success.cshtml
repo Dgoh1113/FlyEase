@@ -4,12 +4,18 @@
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<div class="container mt-5 mb-5">
+@section Head {
+    <link rel="stylesheet" href="~/css/booking.css" />
+}
+
+<div class="container mt-4 mb-5">
     <div class="row justify-content-center">
         <div class="col-md-8 text-center">
-            
-            <div class="mb-4">
-                <div class="d-inline-flex align-items-center justify-content-center rounded-circle bg-success bg-opacity-25" style="width: 100px; height: 100px;">
+
+            <partial name="_BookingProgress" />
+
+            <div class="mb-4 mt-4">
+                <div class="d-inline-flex align-items-center justify-content-center rounded-circle bg-success bg-opacity-25 animate-bounce" style="width: 100px; height: 100px;">
                     <i class="fas fa-check fa-4x text-success"></i>
                 </div>
             </div>
@@ -19,7 +25,7 @@
 
             <div class="card p-4 mb-4 text-start shadow-sm price-summary-custom">
                 <h5 class="fw-bold mb-4 border-bottom pb-2">Booking Details</h5>
-                
+
                 <div class="row g-3">
                     <div class="col-md-6">
                         <p class="mb-1 text-muted small text-uppercase fw-bold">Booking ID</p>
@@ -31,7 +37,7 @@
                         <p class="mb-1 text-muted small text-uppercase fw-bold">Travel Date</p>
                         <p class="fw-bold mb-0">@Model.TravelDate.ToString("dd MMM yyyy")</p>
                     </div>
-                    
+
                     <div class="col-md-6">
                         <p class="mb-1 text-muted small text-uppercase fw-bold">Travelers</p>
                         <p class="fw-bold mb-3">@Model.NumberOfPeople Person(s)</p>
@@ -41,10 +47,19 @@
 
                         <p class="mb-1 text-muted small text-uppercase fw-bold">Status</p>
                         @{
-                            string badgeClass = Model.BookingStatus == "Completed" ? "bg-success" : 
-                                                Model.BookingStatus == "Pending" ? "bg-warning text-dark" : "bg-danger";
+                            // 2. UPDATED STATUS LOGIC
+                            // "Confirmed" is the new status for Paid but future trips
+                            // "Completed" is for trips that have finished
+                            string badgeClass = "bg-secondary";
+                            string displayStatus = Model.BookingStatus;
+
+                            if (Model.BookingStatus == "Completed") { badgeClass = "bg-success"; }
+                            else if (Model.BookingStatus == "Confirmed") { badgeClass = "bg-primary"; } // Ongoing/Active
+                            else if (Model.BookingStatus == "Deposit") { badgeClass = "bg-info text-dark"; }
+                            else if (Model.BookingStatus == "Pending") { badgeClass = "bg-warning text-dark"; }
+                            else if (Model.BookingStatus == "Cancelled") { badgeClass = "bg-danger"; }
                         }
-                        <span class="badge @badgeClass px-3 py-2 rounded-pill">@Model.BookingStatus</span>
+                        <span class="badge @badgeClass px-3 py-2 rounded-pill">@displayStatus</span>
                     </div>
                 </div>
             </div>
@@ -52,7 +67,7 @@
             <div class="alert alert-info border-0 shadow-sm mb-5" role="alert" style="background-color: rgba(13, 202, 240, 0.15); border-left: 5px solid #0dcaf0 !important;">
                 <h6 class="alert-heading fw-bold"><i class="fas fa-envelope-open-text me-2"></i>What's Next?</h6>
                 <p class="mb-0 small">
-                    A confirmation email has been sent to your email address. 
+                    A confirmation email has been sent to your email address.
                     You can view your booking details in your profile page at any time.
                 </p>
             </div>
@@ -64,7 +79,6 @@
                 <a asp-controller="Auth" asp-action="Profile" class="btn btn-outline-secondary px-4 py-2 fw-bold">
                     <i class="fas fa-user me-2"></i>View My Bookings
                 </a>
-                <!-- NEW: View Receipt Button -->
                 <a asp-controller="Payment" asp-action="Receipt" asp-route-bookingId="@Model.BookingID"
                    class="btn btn-success px-4 py-2 fw-bold">
                     <i class="fas fa-receipt me-2"></i>View Receipt
@@ -74,3 +88,29 @@
         </div>
     </div>
 </div>
+
+<style>
+    .animate-bounce {
+        animation: bounceIn 1s;
+    }
+
+    @@keyframes bounceIn {
+        0% {
+            transform: scale(0.3);
+            opacity: 0;
+        }
+
+        50% {
+            transform: scale(1.05);
+            opacity: 1;
+        }
+
+        70% {
+            transform: scale(0.9);
+        }
+
+        100% {
+            transform: scale(1);
+        }
+    }
+</style>

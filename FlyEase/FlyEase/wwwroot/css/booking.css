@@ -101,3 +101,43 @@
         font-size: 1.2rem;
         filter: drop-shadow(0px 1px 1px rgba(0,0,0,0.1));
     }
+
+/* --- New Voucher & Animation Styles --- */
+.price-update-flash {
+    animation: flashHighlight 1s;
+}
+
+@keyframes flashHighlight {
+    0% {
+        background-color: #d4edda;
+    }
+
+    100% {
+        background-color: transparent;
+    }
+}
+
+.btn-voucher {
+    border: 2px dashed #198754;
+    color: #198754;
+    background-color: #f8fff9;
+    transition: all 0.3s;
+}
+
+    .btn-voucher:hover {
+        background-color: #198754;
+        color: white;
+        border-style: solid;
+    }
+
+.discount-badge {
+    background-color: #d1e7dd;
+    color: #0f5132;
+    padding: 5px 10px;
+    border-radius: 8px;
+    margin-bottom: 5px;
+    border-left: 4px solid #0f5132;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
