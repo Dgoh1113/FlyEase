@@ -10,12 +10,12 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using FlyEase.Services;
+using X.PagedList; // <--- Required
 
 namespace FlyEase.Controllers
 {
     [Route("AdminDashboard")]
     [Authorize(Roles = "Admin")]
-
     public class AdminDashboardController : Controller
     {
         private readonly FlyEaseDbContext _context;
@@ -90,12 +90,43 @@ namespace FlyEase.Controllers
         }
 
         // ==========================================
-        // 2. USERS MANAGEMENT
+        // 2. USERS MANAGEMENT (Paginated like Home)
         // ==========================================
         [HttpGet("Users")]
-        public async Task<IActionResult> Users()
+        public async Task<IActionResult> Users(string? search = null, string? role = null, int? page = 1)
         {
-            var vm = new UsersPageVM { Users = await _context.Users.OrderByDescending(u => u.CreatedDate).ToListAsync() };
+            int pageSize = 5;
+            int pageNumber = page ?? 1;
+
+            var query = _context.Users.AsQueryable();
+
+            if (!string.IsNullOrEmpty(search))
+            {
+                query = query.Where(u =>
+                    u.UserID.ToString().Contains(search) ||
+                    u.FullName.Contains(search) ||
+                    u.Email.Contains(search));
+            }
+
+            if (!string.IsNullOrEmpty(role) && role != "All")
+            {
+                query = query.Where(u => u.Role == role);
+            }
+
+            // Pagination Logic from HomeController
+            var totalItems = await query.CountAsync();
+            var pagedData = await query
+                .OrderByDescending(u => u.CreatedDate)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            var vm = new UsersPageVM
+            {
+                Users = new StaticPagedList<User>(pagedData, pageNumber, pageSize, totalItems),
+                SearchTerm = search,
+                RoleFilter = role
+            };
             return View(vm);
         }
 
@@ -139,15 +170,45 @@ namespace FlyEase.Controllers
         }
 
         // ==========================================
-        // 3. BOOKINGS MANAGEMENT
+        // 3. BOOKINGS MANAGEMENT (Paginated like Home)
         // ==========================================
         [HttpGet("Bookings")]
-        public async Task<IActionResult> Bookings(string status = "All")
+        public async Task<IActionResult> Bookings(string? search = null, string status = "All", int? page = 1)
         {
-            var query = _context.Bookings.Include(b => b.User).Include(b => b.Package).AsQueryable();
-            if (status != "All" && !string.IsNullOrEmpty(status)) query = query.Where(b => b.BookingStatus == status);
+            int pageSize = 5;
+            int pageNumber = page ?? 1;
 
-            var vm = new BookingsPageVM { Bookings = await query.OrderByDescending(b => b.BookingDate).ToListAsync() };
+            var query = _context.Bookings
+                .Include(b => b.User)
+                .Include(b => b.Package)
+                .AsQueryable();
+
+            if (status != "All" && !string.IsNullOrEmpty(status))
+            {
+                query = query.Where(b => b.BookingStatus == status);
+            }
+
+            if (!string.IsNullOrEmpty(search))
+            {
+                query = query.Where(b =>
+                    b.BookingID.ToString().Contains(search) ||
+                    b.Package.PackageName.Contains(search));
+            }
+
+            // Pagination Logic from HomeController
+            var totalItems = await query.CountAsync();
+            var pagedData = await query
+                .OrderByDescending(b => b.BookingDate)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            var vm = new BookingsPageVM
+            {
+                Bookings = new StaticPagedList<Booking>(pagedData, pageNumber, pageSize, totalItems),
+                SearchTerm = search,
+                StatusFilter = status
+            };
             return View(vm);
         }
 
@@ -174,8 +235,6 @@ namespace FlyEase.Controllers
         public async Task<IActionResult> UpdateBookingStatus(BookingsPageVM model)
         {
             var input = model.CurrentBooking;
-
-            // 1. Fetch Booking with related data
             var booking = await _context.Bookings
                 .Include(b => b.User)
                 .Include(b => b.Package)
@@ -183,37 +242,28 @@ namespace FlyEase.Controllers
 
             if (booking != null)
             {
-                // 2. Logic to prevent sending duplicate emails if simply saving
                 bool isJustCompleted = (input.BookingStatus == "Completed" && booking.BookingStatus != "Completed");
-
-                // 3. Update Status
                 booking.BookingStatus = input.BookingStatus;
                 await _context.SaveChangesAsync();
 
-                // 4. Send Email ONLY if status changed to Completed
                 if (isJustCompleted)
                 {
                     try
                     {
-                        // Extract the first image if available (ImageURL format: "img1.jpg;img2.jpg")
                         string packageImage = "";
                         if (!string.IsNullOrEmpty(booking.Package.ImageURL))
                         {
                             var images = booking.Package.ImageURL.Split(';');
-                            if (images.Length > 0)
-                            {
-                                packageImage = images[0];
-                            }
+                            if (images.Length > 0) packageImage = images[0];
                         }
 
-                        // Send the email
-                        var emailService = new EmailService();
+                        var emailService = new EmailService(); // Ideally use Dependency Injection
                         await emailService.SendReviewInvitation(
                             booking.User.Email,
                             booking.User.FullName,
                             booking.BookingID,
                             booking.Package.PackageName,
-                            packageImage // <--- Pass the image here
+                            packageImage
                         );
 
                         TempData["Success"] = "Booking marked Completed & Review Email Sent!";
@@ -246,28 +296,45 @@ namespace FlyEase.Controllers
         }
 
         // ==========================================
-        // 4. PACKAGES MANAGEMENT
+        // 4. PACKAGES MANAGEMENT (Paginated like Home)
         // ==========================================
         [HttpGet("Packages")]
-        public async Task<IActionResult> Packages()
+        public async Task<IActionResult> Packages(string? search = null, int? page = 1)
         {
-            var packages = await _context.Packages
+            int pageSize = 5;
+            int pageNumber = page ?? 1;
+
+            var query = _context.Packages
                 .Include(p => p.Category)
                 .Include(p => p.Bookings).ThenInclude(b => b.Feedbacks)
+                .AsQueryable();
+
+            if (!string.IsNullOrEmpty(search))
+            {
+                query = query.Where(p => p.PackageName.Contains(search));
+            }
+
+            // Pagination Logic from HomeController
+            var totalItems = await query.CountAsync();
+            var pagedData = await query
                 .OrderByDescending(p => p.PackageID)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
                 .ToListAsync();
 
-            foreach (var p in packages)
+            // Calculate ratings for only the visible page
+            foreach (var p in pagedData)
             {
-                var feedbacks = p.Bookings.SelectMany(b => b.Feedbacks).ToList();
-                p.AverageRating = feedbacks.Any() ? feedbacks.Average(f => f.Rating) : 0;
+                var ratings = p.Bookings.SelectMany(b => b.Feedbacks).Select(f => f.Rating);
+                p.AverageRating = ratings.Any() ? ratings.Average() : 0;
             }
 
             var vm = new PackagesPageVM
             {
-                Packages = packages,
+                Packages = new StaticPagedList<Package>(pagedData, pageNumber, pageSize, totalItems),
                 Categories = await _context.PackageCategories.ToListAsync(),
-                CurrentPackage = new Package()
+                CurrentPackage = new Package(),
+                SearchTerm = search
             };
             return View(vm);
         }
@@ -312,9 +379,7 @@ namespace FlyEase.Controllers
             }
             else
             {
-                var existing = await _context.Packages
-                    .FirstOrDefaultAsync(p => p.PackageID == input.PackageID);
-
+                var existing = await _context.Packages.FirstOrDefaultAsync(p => p.PackageID == input.PackageID);
                 if (existing != null)
                 {
                     existing.PackageName = input.PackageName;
@@ -326,7 +391,8 @@ namespace FlyEase.Controllers
                     existing.AvailableSlots = input.AvailableSlots;
                     existing.Description = input.Description;
                     existing.ImageURL = input.ImageURL;
-                    // existing.MapUrl = input.MapUrl; 
+                    existing.Latitude = input.Latitude;
+                    existing.Longitude = input.Longitude;
 
                     _context.Packages.Update(existing);
                     TempData["Success"] = "Package updated successfully!";
@@ -358,30 +424,176 @@ namespace FlyEase.Controllers
         }
 
         // ==========================================
-        // 5. ANALYTICS (Updated Logic)
+        // 5. SALES REPORT (Unchanged)
+        // ==========================================
+        [HttpGet("Report")]
+        public async Task<IActionResult> Report(
+            [FromQuery] DateTime? startDate = null,
+            [FromQuery] DateTime? endDate = null,
+            [FromQuery] string dateFilterType = "booking",
+            [FromQuery] string paymentMethodFilter = "All",
+            [FromQuery] string bookingStatusFilter = "All")
+        {
+            var end = endDate ?? DateTime.Now;
+            var start = startDate ?? DateTime.Now.AddDays(-30);
+
+            var vm = new SalesReportVM
+            {
+                StartDate = start,
+                EndDate = end,
+                DateFilterType = dateFilterType,
+                PaymentMethodFilter = paymentMethodFilter,
+                BookingStatusFilter = bookingStatusFilter
+            };
+
+            var bookingsQuery = _context.Bookings
+                .Include(b => b.User)
+                .Include(b => b.Package)
+                .Include(b => b.Payments)
+                .AsQueryable();
+
+            var paymentsQuery = _context.Payments
+                .Include(p => p.Booking)
+                .ThenInclude(b => b.User)
+                .Include(p => p.Booking)
+                .ThenInclude(b => b.Package)
+                .AsQueryable();
+
+            switch (dateFilterType.ToLower())
+            {
+                case "payment":
+                    paymentsQuery = paymentsQuery.Where(p => p.PaymentDate >= start && p.PaymentDate <= end);
+                    break;
+                case "travel":
+                    bookingsQuery = bookingsQuery.Where(b => b.TravelDate >= start && b.TravelDate <= end);
+                    break;
+                case "booking":
+                default:
+                    bookingsQuery = bookingsQuery.Where(b => b.BookingDate >= start && b.BookingDate <= end);
+                    break;
+            }
+
+            if (bookingStatusFilter != "All" && !string.IsNullOrEmpty(bookingStatusFilter))
+            {
+                bookingsQuery = bookingsQuery.Where(b => b.BookingStatus == bookingStatusFilter);
+            }
+
+            var bookings = await bookingsQuery.ToListAsync();
+            var payments = await paymentsQuery.ToListAsync();
+
+            vm.TotalBookings = bookings.Count;
+            vm.TotalPayments = payments.Count;
+            vm.TotalRevenue = payments.Where(p => p.PaymentStatus == "Completed").Sum(p => p.AmountPaid);
+
+            vm.CompletedBookings = bookings.Count(b => b.BookingStatus == "Completed");
+            vm.PendingBookings = bookings.Count(b => b.BookingStatus == "Pending");
+            vm.CancelledBookings = bookings.Count(b => b.BookingStatus == "Cancelled");
+
+            vm.CompletedPayments = payments.Where(p => p.PaymentStatus == "Completed").Sum(p => p.AmountPaid);
+            vm.PendingPayments = payments.Where(p => p.PaymentStatus == "Pending").Sum(p => p.AmountPaid);
+            vm.FailedPayments = payments.Where(p => p.PaymentStatus == "Failed").Sum(p => p.AmountPaid);
+
+            vm.AverageBookingValue = bookings.Count > 0 ? bookings.Average(b => b.FinalAmount) : 0;
+            vm.PaymentSuccessRate = payments.Count > 0 ? (decimal)(payments.Count(p => p.PaymentStatus == "Completed") * 100.0 / payments.Count) : 0;
+
+            var revenuByDay = bookings
+                .GroupBy(b => dateFilterType.ToLower() == "payment" ? b.Payments.FirstOrDefault()?.PaymentDate.Date ?? b.BookingDate.Date : dateFilterType.ToLower() == "travel" ? b.TravelDate.Date : b.BookingDate.Date)
+                .OrderBy(g => g.Key)
+                .Select(g => new { Date = g.Key, Revenue = g.Sum(b => b.FinalAmount) })
+                .ToList();
+
+            vm.RevenueChartDates = revenuByDay.Select(r => r.Date.ToString("dd MMM")).ToList();
+            vm.RevenueChartValues = revenuByDay.Select(r => r.Revenue).ToList();
+
+            var paymentByMethod = payments
+                .Where(p => paymentMethodFilter == "All" || p.PaymentMethod.Contains(paymentMethodFilter))
+                .GroupBy(p => ExtractPaymentMethod(p.PaymentMethod))
+                .Select(g => new { Method = g.Key, Amount = g.Sum(p => p.AmountPaid), Count = g.Count() })
+                .OrderByDescending(x => x.Amount).ToList();
+
+            vm.PaymentMethodLabels = paymentByMethod.Select(p => $"{p.Method} ({p.Count})").ToList();
+            vm.PaymentMethodValues = paymentByMethod.Select(p => p.Amount).ToList();
+            vm.PaymentMethodColors = GenerateColors(paymentByMethod.Count);
+
+            vm.BookingStatusLabels = new List<string> { "Completed", "Pending", "Cancelled" };
+            vm.BookingStatusValues = new List<int> { vm.CompletedBookings, vm.PendingBookings, vm.CancelledBookings };
+
+            foreach (var booking in bookings.OrderByDescending(b => b.BookingDate))
+            {
+                var totalPaid = booking.Payments.Where(p => p.PaymentStatus == "Completed").Sum(p => p.AmountPaid);
+                var lastPayment = booking.Payments.OrderByDescending(p => p.PaymentDate).FirstOrDefault();
+
+                var detail = new SalesReportDetailVM
+                {
+                    BookingID = booking.BookingID,
+                    CustomerName = booking.User.FullName,
+                    CustomerEmail = booking.User.Email,
+                    PackageName = booking.Package.PackageName,
+                    BookingDate = booking.BookingDate,
+                    TravelDate = booking.TravelDate,
+                    NumberOfPeople = booking.NumberOfPeople,
+                    BookingAmount = booking.FinalAmount,
+                    TotalPaid = totalPaid,
+                    BalanceDue = booking.FinalAmount - totalPaid,
+                    BookingStatus = booking.BookingStatus,
+                    PaymentStatus = DeterminePaymentStatus(booking.FinalAmount, totalPaid),
+                    PaymentMethod = booking.Payments.FirstOrDefault()?.PaymentMethod ?? "N/A",
+                    LastPaymentDate = lastPayment?.PaymentDate
+                };
+
+                if (paymentMethodFilter != "All")
+                {
+                    if (!detail.PaymentMethod.Contains(paymentMethodFilter)) continue;
+                }
+                vm.Details.Add(detail);
+            }
+
+            vm.AvailablePaymentMethods = new List<string> { "All", "Credit Card", "Bank Transfer", "Touch 'n Go", "Cash Payment" };
+            vm.AvailableBookingStatuses = new List<string> { "All", "Completed", "Pending", "Cancelled" };
+
+            return View(vm);
+        }
+
+        private string ExtractPaymentMethod(string paymentMethodText)
+        {
+            if (paymentMethodText.Contains("(")) return paymentMethodText.Substring(0, paymentMethodText.IndexOf("(")).Trim();
+            return paymentMethodText;
+        }
+
+        private string DeterminePaymentStatus(decimal bookingAmount, decimal totalPaid)
+        {
+            if (bookingAmount <= 0) return "Free";
+            if (totalPaid >= bookingAmount) return "Fully Paid";
+            if (totalPaid > 0) return "Partial";
+            return "Unpaid";
+        }
+
+        private List<string> GenerateColors(int count)
+        {
+            var colors = new List<string> { "#4E73DF", "#1CC88A", "#36B9CC", "#F6C23E", "#E74A3B", "#858796", "#FF6B6B", "#4ECDC4" };
+            while (colors.Count < count) colors.AddRange(colors);
+            return colors.Take(count).ToList();
+        }
+
+        // ==========================================
+        // 6. ANALYTICS (Unchanged)
         // ==========================================
         [HttpGet("Analytics")]
         public async Task<IActionResult> Analytics()
         {
-            // 1. Fetch Data
             var allFeedback = await _context.Feedbacks
                 .Include(f => f.User)
-                .Include(f => f.Booking).ThenInclude(b => b.Package) // Include Package for popularity stats
+                .Include(f => f.Booking).ThenInclude(b => b.Package)
                 .OrderByDescending(f => f.CreatedDate)
                 .ToListAsync();
 
-            if (!allFeedback.Any())
-            {
-                return View(new FeedbackAnalyticsViewModel());
-            }
+            if (!allFeedback.Any()) return View(new FeedbackAnalyticsViewModel());
 
-            // 2. Calculate General Stats
             var totalReviews = allFeedback.Count;
             var averageRating = allFeedback.Average(f => f.Rating);
             var positiveCount = allFeedback.Count(f => f.Rating >= 4);
             var positivePercentage = totalReviews > 0 ? (double)positiveCount / totalReviews * 100 : 0;
 
-            // 3. NEW: Calculate Popularity (Group by Package Name)
             var packageStats = allFeedback
                 .GroupBy(f => f.Booking.Package.PackageName)
                 .Select(g => new PopularPackageViewModel
@@ -395,29 +607,133 @@ namespace FlyEase.Controllers
             var mostPopular = packageStats.OrderByDescending(p => p.AverageRating).ThenByDescending(p => p.ReviewCount).FirstOrDefault();
             var leastPopular = packageStats.OrderBy(p => p.AverageRating).ThenByDescending(p => p.ReviewCount).FirstOrDefault();
 
-            // 4. Prepare Chart Data
             var ratingCounts = new Dictionary<int, int>
-    {
-        { 5, allFeedback.Count(f => f.Rating == 5) },
-        { 4, allFeedback.Count(f => f.Rating == 4) },
-        { 3, allFeedback.Count(f => f.Rating == 3) },
-        { 2, allFeedback.Count(f => f.Rating == 2) },
-        { 1, allFeedback.Count(f => f.Rating == 1) }
-    };
+            {
+                { 5, allFeedback.Count(f => f.Rating == 5) },
+                { 4, allFeedback.Count(f => f.Rating == 4) },
+                { 3, allFeedback.Count(f => f.Rating == 3) },
+                { 2, allFeedback.Count(f => f.Rating == 2) },
+                { 1, allFeedback.Count(f => f.Rating == 1) }
+            };
 
-            // 5. Map to ViewModel
             var viewModel = new FeedbackAnalyticsViewModel
             {
                 AverageRating = averageRating,
                 TotalReviews = totalReviews,
                 PositivePercentage = positivePercentage,
                 RatingCounts = ratingCounts,
-                RecentReviews = allFeedback.Take(10).ToList(), // Took 10 for the bottom list
+                RecentReviews = allFeedback.Take(10).ToList(),
                 MostPopularPackage = mostPopular,
                 LeastPopularPackage = leastPopular
             };
 
             return View(viewModel);
+        }
+
+        // ==========================================
+        // 7. DISCOUNTS (Paginated like Home)
+        // ==========================================
+        [HttpGet("Discounts")]
+        public async Task<IActionResult> Discounts(string? search = null, int? page = 1)
+        {
+            int pageSize = 5;
+            int pageNumber = page ?? 1;
+
+            var query = _context.DiscountTypes.AsQueryable();
+
+            if (!string.IsNullOrEmpty(search))
+            {
+                query = query.Where(d =>
+                    d.DiscountTypeID.ToString().Contains(search) ||
+                    d.DiscountName.Contains(search));
+            }
+
+            // Pagination Logic from HomeController
+            var totalItems = await query.CountAsync();
+            var pagedData = await query
+                .OrderBy(d => d.DiscountName)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            var vm = new DiscountPageVM
+            {
+                Discounts = new StaticPagedList<DiscountType>(pagedData, pageNumber, pageSize, totalItems),
+                SearchTerm = search
+            };
+            return View(vm);
+        }
+
+        [HttpPost("SaveDiscount")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SaveDiscount(DiscountPageVM model)
+        {
+            var input = model.CurrentDiscount;
+
+            if (string.IsNullOrEmpty(input.DiscountName))
+            {
+                TempData["Error"] = "Discount Name is required.";
+                return RedirectToAction(nameof(Discounts));
+            }
+
+            // Basic Validation for Rate/Amount
+            if (input.DiscountRate == null && input.DiscountAmount == null)
+            {
+                TempData["Error"] = "Please specify either a Discount Rate or a Fixed Amount.";
+                return RedirectToAction(nameof(Discounts));
+            }
+
+            if (input.DiscountTypeID == 0)
+            {
+                _context.DiscountTypes.Add(input);
+                TempData["Success"] = "Discount created successfully!";
+            }
+            else
+            {
+                var existing = await _context.DiscountTypes.FindAsync(input.DiscountTypeID);
+                if (existing != null)
+                {
+                    existing.DiscountName = input.DiscountName;
+                    existing.DiscountRate = input.DiscountRate;
+                    existing.DiscountAmount = input.DiscountAmount;
+                    existing.MinPax = input.MinPax;
+                    existing.MinSpend = input.MinSpend;
+                    existing.StartDate = input.StartDate;
+                    existing.EndDate = input.EndDate;
+                    existing.IsActive = input.IsActive;
+
+                    _context.DiscountTypes.Update(existing);
+                    TempData["Success"] = "Discount updated successfully!";
+                }
+                else
+                {
+                    TempData["Error"] = "Discount not found.";
+                }
+            }
+
+            await _context.SaveChangesAsync();
+            return RedirectToAction(nameof(Discounts));
+        }
+
+        [HttpPost("DeleteDiscount")]
+        public async Task<IActionResult> DeleteDiscount(int id)
+        {
+            var discount = await _context.DiscountTypes.FindAsync(id);
+            if (discount != null)
+            {
+                bool isUsed = await _context.BookingDiscounts.AnyAsync(bd => bd.DiscountTypeID == id);
+                if (isUsed)
+                {
+                    TempData["Error"] = "Cannot delete this discount because it has been applied to existing bookings.";
+                }
+                else
+                {
+                    _context.DiscountTypes.Remove(discount);
+                    await _context.SaveChangesAsync();
+                    TempData["Success"] = "Discount deleted successfully.";
+                }
+            }
+            return RedirectToAction(nameof(Discounts));
         }
     }
 }

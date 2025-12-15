@@ -1,0 +1,141 @@
+﻿@using X.PagedList
+@using X.PagedList.Mvc.Core
+@model FlyEase.ViewModels.DiscountPageVM
+
+@{
+    ViewData["Title"] = "Manage Discounts";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="text-primary fw-bold"><i class="fas fa-tags me-2"></i>Discount Management</h2>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#discountModal" onclick="clearDiscountModal()">
+        <i class="fas fa-plus me-2"></i>Add Discount
+    </button>
+</div>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-body py-3">
+        <form method="get" asp-action="Discounts" class="row g-3">
+            <div class="col-md-10">
+                <input type="text" name="search" class="form-control" placeholder="Search by Name or ID..." value="@Model.SearchTerm">
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-secondary w-100">Search</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card shadow-sm border-0">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover table-sm align-middle mb-0" style="font-size: 0.9rem;">
+                <thead class="bg-light">
+                    <tr>
+                        <th class="ps-4">ID</th>
+                        <th>Name</th>
+                        <th>Value</th>
+                        <th>Conditions</th>
+                        <th>Status</th>
+                        <th>Validity</th>
+                        <th class="text-end pe-4">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.Discounts != null && Model.Discounts.Any())
+                    {
+                        foreach (var d in Model.Discounts)
+                        {
+                            <tr>
+                                <td class="ps-4">#@d.DiscountTypeID</td>
+                                <td class="fw-bold">@d.DiscountName</td>
+                                <td>
+                                    @if (d.DiscountRate.HasValue && d.DiscountRate > 0)
+                                    {
+                                        <span class="badge bg-success">@((d.DiscountRate * 100)?.ToString("0"))% OFF</span>
+                                    }
+                                    else if (d.DiscountAmount.HasValue && d.DiscountAmount > 0)
+                                    {
+                                        <span class="badge bg-success">RM @d.DiscountAmount?.ToString("N0") OFF</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (d.MinSpend.HasValue)
+                                    {
+                                        <div class="small text-muted">Min Spend: RM @d.MinSpend</div>
+                                    }
+                                    @if (d.MinPax.HasValue)
+                                    {
+                                        <div class="small text-muted">Min Pax: @d.MinPax</div>
+                                    }
+                                    @if (!d.MinSpend.HasValue && !d.MinPax.HasValue)
+                                    {
+                                        <span class="text-muted">-</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (d.IsActive)
+                                    {
+                                        <span class="badge bg-primary">Active</span>
+                                    }
+                                    else
+                                    {
+
+                                        <span class="badge bg-secondary">Inactive</span>
+                                    }
+                                </td>
+                                <td>
+                                    <small class="d-block text-muted">
+                                        @(d.StartDate.HasValue? d.StartDate.Value.ToShortDateString() : "Any") -
+                                        @(d.EndDate.HasValue? d.EndDate.Value.ToShortDateString() : "Any")
+                                    </small>
+                                </td>
+                                <td class="text-end pe-4">
+                                    <button class="btn btn-sm btn-outline-primary me-1"
+                                            onclick="editDiscount(
+                                                        @d.DiscountTypeID,
+                                                        '@Html.Raw(d.DiscountName?.Replace("'", "\\'"))',
+                                                        '@d.DiscountRate?.ToString(System.Globalization.CultureInfo.InvariantCulture)',
+                                                        '@d.DiscountAmount?.ToString(System.Globalization.CultureInfo.InvariantCulture)',
+                                                        '@d.MinPax',
+                                                        '@d.MinSpend?.ToString(System.Globalization.CultureInfo.InvariantCulture)',
+                                                        '@(d.StartDate?.ToString("yyyy-MM-dd"))',
+                                                        '@(d.EndDate?.ToString("yyyy-MM-dd"))',
+                                                        '@d.IsActive.ToString().ToLower()'
+                                                    )">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <form asp-action="DeleteDiscount" method="post" class="d-inline" onsubmit="return confirm('Delete?');">
+                                        <input type="hidden" name="id" value="@d.DiscountTypeID" />
+                                        <button type="submit" class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></button>
+                                    </form>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr><td colspan="7" class="text-center py-4 text-muted">No discounts found.</td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card-footer bg-white py-3">
+        <div class="d-flex justify-content-between align-items-center">
+            <small class="text-muted">
+                Page @(Model.Discounts.PageCount < Model.Discounts.PageNumber ? 0 : Model.Discounts.PageNumber) of @Model.Discounts.PageCount
+            </small>
+
+            @Html.PagedListPager(Model.Discounts, page => Url.Action("Discounts", new { page, search = Model.SearchTerm }),
+            new PagedListRenderOptions
+            {
+                LiElementClasses = new string[] { "page-item" },
+                PageClasses = new string[] { "page-link" },
+                UlElementClasses = new string[] { "pagination", "pagination-sm", "mb-0" }
+            })
+        </div>
+    </div>
+</div>

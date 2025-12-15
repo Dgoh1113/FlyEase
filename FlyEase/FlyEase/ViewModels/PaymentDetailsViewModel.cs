@@ -55,4 +55,12 @@ namespace FlyEase.ViewModels
         public int CurrentStep { get; set; } = 1;
         public string CurrentStepName { get; set; } = "Customer Information";
     }
+    public class PriceRequest
+    {
+        public int PackageId { get; set; }
+        public int People { get; set; }
+        public int Seniors { get; set; } // New
+        public int Juniors { get; set; } // New
+        public DateTime TravelDate { get; set; }
+    }
 }

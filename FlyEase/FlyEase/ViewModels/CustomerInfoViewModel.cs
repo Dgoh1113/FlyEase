@@ -30,9 +30,16 @@ namespace FlyEase.ViewModels
         public DateTime TravelDate { get; set; } = DateTime.Now.AddDays(14);
 
         [Required(ErrorMessage = "Number of people is required")]
-        [Range(1, 10, ErrorMessage = "Number of people must be between 1 and 10")]
-        [Display(Name = "Number of People")]
+        [Range(1, 20, ErrorMessage = "Number of people must be between 1 and 20")]
+        [Display(Name = "Total People")]
         public int NumberOfPeople { get; set; } = 1;
+
+        // === NEW FIELDS FOR AGE DISCOUNTS ===
+        [Range(0, 10, ErrorMessage = "Invalid number")]
+        public int NumberOfSeniors { get; set; } = 0; // Eligible for Senior Discount
+
+        [Range(0, 10, ErrorMessage = "Invalid number")]
+        public int NumberOfJuniors { get; set; } = 0; // Eligible for Junior Discount
 
         [Display(Name = "Special Requests")]
         public string? SpecialRequests { get; set; }
