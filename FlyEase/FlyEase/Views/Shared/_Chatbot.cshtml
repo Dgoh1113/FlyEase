@@ -1,107 +1,159 @@
-﻿<div id="flybot-container">
-    <button id="flybot-trigger" onclick="toggleChat()">
-        <i class="fas fa-robot"></i> Support
+﻿<div id="flybot-trigger-container">
+    <div id="flybot-badge" class="badge bg-danger rounded-pill position-absolute top-0 start-100 translate-middle" style="display:none;">1</div>
+    <button id="flybot-trigger" onclick="openChat()">
+        <i class="fas fa-robot"></i> <span class="d-none d-md-inline ms-2">Support</span>
     </button>
+</div>
 
-    <div id="flybot-window" class="shadow-lg">
-        <div class="flybot-header">
-            <div class="d-flex align-items-center">
-                <i class="fas fa-robot me-2"></i>
-                <span>FlyEase Assistant</span>
-            </div>
-            <div>
-                <button onclick="clearChat()" class="btn btn-sm text-white me-2" title="Clear History">
-                    <i class="fas fa-trash-alt"></i>
-                </button>
-                <button onclick="toggleChat()" class="btn-close btn-close-white btn-sm"></button>
-            </div>
+<div id="flybot-window" class="shadow-lg">
+    <div class="flybot-header" id="flybot-header">
+        <div class="d-flex align-items-center">
+            <i class="fas fa-robot me-2"></i>
+            <span class="fw-bold">FlyEase Assistant</span>
         </div>
-
-        <div id="flybot-messages">
-        </div>
-
-        <div class="flybot-input-area">
-            <input type="text" id="flybot-input" placeholder="Type a question..." onkeypress="handleEnter(event)">
-            <button onclick="sendMessage()"><i class="fas fa-paper-plane"></i></button>
+        <div class="window-controls">
+            <button onclick="minimizeChat()" title="Minimize"><i class="fas fa-minus"></i></button>
+            <button onclick="toggleMaximize()" title="Resize/Maximize"><i class="far fa-square"></i></button>
+            <button onclick="closeChat()" title="Close" class="btn-close-custom"><i class="fas fa-times"></i></button>
         </div>
     </div>
+
+    <div id="flybot-content-wrapper">
+        <div id="flybot-messages"></div>
+
+        <div id="flybot-typing" class="bot-msg typing-indicator" style="display: none; margin: 0 15px 10px 15px;">
+            <span></span><span></span><span></span>
+        </div>
+
+        <div id="flybot-chips" class="flybot-chips-area"></div>
+
+        <div class="flybot-input-area">
+            <button onclick="clearChat()" class="btn btn-sm text-muted me-2" title="Clear History"><i class="fas fa-trash-alt"></i></button>
+            <input type="text" id="flybot-input" placeholder="Type a message..." onkeypress="handleEnter(event)" autocomplete="off">
+            <button onclick="sendMessage()" class="send-btn"><i class="fas fa-paper-plane"></i></button>
+        </div>
+    </div>
+
+    <div class="resize-handle"></div>
 </div>
 
 <style>
-    #flybot-container {
+    /* === TRIGGER BUTTON === */
+    #flybot-trigger-container {
         position: fixed;
         bottom: 30px;
         right: 30px;
-        z-index: 9999;
-        font-family: 'Segoe UI', sans-serif;
+        z-index: 9998; /* Below window */
     }
 
     #flybot-trigger {
-        background: #0066a1;
+        background: linear-gradient(135deg, #0066a1, #004470);
         color: white;
         border: none;
         border-radius: 50px;
-        padding: 15px 25px;
+        padding: 12px 25px;
         font-weight: bold;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        box-shadow: 0 4px 15px rgba(0, 102, 161, 0.4);
         cursor: pointer;
         transition: transform 0.2s;
-        display: flex;
-        align-items: center;
-        gap: 10px;
     }
 
         #flybot-trigger:hover {
             transform: scale(1.05);
-            background: #005080;
         }
 
+    /* === WINDOW (Floating & Draggable) === */
     #flybot-window {
-        display: none;
-        width: 350px;
-        height: 450px;
+        display: none; /* Hidden by default */
+        position: fixed;
+        z-index: 9999;
         background: white;
-        border-radius: 15px;
-        flex-direction: column;
+        border-radius: 8px;
+        border: 1px solid #ccc;
         overflow: hidden;
-        position: absolute;
-        bottom: 70px;
-        right: 0;
-        border: 1px solid #ddd;
+        flex-direction: column;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        /* Default Position & Size */
+        bottom: 100px;
+        right: 30px;
+        width: 380px;
+        height: 500px;
+        /* Resizable */
+        min-width: 300px;
+        min-height: 400px;
+        resize: both;
     }
 
+        /* Maximized State */
+        #flybot-window.maximized {
+            width: 90vw !important;
+            height: 90vh !important;
+            top: 5vh !important;
+            left: 5vw !important;
+            bottom: auto !important;
+            right: auto !important;
+        }
+
+    /* === HEADER (Draggable Handle) === */
     .flybot-header {
-        background: linear-gradient(135deg, #0066a1, #004470);
+        background: linear-gradient(to right, #0066a1, #005080);
         color: white;
-        padding: 15px;
+        padding: 10px 15px;
+        cursor: move; /* Shows move cursor */
         display: flex;
         justify-content: space-between;
         align-items: center;
-        font-weight: bold;
+        user-select: none;
+    }
+
+    .window-controls button {
+        background: none;
+        border: none;
+        color: rgba(255,255,255,0.7);
+        padding: 5px;
+        cursor: pointer;
+        transition: color 0.2s;
+    }
+
+        .window-controls button:hover {
+            color: white;
+        }
+
+    .btn-close-custom:hover {
+        color: #ff6b6b !important;
+    }
+
+    /* Content Wrapper to fill remaining height */
+    #flybot-content-wrapper {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        overflow: hidden;
+        background: #f8f9fa;
     }
 
     #flybot-messages {
         flex: 1;
         padding: 15px;
         overflow-y: auto;
-        background: #f8f9fa;
         display: flex;
         flex-direction: column;
         gap: 10px;
     }
 
+    /* === MESSAGES === */
     .bot-msg, .user-msg {
         max-width: 80%;
-        padding: 10px 15px;
-        border-radius: 15px;
+        padding: 8px 12px;
+        border-radius: 12px;
         font-size: 0.9rem;
         line-height: 1.4;
         word-wrap: break-word;
     }
 
     .bot-msg {
-        background: #e9ecef;
-        color: #333;
+        background: white;
+        border: 1px solid #e0e0e0;
         align-self: flex-start;
         border-bottom-left-radius: 2px;
     }
@@ -113,12 +165,47 @@
         border-bottom-right-radius: 2px;
     }
 
+    /* === CHIPS & INPUT === */
+    .flybot-chips-area {
+        padding: 10px;
+        display: flex;
+        gap: 5px;
+        overflow-x: auto;
+        background: white;
+        border-top: 1px solid #eee;
+    }
+
+        .flybot-chips-area::-webkit-scrollbar {
+            height: 4px;
+        }
+
+        .flybot-chips-area::-webkit-scrollbar-thumb {
+            background: #ccc;
+            border-radius: 4px;
+        }
+
+    .chip {
+        background: #e7f1ff;
+        color: #0066a1;
+        border: 1px solid #cce5ff;
+        padding: 4px 10px;
+        border-radius: 15px;
+        font-size: 0.8rem;
+        cursor: pointer;
+        white-space: nowrap;
+    }
+
+        .chip:hover {
+            background: #0066a1;
+            color: white;
+        }
+
     .flybot-input-area {
         padding: 10px;
+        background: white;
         border-top: 1px solid #eee;
         display: flex;
-        gap: 10px;
-        background: white;
+        align-items: center;
     }
 
     #flybot-input {
@@ -129,143 +216,211 @@
         outline: none;
     }
 
-        #flybot-input:focus {
-            border-color: #0066a1;
+    /* Typing Dots Animation */
+    .typing-indicator span {
+        display: inline-block;
+        width: 5px;
+        height: 5px;
+        background: #999;
+        border-radius: 50%;
+        margin: 0 2px;
+        animation: bounce 1s infinite;
+    }
+
+        .typing-indicator span:nth-child(2) {
+            animation-delay: 0.2s;
         }
+
+        .typing-indicator span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+    @@keyframes bounce {
+        0%, 100% {
+            transform: translateY(0);
+        }
+
+        50% {
+            transform: translateY(-5px);
+        }
+    }
+
+    /* Custom Resize Handle visual */
+    .resize-handle {
+        position: absolute;
+        bottom: 0;
+        right: 0;
+        width: 10px;
+        height: 10px;
+        cursor: nwse-resize;
+    }
 </style>
 
 <script>
-    // Constants for LocalStorage Keys
-    const STORAGE_KEY_MSG = 'flyease_chat_history';
-    const STORAGE_KEY_STATE = 'flyease_chat_open';
+    const WIN_ID = 'flybot-window';
+    const HEADER_ID = 'flybot-header';
 
     document.addEventListener("DOMContentLoaded", function() {
         loadChatState();
+        dragElement(document.getElementById(WIN_ID));
     });
 
-    function loadChatState() {
-        // 1. Restore Open/Close State
-        const isOpen = localStorage.getItem(STORAGE_KEY_STATE) === 'true';
-        const window = document.getElementById('flybot-window');
-        if (isOpen) {
-            window.style.display = 'flex';
+    // === 1. WINDOW CONTROLS ===
+    function openChat() {
+        const win = document.getElementById(WIN_ID);
+        win.style.display = 'flex';
+        document.getElementById('flybot-trigger-container').style.display = 'none'; // Hide trigger
+        localStorage.setItem('flyease_chat_open', 'true');
+        scrollToBottom();
+    }
+
+    function minimizeChat() {
+        // Hides window, shows trigger
+        document.getElementById(WIN_ID).style.display = 'none';
+        document.getElementById('flybot-trigger-container').style.display = 'block';
+        localStorage.setItem('flyease_chat_open', 'false');
+    }
+
+    function closeChat() {
+        // Same as minimize, but could clear chat if desired. For now, just hide.
+        minimizeChat();
+    }
+
+    function toggleMaximize() {
+        const win = document.getElementById(WIN_ID);
+        win.classList.toggle('maximized');
+    }
+
+    // === 2. DRAGGABLE LOGIC ===
+    function dragElement(elmnt) {
+        var pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+        const header = document.getElementById(HEADER_ID);
+
+        header.onmousedown = dragMouseDown;
+
+        function dragMouseDown(e) {
+            e = e || window.event;
+            // Allow clicking buttons inside header without dragging
+            if(e.target.tagName === 'BUTTON' || e.target.closest('button')) return;
+
+            e.preventDefault();
+            // Get mouse position at startup
+            pos3 = e.clientX;
+            pos4 = e.clientY;
+            document.onmouseup = closeDragElement;
+            document.onmousemove = elementDrag;
         }
 
-        // 2. Restore Messages
-        const history = localStorage.getItem(STORAGE_KEY_MSG);
-        const container = document.getElementById('flybot-messages');
+        function elementDrag(e) {
+            e = e || window.event;
+            e.preventDefault();
+            // Calculate new cursor position
+            pos1 = pos3 - e.clientX;
+            pos2 = pos4 - e.clientY;
+            pos3 = e.clientX;
+            pos4 = e.clientY;
 
-        if (history) {
-            // Load existing chat
-            const messages = JSON.parse(history);
-            messages.forEach(msg => {
-                appendMessageToDOM(msg.text, msg.className);
-            });
-        } else {
-            // New user? Add default welcome message
-            const welcomeText = `Hello! I'm FlyBot 🤖. I can help with:
-                <ul>
-                    <li>Refund Policies</li>
-                    <li>How to Book</li>
-                    <li>Payment Issues</li>
-                    <li>Contact Info</li>
-                </ul>
-                Try asking "How do I cancel?"`;
+            // Set new position
+            elmnt.style.top = (elmnt.offsetTop - pos2) + "px";
+            elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
 
-            // We append it but DO NOT save it yet (optional)
-            // Or we can save it so it persists. Let's save it.
-            addMessageLogic(welcomeText, 'bot-msg');
+            // Unset bottom/right so it moves freely
+            elmnt.style.bottom = "auto";
+            elmnt.style.right = "auto";
+
+            // Remove maximized class if dragging
+            elmnt.classList.remove('maximized');
+        }
+
+        function closeDragElement() {
+            document.onmouseup = null;
+            document.onmousemove = null;
         }
     }
 
-    function toggleChat() {
-        const window = document.getElementById('flybot-window');
-        if (window.style.display === 'flex') {
-            window.style.display = 'none';
-            localStorage.setItem(STORAGE_KEY_STATE, 'false');
-        } else {
-            window.style.display = 'flex';
-            localStorage.setItem(STORAGE_KEY_STATE, 'true');
-            // Scroll to bottom when opening
-            const container = document.getElementById('flybot-messages');
-            container.scrollTop = container.scrollHeight;
+    // === 3. CHAT LOGIC (Same as before) ===
+    function loadChatState() {
+        if(localStorage.getItem('flyease_chat_open') === 'true') {
+            openChat();
         }
+
+        const history = localStorage.getItem('flyease_chat_history_v2');
+        if (history) {
+            JSON.parse(history).forEach(msg => appendMsg(msg.text, msg.className));
+        } else {
+            addMsg("Hi! I'm FlyBot. How can I help?", 'bot-msg');
+        }
+        showChips(["Refunds", "Bookings", "Contact", "Discounts"]);
+    }
+
+    function sendMessage(text) {
+        const input = document.getElementById('flybot-input');
+        const txt = text || input.value.trim();
+        if(!txt) return;
+
+        addMsg(txt, 'user-msg');
+        input.value = '';
+
+        document.getElementById('flybot-typing').style.display = 'block';
+        scrollToBottom();
+
+        setTimeout(() => {
+            document.getElementById('flybot-typing').style.display = 'none';
+            const response = getBotResponse(txt);
+            addMsg(response, 'bot-msg');
+        }, 800);
+    }
+
+    function addMsg(text, className) {
+        appendMsg(text, className);
+        saveMsg(text, className);
+    }
+
+    function appendMsg(text, className) {
+        const div = document.createElement('div');
+        div.className = className;
+        div.innerHTML = text;
+        document.getElementById('flybot-messages').appendChild(div);
+        scrollToBottom();
+    }
+
+    function saveMsg(text, className) {
+        let history = localStorage.getItem('flyease_chat_history_v2');
+        let msgs = history ? JSON.parse(history) : [];
+        msgs.push({text, className});
+        localStorage.setItem('flyease_chat_history_v2', JSON.stringify(msgs));
     }
 
     function clearChat() {
-        localStorage.removeItem(STORAGE_KEY_MSG);
+        localStorage.removeItem('flyease_chat_history_v2');
         document.getElementById('flybot-messages').innerHTML = '';
-        // Reload default welcome
-        loadChatState();
+        addMsg("Hi! I'm FlyBot. How can I help?", 'bot-msg');
     }
 
-    function handleEnter(e) {
-        if (e.key === 'Enter') sendMessage();
+    function scrollToBottom() {
+        const div = document.getElementById('flybot-messages');
+        div.scrollTop = div.scrollHeight;
     }
 
-    function sendMessage() {
-        const inputField = document.getElementById('flybot-input');
-        const userText = inputField.value.trim();
-        if (!userText) return;
-
-        // 1. Add User Message
-        addMessageLogic(userText, 'user-msg');
-        inputField.value = '';
-
-        // 2. Simulate "Thinking" delay
-        setTimeout(() => {
-            const botResponse = getBotBrainResponse(userText);
-            addMessageLogic(botResponse, 'bot-msg');
-        }, 600);
+    function showChips(opts) {
+        const area = document.getElementById('flybot-chips');
+        area.innerHTML = '';
+        opts.forEach(o => {
+            const btn = document.createElement('button');
+            btn.className = 'chip';
+            btn.innerText = o;
+            btn.onclick = () => sendMessage(o);
+            area.appendChild(btn);
+        });
     }
 
-    // Helper: Adds to DOM AND saves to Storage
-    function addMessageLogic(text, className) {
-        // 1. Show it
-        appendMessageToDOM(text, className);
+    function handleEnter(e) { if(e.key==='Enter') sendMessage(); }
 
-        // 2. Save it to LocalStorage
-        let history = localStorage.getItem(STORAGE_KEY_MSG);
-        let messages = history ? JSON.parse(history) : [];
-        messages.push({ text: text, className: className });
-        localStorage.setItem(STORAGE_KEY_MSG, JSON.stringify(messages));
-    }
-
-    // Helper: Just adds to DOM (used by Load)
-    function appendMessageToDOM(text, className) {
-        const msgDiv = document.createElement('div');
-        msgDiv.className = className;
-        msgDiv.innerHTML = text;
-        const container = document.getElementById('flybot-messages');
-        container.appendChild(msgDiv);
-        container.scrollTop = container.scrollHeight; // Auto scroll
-    }
-
-    // === THE AI LOGIC ===
-    function getBotBrainResponse(input) {
+    function getBotResponse(input) {
         input = input.toLowerCase();
-
-        if (input.includes("hello") || input.includes("hi") || input.includes("hey"))
-            return "Hi there! 👋 How can I help you plan your trip today?";
-
-        if (input.includes("cancel") || input.includes("refund"))
-            return "You can cancel your booking from your <b>Profile Dashboard</b>. <br>• > 7 days before: Full Refund<br>• < 3 days: No Refund.";
-
-        if (input.includes("book") || input.includes("reservation"))
-            return "To make a booking, browse our <b>Packages</b> page, select a destination, and click 'Book Now'.";
-
-        if (input.includes("pay") || input.includes("card") || input.includes("money"))
-            return "We accept Visa, Mastercard, and Online Banking (FPX). All payments are secure.";
-
-        if (input.includes("contact") || input.includes("phone") || input.includes("support"))
-            return "You can reach our human support team at <b>+60 11-1685 8138</b> or email <b>support@flyease.com</b>.";
-
-        if (input.includes("password") || input.includes("login"))
-            return "If you forgot your password, go to the Login page and click 'Forgot Password' to reset it.";
-
-        if (input.includes("discount") || input.includes("promo"))
-             return "Check our 'Discounts' page! Or rate a completed trip to earn a special 20% off code.";
-
-        return "I'm not sure about that yet. 😅 Try asking about 'refunds', 'payments', or 'contact'.";
+        if(input.includes("refund")) return "Cancellation >7 days = Full Refund. <3 days = No Refund.";
+        if(input.includes("book")) return "Go to Packages and click 'Book Now'.";
+        if(input.includes("contact")) return "Call us at +60 11-1685 8138.";
+        return "I can help with Refunds, Booking, or Contact info.";
     }
 </script>
