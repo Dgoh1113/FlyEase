@@ -41,6 +41,38 @@ namespace FlyEase.Controllers
                 var vm = await LoadViewModelAsync();
                 vm.Message = "Please fix validation errors";
                 vm.IsSuccess = false;
+
+                // === DATA RESTORATION LOGIC (Preserve inputs on error) ===
+                vm.Package = new Package
+                {
+                    PackageName = request.PackageName,
+                    Description = request.Description,
+                    Destination = request.Destination,
+                    Price = request.Price,
+                    StartDate = request.StartDate,
+                    EndDate = request.EndDate,
+                    AvailableSlots = request.AvailableSlots,
+                    Latitude = request.Latitude,
+                    Longitude = request.Longitude,
+                    CategoryID = request.CategoryID ?? 0
+                };
+
+                // Restore Selections & Dynamic Lists
+                vm.SelectedCategoryId = request.CategoryID;
+                vm.NewCategoryName = request.NewCategoryName;
+                vm.Inclusions = request.Inclusions ?? new List<string>();
+
+                if (request.Itinerary != null)
+                {
+                    vm.Itinerary = request.Itinerary.Select(i => new PackageItinerary
+                    {
+                        DayNumber = i.DayNumber,
+                        Title = i.Title,
+                        ActivityDescription = i.ActivityDescription
+                    }).ToList();
+                }
+                // =========================================================
+
                 return View("PackageManagement", vm);
             }
 
@@ -151,6 +183,44 @@ namespace FlyEase.Controllers
                 var vm = await LoadViewModelAsync();
                 vm.Message = "Validation Failed";
                 vm.IsSuccess = false;
+                vm.EditingPackageId = request.PackageID;
+
+                // === DATA RESTORATION LOGIC (Preserve inputs on error) ===
+                // Fetch original to keep existing images visible in preview
+                var originalPkg = await _context.Packages.AsNoTracking().FirstOrDefaultAsync(p => p.PackageID == request.PackageID);
+                string currentImages = originalPkg?.ImageURL ?? "";
+
+                vm.Package = new Package
+                {
+                    PackageID = request.PackageID,
+                    PackageName = request.PackageName,
+                    Description = request.Description,
+                    Destination = request.Destination,
+                    Price = request.Price,
+                    StartDate = request.StartDate,
+                    EndDate = request.EndDate,
+                    AvailableSlots = request.AvailableSlots,
+                    Latitude = request.Latitude,
+                    Longitude = request.Longitude,
+                    CategoryID = request.CategoryID ?? 0,
+                    ImageURL = currentImages
+                };
+
+                vm.SelectedCategoryId = request.CategoryID;
+                vm.NewCategoryName = request.NewCategoryName;
+                vm.Inclusions = request.Inclusions ?? new List<string>();
+
+                if (request.Itinerary != null)
+                {
+                    vm.Itinerary = request.Itinerary.Select(i => new PackageItinerary
+                    {
+                        DayNumber = i.DayNumber,
+                        Title = i.Title,
+                        ActivityDescription = i.ActivityDescription
+                    }).ToList();
+                }
+                // =========================================================
+
                 return View("PackageManagement", vm);
             }
 
@@ -304,8 +374,7 @@ namespace FlyEase.Controllers
                             );
                         }
 
-                        // *** CRITICAL FIX: Remove the booking to resolve the Constraint Exception ***
-                        // This allows the package to be deleted since the dependent records are gone.
+                        // Remove the booking
                         _context.Bookings.Remove(booking);
                     }
                 }

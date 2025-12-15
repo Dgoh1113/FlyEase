@@ -249,12 +249,22 @@ namespace FlyEase.Data
         public Booking Booking { get; set; } = null!;
     }
 
+    // Find the DiscountType class and update it:
     public class DiscountType
     {
         public int DiscountTypeID { get; set; }
         public string DiscountName { get; set; } = null!;
         public decimal? DiscountRate { get; set; }
         public decimal? DiscountAmount { get; set; }
+
+        // === ADDED FIELDS ===
+        public int? MinPax { get; set; }
+        public decimal? MinSpend { get; set; }
+        public DateTime? StartDate { get; set; }
+        public DateTime? EndDate { get; set; }
+        public bool IsActive { get; set; } = true;
+        // ====================
+
         public ICollection<BookingDiscount> BookingDiscounts { get; set; } = new List<BookingDiscount>();
     }
 
