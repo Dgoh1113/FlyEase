@@ -14,10 +14,152 @@ document.addEventListener('DOMContentLoaded', function () {
 // ========================================
 // CHART INITIALIZATION
 // ========================================
+
+function initializeBookingsChart() {
+    const chartElement = document.getElementById('bookingsChart');
+    if (!chartElement) return;
+
+    const labelsAttr = chartElement.getAttribute('data-labels');
+    const valuesAttr = chartElement.getAttribute('data-values');
+    const colorsAttr = chartElement.getAttribute('data-colors');
+
+    if (!labelsAttr || !valuesAttr || !colorsAttr) return;
+
+    try {
+        const labels = JSON.parse(labelsAttr);
+        const values = JSON.parse(valuesAttr);
+        const colors = JSON.parse(colorsAttr);
+
+        new Chart(chartElement, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: values,
+                    backgroundColor: colors,
+                    borderColor: '#fff',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        ticks: { callback: function (value) { return value + ' bookings'; } }
+                    }
+                }
+            }
+        });
+    } catch (error) {
+        console.error('Error initializing Bookings chart:', error);
+    }
+}
+
+function initializePackageRevenueChart() {
+    const chartElement = document.getElementById('revenueChart');
+    if (!chartElement) return;
+
+    const labelsAttr = chartElement.getAttribute('data-labels');
+    const valuesAttr = chartElement.getAttribute('data-values');
+
+    if (!labelsAttr || !valuesAttr) return;
+
+    try {
+        const labels = JSON.parse(labelsAttr);
+        const values = JSON.parse(valuesAttr);
+
+        new Chart(chartElement, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Revenue (RM)',
+                    data: values,
+                    backgroundColor: '#4e73df',
+                    borderColor: '#fff',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        ticks: { callback: function (value) { return 'RM ' + value.toLocaleString(); } }
+                    }
+                }
+            }
+        });
+    } catch (error) {
+        console.error('Error initializing Package Revenue chart:', error);
+    }
+}
+
+function initializeRatingChart() {
+    const chartElement = document.getElementById('ratingChart');
+    if (!chartElement) return;
+
+    const labelsAttr = chartElement.getAttribute('data-labels');
+    const valuesAttr = chartElement.getAttribute('data-values');
+
+    if (!labelsAttr || !valuesAttr) return;
+
+    try {
+        const labels = JSON.parse(labelsAttr);
+        const values = JSON.parse(valuesAttr);
+
+        new Chart(chartElement, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Average Rating',
+                    data: values,
+                    backgroundColor: '#1cc88a',
+                    borderColor: '#fff',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        max: 5,
+                        ticks: { callback: function (value) { return value.toFixed(1) + ' ⭐'; } }
+                    }
+                }
+            }
+        });
+    } catch (error) {
+        console.error('Error initializing Rating chart:', error);
+    }
+}
+
+// Update initializeCharts() function to include new charts
 function initializeCharts() {
     initializeBookingStatusChart();
     initializePaymentMethodChart();
     initializeRevenueChart();
+    initializeBookingsChart();
+    initializePackageRevenueChart();
+    initializeRatingChart();
 }
 
 function initializeBookingStatusChart() {
