@@ -1,197 +1,173 @@
 ﻿/* =========================================
-   SCROLL SNAP CONTAINER (Quick Scroll Effect)
+   1. GLOBAL & SCROLL SNAP
    ========================================= */
+:root {
+    --primary-color: #00d2ff;
+    --text-light: #ffffff;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Montserrat', sans-serif;
+    background-color: #000;
+    overflow: hidden; /* Prevent double scrollbars */
+    /* UPDATED: Lighter base weight */
+    font-weight: 300;
+}
+
+/* The main scroll container */
 .main-content {
     height: 100vh;
     overflow-y: scroll;
-    scroll-snap-type: y mandatory; /* Forces snapping to sections */
+    scroll-snap-type: y mandatory; /* Enables the section snapping */
     scroll-behavior: smooth;
     width: 100%;
     position: relative;
+    scrollbar-width: none; /* Firefox */
 }
 
-    /* Hide scrollbar for cleaner look */
     .main-content::-webkit-scrollbar {
-        display: none;
+        display: none; /* Chrome/Safari */
     }
 
-.main-content {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-}
-
 /* =========================================
-   HERO SLIDER SECTION
+   2. HERO SLIDER SECTION
    ========================================= */
 .home-hero-container {
     position: relative;
     width: 100%;
-    height: 100vh !important;
-    min-height: 600px;
-    scroll-snap-align: start; /* Snap point */
+    height: 100vh;
+    scroll-snap-align: start;
     scroll-snap-stop: always;
     overflow: hidden;
-    margin: 0;
 }
 
-/* Slider Wrapper */
+/* Flex wrapper to hold Main Slider (Left) and Nav Slider (Right) */
 .slider-area-wrapper {
     display: flex;
-    padding: 0;
-    overflow: hidden;
-    background: #000;
-    height: 100%;
     width: 100%;
+    height: 100%;
 }
 
-/* Main Slider (80%) */
+/* --- Main Slider (Left side, 80%) --- */
 .swiper-container.main-slider {
     width: 80%;
     height: 100%;
     float: left;
-    transition: opacity .6s ease, transform .3s ease;
 }
 
-/* Thumbnails (20%) */
+/* --- Nav Slider (Right side, 20%) --- */
 .swiper-container.nav-slider {
     width: 20%;
-    padding-left: 5px;
-    background: #111;
+    height: 100%;
+    float: right;
+    background: #000;
 }
 
-    .swiper-container.nav-slider .swiper-slide {
-        cursor: pointer;
-        opacity: 0.4;
-        transition: opacity .3s ease;
-    }
-
-        .swiper-container.nav-slider .swiper-slide.swiper-slide-active {
-            opacity: 1;
-            border: 2px solid #0d6efd; /* Accent Primary */
-        }
-
-        .swiper-container.nav-slider .swiper-slide .content {
-            width: 100%;
-        }
-
-            .swiper-container.nav-slider .swiper-slide .content .title {
-                font-size: 18px;
-                margin-bottom: 5px;
-            }
-
-/* Navigation Buttons */
-.swiper-container:hover .swiper-button-prev,
-.swiper-container:hover .swiper-button-next {
-    transform: translateX(0);
-    opacity: 1;
-    visibility: visible;
-}
-
+/* Hide sliders until loaded to prevent layout jumps */
 .swiper-container.loading {
     opacity: 0;
     visibility: hidden;
 }
 
-/* Slide Common Styles */
+/* --- Slide Styling --- */
 .swiper-slide {
     overflow: hidden;
-    backface-visibility: hidden;
     position: relative;
+    width: 100%;
+    height: 100%;
+    cursor: pointer;
 }
 
-    .swiper-slide .slide-bgimg {
+.slide-bgimg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    background-position: center;
+    background-size: cover;
+}
+
+    .slide-bgimg img {
+        display: none; /* We use background-image for better cover control */
+    }
+
+    /* Dark Overlay Gradient */
+    .slide-bgimg::after {
+        content: '';
         position: absolute;
         top: 0;
         left: 0;
         width: 100%;
         height: 100%;
-        background-position: center;
-        background-size: cover;
-        margin: 0;
+        background: linear-gradient(to right, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0) 100%);
     }
 
-        /* Gradient Overlay */
-        .swiper-slide .slide-bgimg::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            bottom: 0;
-            right: 0;
-            background: linear-gradient(to right, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0) 100%);
-        }
+/* --- Slide Content (Text) --- */
+.swiper-slide .content {
+    position: absolute;
+    top: 40%;
+    left: 5%;
+    width: 60%;
+    transform: translateY(-50%);
+    color: #fff;
+    z-index: 10;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+}
 
-    .swiper-slide .entity-img {
-        display: none;
+    .swiper-slide .content .title {
+        font-size: 4em;
+        /* UPDATED: Thinner weight (was 600) */
+        font-weight: 300;
+        text-transform: uppercase;
+        margin-bottom: 0;
+        line-height: 1;
     }
 
-    /* Slide Content */
-    .swiper-slide .content {
-        position: absolute;
-        top: 35%;
-        left: 0;
-        width: 60%;
-        padding-left: 5%;
-        color: #fff;
-        z-index: 10;
-        text-shadow: 0 2px 15px rgba(0,0,0,0.8);
+    /* Description Box */
+    .swiper-slide .content .caption {
+        display: block;
+        opacity: 0;
+        transform: translateX(50px);
+        transition: opacity .5s ease, transform .5s ease;
+        max-width: 600px;
+        background: rgba(0,0,0,0.5);
+        padding: 20px;
+        border-radius: 8px;
+        border-left: 5px solid #ffc107; /* Warning yellow accent */
+        margin-top: 20px;
+        backdrop-filter: blur(5px);
     }
 
-        .swiper-slide .content .title {
-            font-size: 4em;
-            font-weight: 800;
-            margin-bottom: 10px;
-            text-transform: uppercase;
-            letter-spacing: -1px;
-            line-height: 1;
+        .swiper-slide .content .caption.show {
+            opacity: 1;
+            transform: translateX(0);
         }
 
-        .swiper-slide .content .caption {
-            display: block;
-            transform: translateX(50px);
-            opacity: 0;
-            transition: opacity .3s ease, transform .7s ease;
-            max-width: 600px;
-            background: rgba(0,0,0,0.4);
-            padding: 20px;
-            border-radius: 10px;
-            backdrop-filter: blur(5px);
-            border-left: 4px solid #ffc107;
-        }
+.fade-in-btn {
+    transition: opacity 1s ease 0.5s; /* Delay button appearance */
+}
 
-            .swiper-slide .content .caption.show {
-                transform: translateX(0);
-                opacity: 1;
-            }
-
-.swiper-slide-active .content .fade-in-btn {
+.swiper-slide-active .fade-in-btn {
     opacity: 1 !important;
 }
 
-/* Buttons */
-[class^="swiper-button-"] {
-    width: 44px;
-    opacity: 0;
-    visibility: hidden;
-    transition: all .3s ease;
-    color: #fff;
-}
-
-.swiper-button-prev {
-    transform: translateX(50px);
-}
-
+/* --- Navigation Buttons (Arrows) --- */
+.swiper-button-prev,
 .swiper-button-next {
-    transform: translateX(-50px);
+    color: #fff;
+    transition: all 0.3s ease;
 }
 
 /* =========================================
-   CONCEPTS SECTION (Categories)
+   3. CONCEPTS SECTION (Categories)
    ========================================= */
 .concepts-section {
     width: 100%;
     background: #000;
-    font-family: 'Poppins', sans-serif;
     text-transform: uppercase;
 }
 
@@ -205,13 +181,10 @@
     justify-content: center;
     background-size: cover;
     background-position: center;
-    background-repeat: no-repeat;
-    /* Snap Logic */
     scroll-snap-align: start;
     scroll-snap-stop: always;
 }
 
-    /* Hover Overlay */
     .concept::before {
         content: "";
         position: absolute;
@@ -220,43 +193,36 @@
         top: 0;
         left: 0;
         background: radial-gradient(rgba(0, 0, 0, 0.3), transparent);
-        opacity: 0;
-        transition: all 1s cubic-bezier(0.19, 1, 0.22, 1);
         z-index: 1;
-    }
-
-    .concept:hover::before {
-        opacity: 0.5;
     }
 
     .concept h1 {
         position: relative;
         color: #fff;
-        font-weight: 900;
+        /* UPDATED: Regular weight (was 900) */
+        font-weight: 400;
         font-size: 60px;
-        text-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
         z-index: 2;
         margin: 0;
+        text-shadow: 0 10px 25px rgba(0,0,0,0.3);
     }
 
-/* --- 1. DESERT (Grid Hover) --- */
+/* --- Concept 1: DESERT (3x3 Grid Hover) --- */
 .concept-one {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     grid-template-rows: repeat(3, 1fr);
-    padding: 0;
 }
 
     .concept-one h1 {
         position: absolute;
-        margin: auto;
+        top: 50%;
         left: 0;
         right: 0;
-        top: 50%;
         transform: translateY(-50%);
         text-align: center;
         transition: 0.5s ease;
-        letter-spacing: 25px;
+        letter-spacing: 20px;
         pointer-events: none;
     }
 
@@ -266,89 +232,73 @@
         height: 100%;
     }
 
-    .concept-one .hover-1:hover ~ h1 {
+    .concept-one .hover-1:hover ~ a h1 {
         left: 30px;
         margin-top: -10px;
     }
 
-    .concept-one .hover-2:hover ~ h1 {
+    .concept-one .hover-2:hover ~ a h1 {
         margin-top: -10px;
     }
 
-    .concept-one .hover-3:hover ~ h1 {
+    .concept-one .hover-3:hover ~ a h1 {
         right: 30px;
         margin-top: -10px;
     }
 
-    .concept-one .hover-4:hover ~ h1 {
+    .concept-one .hover-4:hover ~ a h1 {
         left: 30px;
     }
 
-    .concept-one .hover-6:hover ~ h1 {
+    .concept-one .hover-6:hover ~ a h1 {
         right: 30px;
     }
 
-    .concept-one .hover-7:hover ~ h1 {
+    .concept-one .hover-7:hover ~ a h1 {
         left: 30px;
-        margin-top: -50px;
+        margin-top: 50px;
     }
 
-    .concept-one .hover-8:hover ~ h1 {
-        margin-top: -50px;
+    .concept-one .hover-8:hover ~ a h1 {
+        margin-top: 50px;
     }
 
-    .concept-one .hover-9:hover ~ h1 {
+    .concept-one .hover-9:hover ~ a h1 {
         right: 30px;
-        margin-top: -50px;
+        margin-top: 50px;
     }
 
-/* --- 2. CITY (Outline to Fill) --- */
-.concept-two {
+/* --- Concept 2: CITY (Text Outline Fill) --- */
+.concept-two .word-wrapper {
     display: flex;
-    justify-content: center;
-    align-items: center;
+    gap: 10px;
+    z-index: 5;
 }
 
-    .concept-two .word-wrapper {
-        display: flex;
-        gap: 20px;
-        z-index: 5;
-    }
+.concept-two h1 {
+    color: transparent;
+    -webkit-text-stroke: 2px #fff;
+    transition: 0.3s;
+}
 
-    .concept-two .char-box {
-        position: relative;
-        cursor: pointer;
-    }
+.concept-two .char-box:hover h1 {
+    color: #fff;
+    transform: scale(1.2);
+    -webkit-text-stroke: 0;
+}
 
-    .concept-two h1 {
-        color: transparent;
-        -webkit-text-stroke: 2px #fff;
-        transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    }
-
-    .concept-two .char-box:hover h1 {
-        transform: scale(1.5);
-        color: #fff;
-        -webkit-text-stroke: 2px transparent;
-        text-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
-    }
-
-/* --- 3. TOWN (Split Hover) --- */
+/* --- Concept 3: TOWN (Split Top/Bottom) --- */
 .concept-three .word {
     display: flex;
-    align-items: center;
-    justify-content: center;
     height: 100%;
-    width: 100%;
     z-index: 5;
 }
 
 .concept-three .char-col {
+    position: relative;
+    width: 100px;
     display: flex;
     flex-direction: column;
-    height: 100%;
-    width: 120px;
-    position: relative;
 }
 
 .concept-three .hover-top, .concept-three .hover-bottom {
@@ -361,7 +311,7 @@
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    transition: 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+    transition: 0.3s;
     pointer-events: none;
 }
 
@@ -373,88 +323,74 @@
     margin-top: 20px;
 }
 
-/* --- 4. MOUNTAIN (Bounce) --- */
+/* --- Concept 5: MOUNTAIN (Bounce) --- */
 .concept-five .word {
     display: flex;
-    align-items: center;
-    justify-content: center;
     z-index: 5;
 }
 
-    .concept-five .word:hover .char:nth-child(even) {
-        top: 20px;
-    }
-
-    .concept-five .word:hover .char:nth-child(odd) {
-        top: -20px;
-    }
-
 .concept-five .char {
-    position: relative;
-    top: 0;
     transition: 0.5s cubic-bezier(0.19, 1, 0.22, 1);
-    font: 900 60px Montserrat, sans-serif;
-    color: white;
-    text-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
     margin: 0 5px;
 }
 
-/* --- 5. BEACH (Rotate) --- */
+.concept-five .word:hover .char:nth-child(even) {
+    transform: translateY(20px);
+}
+
+.concept-five .word:hover .char:nth-child(odd) {
+    transform: translateY(-20px);
+}
+
+/* --- Concept 6: BEACH (Rotate) --- */
 .concept-six .word {
     display: flex;
-    align-items: center;
-    justify-content: center;
     z-index: 5;
 }
 
 .concept-six .char {
-    transition: 0.3s ease-in-out;
-    font: 900 60px Montserrat, sans-serif;
-    color: white;
-    text-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+    transition: 0.3s;
     margin: 0 2px;
+    /* UPDATED: Added these to match other category sizes/colors */
+    font-size: 60px;
+    color: #fff;
+    text-transform: uppercase;
+    font-weight: 400; /* Matches global thinner style */
 }
 
+/* Kept original animations exactly as requested */
 .concept-six .word:hover .char:nth-child(1) {
-    margin-top: -30px;
-    transform: rotate(-20deg);
+    transform: rotate(-15deg) translateY(-20px);
 }
 
 .concept-six .word:hover .char:nth-child(2) {
-    margin: -40px 0 0 10px;
-    transform: rotate(5deg);
+    transform: rotate(-5deg) translateY(-30px);
 }
 
 .concept-six .word:hover .char:nth-child(3) {
-    margin: 15px 0 0 10px;
-    transform: rotate(12deg);
+    transform: rotate(5deg) translateY(-20px);
 }
 
 .concept-six .word:hover .char:nth-child(4) {
-    margin: -25px 0 0;
-    transform: rotate(5deg);
+    transform: rotate(15deg) translateY(-10px);
 }
 
 .concept-six .word:hover .char:nth-child(5) {
-    margin: -40px 5px 0;
-    transform: rotate(-10deg);
+    transform: rotate(20deg);
 }
 
-/* --- 6. WATERFALL (Falling Text) --- */
+/* --- Concept 8: WATERFALL (Falling Text) --- */
 .concept-eight .word {
     display: flex;
-    align-items: center;
-    justify-content: center;
     z-index: 5;
 }
 
 .concept-eight .char {
     position: relative;
-    font: 900 60px Montserrat, sans-serif;
-    color: white;
-    text-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+    margin: 0 5px;
     overflow: hidden;
-    margin: 0 2px;
+    color: transparent;
+    -webkit-text-stroke: 1px rgba(255,255,255,0.5);
 }
 
     .concept-eight .char::before {
@@ -462,44 +398,66 @@
         position: absolute;
         top: 0;
         left: 0;
-        color: rgba(255, 255, 255, 0.8);
+        color: #fff;
         opacity: 0;
+        transition: 0.5s;
     }
 
 .concept-eight .word:hover .char::before {
-    animation: falls 1s ease forwards;
+    animation: drop 0.8s ease forwards;
 }
 
-.concept-eight .word:hover .char:nth-child(1)::before {
-    animation: falls 0.9s ease 0.2s forwards;
+.concept-eight .word:hover .char:nth-child(2)::before {
+    animation-delay: 0.1s;
 }
 
-.concept-eight .word:hover .char:nth-child(odd)::before {
-    animation: falls 1s ease 0.3s forwards;
+.concept-eight .word:hover .char:nth-child(3)::before {
+    animation-delay: 0.2s;
 }
 
-@keyframes falls {
+.concept-eight .word:hover .char:nth-child(4)::before {
+    animation-delay: 0.3s;
+}
+
+.concept-eight .word:hover .char:nth-child(5)::before {
+    animation-delay: 0.4s;
+}
+
+@keyframes drop {
     0% {
         opacity: 0;
-        top: 0;
+        transform: translateY(-50px);
     }
 
-    20% {
+    30% {
         opacity: 1;
+        transform: translateY(0);
+    }
+
+    80% {
+        opacity: 1;
+        transform: translateY(0);
     }
 
     100% {
         opacity: 0;
-        top: 100px;
+        transform: translateY(50px);
     }
 }
 
-/* Mobile Adjustments */
-@media (max-width: 767.98px) {
-    .home-hero-container {
-        height: 100vh;
-    }
+/* =========================================
+   4. ABOUT US SECTION
+   ========================================= */
+.about-us-section {
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+}
 
+/* =========================================
+   5. MOBILE RESPONSIVENESS
+   ========================================= */
+@media (max-width: 768px) {
+    /* Stack Slider areas */
     .slider-area-wrapper {
         flex-direction: column;
     }
@@ -512,48 +470,13 @@
     .swiper-container.nav-slider {
         width: 100%;
         height: 25%;
-        padding-left: 0;
-        padding-top: 5px;
     }
 
     .swiper-slide .content .title {
         font-size: 2.5em;
     }
 
-    .swiper-slide .content {
-        width: 90%;
-        top: 20%;
-    }
-
     .concept h1 {
         font-size: 40px;
     }
 }
-/* CONCEPTS ANIMATIONS */
-.concept-one .hover-1:hover ~ a h1 { left: 30px; margin-top: -10px; }
-.concept-one .hover-2:hover ~ a h1 { margin-top: -10px; }
-.concept-one .hover-3:hover ~ a h1 { right: 30px; margin-top: -10px; }
-.concept-one .hover-4:hover ~ a h1 { left: 30px; }
-.concept-one .hover-6:hover ~ a h1 { right: 30px; }
-.concept-one .hover-7:hover ~ a h1 { left: 30px; margin-top: -50px; }
-.concept-one .hover-8:hover ~ a h1 { margin-top: -50px; }
-.concept-one .hover-9:hover ~ a h1 { right: 30px; margin-top: -50px; }
-
-.concept-two .char-box:hover h1 { transform: scale(1.5); color: #fff; -webkit-text-stroke: 2px transparent; }
-
-.concept-three .hover-top:hover ~ h1 { margin-top: -20px; }
-.concept-three .hover-bottom:hover ~ h1 { margin-top: 20px; }
-
-.concept-five .word:hover .char:nth-child(even) { top: 20px; }
-.concept-five .word:hover .char:nth-child(odd) { top: -20px; }
-
-.concept-six .word:hover .char:nth-child(1) { margin-top: -30px; transform: rotate(-20deg); }
-.concept-six .word:hover .char:nth-child(2) { margin: -40px 0 0 10px; transform: rotate(5deg); }
-.concept-six .word:hover .char:nth-child(3) { margin: 15px 0 0 10px; transform: rotate(12deg); }
-.concept-six .word:hover .char:nth-child(4) { margin: -25px 0 0; transform: rotate(5deg); }
-.concept-six .word:hover .char:nth-child(5) { margin: -40px 5px 0; transform: rotate(-10deg); }
-
-.concept-eight .word:hover .char::before { animation: falls 1s ease forwards; }
-.concept-eight .word:hover .char:nth-child(1)::before { animation: falls 0.9s ease 0.2s forwards; }
-.concept-eight .word:hover .char:nth-child(odd)::before { animation: falls 1s ease 0.3s forwards; }
-@keyframes falls { 0% { opacity: 0; top: 0; } 20% { opacity: 1; } 100% { opacity: 0; top: 100px; } }

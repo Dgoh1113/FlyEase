@@ -31,9 +31,6 @@
     </script>
 
     <style>
-        /* [Keep your existing CSS here...] */
-        /* ... (The Sidebar CSS you added previously) ... */
-
         :root {
             --bg--primary: var(--bg-card);
             --bg--active: rgba(13, 110, 253, 0.1);
@@ -80,6 +77,8 @@
             background: var(--bg-card);
             border-right: 1px solid rgba(0,0,0,0.05);
             transition: width 300ms ease-out;
+            /* REQUIRED FOR TOOLTIPS TO POP OUT */
+            overflow: visible;
         }
 
             .vertical-sidebar:has(:checked) {
@@ -94,6 +93,8 @@
             height: 100%;
             padding: 1rem 0.5rem;
             transition: all 300ms ease-out;
+            /* REQUIRED FOR TOOLTIPS TO POP OUT */
+            overflow: visible;
         }
 
         header.sidebar-header {
@@ -198,6 +199,7 @@
         .sidebar__item {
             height: var(--item);
             border-radius: var(--brad-inner);
+            position: relative; /* Anchor for tooltips */
         }
 
         .item--heading {
@@ -212,12 +214,13 @@
             text-transform: uppercase;
             font-weight: 600;
             color: var(--text-muted);
-            opacity: 0;
-            transition: opacity 300ms ease;
+            /* Hide when collapsed to prevent layout issues */
+            display: none;
         }
 
         .vertical-sidebar:has(:checked) .sidebar__item--heading {
-            opacity: 1;
+            display: block;
+            animation: fadeIn 300ms ease forwards;
         }
 
         .sidebar__link {
@@ -231,6 +234,7 @@
             color: var(--text-main);
             transition: background-color 0.2s;
             cursor: pointer;
+            white-space: nowrap;
         }
 
         .icon {
@@ -242,15 +246,29 @@
             flex-shrink: 0;
         }
 
+        /* --- TEXT HANDLING & GHOST CLICK FIX --- */
         .text {
-            white-space: nowrap;
-            opacity: 0;
             font-weight: 500;
-            transition: opacity 200ms ease-out;
+            /* CRITICAL FIX: hiding display removes the width, preventing clicks outside sidebar */
+            display: none;
         }
 
         .vertical-sidebar:has(:checked) .text {
-            opacity: 1;
+            /* Restore display when opened */
+            display: inline-block;
+            animation: fadeIn 300ms ease forwards;
+        }
+
+        @@keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateX(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
         }
 
         .sidebar__link:hover {
@@ -279,10 +297,12 @@
             opacity: 1;
         }
 
+        /* --- TOOLTIP LOGIC (PREVIEW) --- */
         [data-tooltip] {
             position: relative;
         }
 
+        /* Only show tooltip when sidebar is collapsed (unchecked) */
         .vertical-sidebar:not(:has(:checked)) [data-tooltip]:hover::after {
             content: attr(data-tooltip);
             position: absolute;
@@ -290,26 +310,56 @@
             top: 50%;
             transform: translateY(-50%);
             margin-left: 10px;
-            background: #333;
+            background: #212529;
             color: white;
-            padding: 5px 10px;
-            border-radius: 4px;
-            font-size: 0.8rem;
+            padding: 5px 12px;
+            border-radius: 6px;
+            font-size: 0.85rem;
             white-space: nowrap;
-            z-index: 1050;
+            z-index: 9999;
             pointer-events: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            animation: fadeInTooltip 0.2s ease forwards;
+        }
+
+        /* Tooltip Arrow */
+        .vertical-sidebar:not(:has(:checked)) [data-tooltip]:hover::before {
+            content: '';
+            position: absolute;
+            left: 100%;
+            top: 50%;
+            transform: translateY(-50%);
+            margin-left: 4px;
+            border-width: 6px;
+            border-style: solid;
+            border-color: transparent #212529 transparent transparent;
+            z-index: 9999;
+            pointer-events: none;
+            animation: fadeInTooltip 0.2s ease forwards;
+        }
+
+        @@keyframes fadeInTooltip {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
         }
 
         input[type="checkbox"] {
             display: none;
         }
 
+        /* --- LANGUAGE BUTTON ALIGNMENT FIX --- */
         .sidebar-lang-btn {
             width: 100%;
             border: none;
             background: none;
             text-align: left;
-            padding: 0;
+            /* Match the padding of .sidebar__link (0 0.75rem) */
+            padding: 0 0.75rem;
         }
     </style>
 
@@ -406,7 +456,7 @@
                                 <span class="icon">
                                     <svg width="16" height="16" fill="currentColor" class="bi bi-gear" viewBox="0 0 16 16">
                                         <path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492M5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0" />
-                                        <path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1-.52-1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1-1.255-.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.377l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 0 0 2.692-1.115z" />
+                                        <path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1-.52-1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1-1.255-.52zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.377l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 0 0 2.692-1.115z" />
                                     </svg>
                                 </span>
                                 <span class="text">Mode</span>
@@ -473,10 +523,7 @@
         <div class="flex-grow-1 d-flex flex-column" style="min-width: 0;">
 
             <main class="flex-grow-1">
-                @* CONDITIONAL PADDING:
-                   - Removes padding ('p-0') only for Home/Index to allow full-screen sliders.
-                   - Keeps padding ('p-4') for all other pages to ensure content isn't flush against the sidebar.
-                *@
+                @* CONDITIONAL PADDING *@
                 @{
                     var isHomePage = ViewContext.RouteData.Values["controller"]?.ToString() == "Home" &&
                     ViewContext.RouteData.Values["action"]?.ToString() == "Index";

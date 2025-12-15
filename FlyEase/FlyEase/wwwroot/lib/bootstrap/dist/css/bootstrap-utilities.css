@@ -1170,7 +1170,7 @@
 }
 
 .font-monospace {
-  font-family: var(--bs-font-monospace) !important;
+  font-family: var(--bs-font-monospace) ;
 }
 
 .fs-1 {
@@ -1218,7 +1218,7 @@
 }
 
 .fw-bold {
-  font-weight: 500 !important;
+  font-weight: 400 !important;
 }
 
 .fw-bolder {

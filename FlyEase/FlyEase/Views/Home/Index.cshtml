@@ -6,7 +6,6 @@
     // --- Helper Logic ---
     var existingCategories = Model.CategorizedPackages.Select(g => g.Key).ToList();
     bool HasCategory(string name) => existingCategories.Any(c => c != null && c.Equals(name, StringComparison.OrdinalIgnoreCase));
-
     string GetCatBg(string name)
     {
         return name.ToLower().Trim() switch
@@ -23,8 +22,7 @@
 
     int GetCatId(string name)
     {
-        var group = Model.CategorizedPackages
-            .FirstOrDefault(g => g.Key.Equals(name, StringComparison.OrdinalIgnoreCase));
+        var group = Model.CategorizedPackages.FirstOrDefault(g => g.Key.Equals(name, StringComparison.OrdinalIgnoreCase));
         return group?.First().CategoryID ?? 0;
     }
 }
@@ -33,11 +31,14 @@
 <link rel="stylesheet" href="~/css/home.css" />
 <link href="https://fonts.googleapis.com/css?family=Montserrat:900&display=swap" rel="stylesheet">
 
+
+
 <div class="main-content">
 
     <div class="container-fluid p-0 home-hero-container">
         <div class="row g-0 h-100">
             <div class="col-12 position-relative slider-area-wrapper">
+
                 <div class="swiper-container main-slider loading">
                     <div class="swiper-wrapper">
                         @foreach (var package in Model.SliderPackages)
@@ -45,7 +46,9 @@
                             var firstImg = package.ImageURL?.Split(';').FirstOrDefault();
                             var imgSrc = !string.IsNullOrEmpty(firstImg) ? firstImg : "/img/default-package.jpg";
                             <div class="swiper-slide">
-                                <figure class="slide-bgimg" style="background-image:url('@imgSrc')"><img src="@imgSrc" class="entity-img" /></figure>
+                                <figure class="slide-bgimg" style="background-image:url('@imgSrc')">
+                                    <img src="@imgSrc" class="entity-img" />
+                                </figure>
                                 <div class="content">
                                     <p class="title">@package.Destination</p>
                                     <div class="caption">
@@ -53,7 +56,8 @@
                                         <p class="mb-0">@(package.Description?.Length > 150 ? package.Description.Substring(0, 150) + "..." : package.Description)</p>
                                     </div>
                                     <div class="mt-4 opacity-0 fade-in-btn">
-                                        <a asp-controller="Home" asp-action="PackageDetails" asp-route-id="@package.PackageID" class="btn btn-light text-primary fw-bold rounded-pill px-4">View Deal</a>
+                                        <a asp-controller="PackageDetails" asp-action="PackageDetails" asp-route-id="@package.PackageID" class="btn btn-outline-light fw-bold rounded-pill px-4">View Deal</a>
+                                        <a asp-controller="Home" asp-action="Packages" class="btn btn-outline-light fw-bold rounded-pill px-4 ms-2">View All Packages</a>
                                     </div>
                                 </div>
                             </div>
@@ -62,6 +66,7 @@
                     <div class="swiper-button-prev swiper-button-white"></div>
                     <div class="swiper-button-next swiper-button-white"></div>
                 </div>
+
                 <div class="swiper-container nav-slider loading">
                     <div class="swiper-wrapper" role="navigation">
                         @foreach (var package in Model.SliderPackages)
@@ -69,72 +74,123 @@
                             var firstImg = package.ImageURL?.Split(';').FirstOrDefault();
                             var imgSrc = !string.IsNullOrEmpty(firstImg) ? firstImg : "/img/default-package.jpg";
                             <div class="swiper-slide">
-                                <figure class="slide-bgimg" style="background-image:url('@imgSrc')"><img src="@imgSrc" class="entity-img" /></figure>
-                                <div class="content"><p class="title text-truncate">@package.Destination</p></div>
+                                <figure class="slide-bgimg" style="background-image:url('@imgSrc')">
+                                    <img src="@imgSrc" class="entity-img" />
+                                </figure>
+                                <div class="content">
+                                    <p class="title text-truncate" style="font-size: 1.2rem; text-shadow: 0 2px 5px rgba(0,0,0,0.8);">@package.Destination</p>
+                                </div>
                             </div>
                         }
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <div class="concepts-section">
+        @if (HasCategory("Desert"))
+        {
+            <div class="concept concept-one" style="background-image: url('@GetCatBg("Desert")')">
+                @for (int i = 1; i <= 9; i++)
+                {
+                    <div class="hover hover-@i"></div>
+                }
+                <a asp-action="Packages" asp-route-categoryId="@GetCatId("Desert")" class="text-decoration-none w-100 h-100 d-flex align-items-center justify-content-center"><h1>DESERT</h1></a>
+            </div>
+        }
+        @if (HasCategory("City"))
+        {
+            <div class="concept concept-two" style="background-image: url('@GetCatBg("City")')">
+                <a asp-action="Packages" asp-route-categoryId="@GetCatId("City")" class="text-decoration-none w-100 h-100 d-flex align-items-center justify-content-center">
+                    <div class="word-wrapper">@foreach (var c in "CITY") {
+                    <div class="char-box"><h1>@c</h1></div>
+                }
+</div>
+            </a>
+        </div>
+                }
+        @if (HasCategory("Town"))
+        {
+            <div class="concept concept-three" style="background-image: url('@GetCatBg("Town")')">
+                <a asp-action="Packages" asp-route-categoryId="@GetCatId("Town")" class="text-decoration-none w-100 h-100 d-flex align-items-center justify-content-center">
+                    <div class="word">@foreach (var c in "TOWN") {
+                    <div class="char-col"><div class="hover-top"></div><div class="hover-bottom"></div><h1>@c</h1></div>
+                }
+</div>
+            </a>
+        </div>
+                }
+        @if (HasCategory("Mountain"))
+        {
+            <div class="concept concept-five" style="background-image: url('@GetCatBg("Mountain")')">
+                <a asp-action="Packages" asp-route-categoryId="@GetCatId("Mountain")" class="text-decoration-none w-100 h-100 d-flex align-items-center justify-content-center">
+                    <div class="word">@foreach (var c in "MOUNTAIN") {
+                    <span class="char">@c</span>
+                }
+</div>
+            </a>
+        </div>
+                }
+        @if (HasCategory("Beach"))
+        {
+            <div class="concept concept-six" style="background-image: url('@GetCatBg("Beach")')">
+                <a asp-action="Packages" asp-route-categoryId="@GetCatId("Beach")" class="text-decoration-none w-100 h-100 d-flex align-items-center justify-content-center">
+                    <div class="word">@foreach (var c in "BEACH") {
+                    <span class="char">@c</span>
+                }
+</div>
+            </a>
+        </div>
+                }
+        @if (HasCategory("Waterfall"))
+        {
+            <div class="concept concept-eight" style="background-image: url('@GetCatBg("Waterfall")')">
+                <a asp-action="Packages" asp-route-categoryId="@GetCatId("Waterfall")" class="text-decoration-none w-100 h-100 d-flex align-items-center justify-content-center">
+                    <div class="word">@foreach (var c in "WATERFALL") {
+                    <div class="char" data-content="@c">@c</div>
+                }
+</div>
+            </a>
+        </div>
+                }
+    </div>
+
+    <div class="about-us-section" style="height: 100vh; width: 100%; scroll-snap-align: start; scroll-snap-stop: always; display: flex; align-items: center; justify-content: center; background-color: #fff;">
+        <div class="container text-center">
+            <div class="row justify-content-center">
+                <div class="col-lg-8">
+                    <img src="https://images.unsplash.com/photo-1488646953014-85cb44e25828?q=80&w=1935&auto=format&fit=crop" alt="About Us" class="img-fluid rounded mb-4" style="max-height: 300px; width: 100%; object-fit: cover;">
+                    <h2 class="fw-bold mb-4" style="color: #2c3e50;">About FlyEase</h2>
+                    <p class="lead text-muted">
+                        Welcome to FlyEase, your ultimate partner in discovering the world. We are dedicated to making travel simple, affordable, and unforgettable.
+                    </p>
+                    <div class="mt-4">
+                        <a asp-controller="Contact" asp-action="Index" class="btn btn-primary rounded-pill px-4">Contact Us</a>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="concepts-section">
-        @if (HasCategory("Desert")) {
-            <div class="concept concept-one" style="background-image: url('@GetCatBg("Desert")')">
-                @for (int i = 1; i <= 9; i++) { <div class="hover hover-@i"></div> }
-                <a asp-action="Packages" asp-route-categoryId="@GetCatId("Desert")" class="text-decoration-none"><h1>DESERT</h1></a>
-            </div>
-        }
-        @if (HasCategory("City")) {
-            <div class="concept concept-two" style="background-image: url('@GetCatBg("City")')">
-                <a asp-action="Packages" asp-route-categoryId="@GetCatId("City")" class="text-decoration-none">
-                    <div class="word-wrapper">
-                        @foreach (var c in "CITY") { <div class="char-box"><h1>@c</h1></div> }
-                    </div>
-                </a>
-            </div>
-        }
-        @if (HasCategory("Town")) {
-            <div class="concept concept-three" style="background-image: url('@GetCatBg("Town")')">
-                <a asp-action="Packages" asp-route-categoryId="@GetCatId("Town")" class="text-decoration-none w-100 h-100">
-                    <div class="word">
-                        @foreach (var c in "TOWN") { <div class="char-col"><div class="hover-top"></div><div class="hover-bottom"></div><h1>@c</h1></div> }
-                    </div>
-                </a>
-            </div>
-        }
-        @if (HasCategory("Mountain")) {
-            <div class="concept concept-five" style="background-image: url('@GetCatBg("Mountain")')">
-                <a asp-action="Packages" asp-route-categoryId="@GetCatId("Mountain")" class="text-decoration-none">
-                    <div class="word">@foreach (var c in "MOUNTAIN") { <span class="char">@c</span> }</div>
-                </a>
-            </div>
-        }
-        @if (HasCategory("Beach")) {
-            <div class="concept concept-six" style="background-image: url('@GetCatBg("Beach")')">
-                <a asp-action="Packages" asp-route-categoryId="@GetCatId("Beach")" class="text-decoration-none">
-                    <div class="word">@foreach (var c in "BEACH") { <span class="char">@c</span> }</div>
-                </a>
-            </div>
-        }
-        @if (HasCategory("Waterfall")) {
-            <div class="concept concept-eight" style="background-image: url('@GetCatBg("Waterfall")')">
-                <a asp-action="Packages" asp-route-categoryId="@GetCatId("Waterfall")" class="text-decoration-none">
-                    <div class="word">@foreach (var c in "WATERFALL") { <div class="char" data-content="@c">@c</div> }</div>
-                </a>
-            </div>
-        }
-    </div>
 </div>
 
 @section Scripts {
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Swiper/8.4.7/swiper-bundle.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
+
+            // 1. Initialize Main Slider
             let mainSlider = new Swiper('.main-slider', {
-                loop: true, speed: 1000, autoplay: { delay: 4000 },
-                navigation: { nextEl: '.swiper-button-next', prevEl: '.swiper-button-prev' },
+                loop: true,                 // INFINITE LOOP
+                loopedSlides: 5,
+                speed: 1000,
+                autoplay: { delay: 4000 },
+                navigation: {
+                    nextEl: '.swiper-button-next',
+                    prevEl: '.swiper-button-prev'
+                },
                 on: {
                     init: function () { this.autoplay.stop(); },
                     imagesReady: function () { this.el.classList.remove('loading'); this.autoplay.start(); },
@@ -142,15 +198,27 @@
                         let swiper = this;
                         swiper.el.querySelectorAll('.caption').forEach(c => c.classList.remove('show'));
                         let activeSlide = swiper.slides[swiper.activeIndex];
-                        if(activeSlide) activeSlide.querySelector('.caption')?.classList.add('show');
+                        if (activeSlide) activeSlide.querySelector('.caption')?.classList.add('show');
                     }
                 }
             });
+
+            // 2. Initialize Nav Slider (Right side thumbnails)
             let navSlider = new Swiper('.nav-slider', {
-                loop: true, speed: 1000, spaceBetween: 5, slidesPerView: 5, centeredSlides: true,
-                slideToClickedSlide: true, direction: 'vertical',
-                on: { imagesReady: function () { this.el.classList.remove('loading'); } }
+                loop: true,                 // INFINITE LOOP
+                loopedSlides: 5,
+                speed: 1000,
+                spaceBetween: 0,
+                slidesPerView: 4,
+                centeredSlides: true,
+                slideToClickedSlide: true,
+                direction: 'vertical',
+                on: {
+                    imagesReady: function () { this.el.classList.remove('loading'); }
+                }
             });
+
+            // 3. Link Sliders
             mainSlider.controller.control = navSlider;
             navSlider.controller.control = mainSlider;
         });
