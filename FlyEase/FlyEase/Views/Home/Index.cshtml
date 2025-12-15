@@ -3,15 +3,10 @@
     ViewData["Title"] = "Home";
     Layout = "~/Views/Shared/_Layout.cshtml";
 
-    // --- Helper Logic for Categories ---
-    
-    // 1. Get list of existing category names
+    // --- Helper Logic ---
     var existingCategories = Model.CategorizedPackages.Select(g => g.Key).ToList();
-
-    // 2. Check if a category exists (Case Insensitive)
     bool HasCategory(string name) => existingCategories.Any(c => c != null && c.Equals(name, StringComparison.OrdinalIgnoreCase));
 
-    // 3. Get Hardcoded Background Image based on Category Name
     string GetCatBg(string name)
     {
         return name.ToLower().Trim() switch
@@ -22,16 +17,14 @@
             "mountain" => "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=2070&auto=format&fit=crop",
             "beach" => "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=2073&auto=format&fit=crop",
             "waterfall" => "https://images.unsplash.com/photo-1432405972618-c60b0225b8f9?q=80&w=2070&auto=format&fit=crop",
-            _ => "/img/default-package.jpg" // Fallback
+            _ => "/img/default-package.jpg"
         };
     }
 
-    // 4. Get Category ID (Safe Lookup)
     int GetCatId(string name)
     {
         var group = Model.CategorizedPackages
             .FirstOrDefault(g => g.Key.Equals(name, StringComparison.OrdinalIgnoreCase));
-            
         return group?.First().CategoryID ?? 0;
     }
 }
@@ -45,32 +38,22 @@
     <div class="container-fluid p-0 home-hero-container">
         <div class="row g-0 h-100">
             <div class="col-12 position-relative slider-area-wrapper">
-                
                 <div class="swiper-container main-slider loading">
                     <div class="swiper-wrapper">
                         @foreach (var package in Model.SliderPackages)
                         {
                             var firstImg = package.ImageURL?.Split(';').FirstOrDefault();
                             var imgSrc = !string.IsNullOrEmpty(firstImg) ? firstImg : "/img/default-package.jpg";
-
                             <div class="swiper-slide">
-                                <figure class="slide-bgimg" style="background-image:url('@imgSrc')">
-                                    <img src="@imgSrc" class="entity-img" />
-                                </figure>
+                                <figure class="slide-bgimg" style="background-image:url('@imgSrc')"><img src="@imgSrc" class="entity-img" /></figure>
                                 <div class="content">
                                     <p class="title">@package.Destination</p>
                                     <div class="caption">
                                         <h4 class="text-warning fw-bold mb-2">@package.PackageName</h4>
-                                        <p class="mb-0">
-                                            @(!string.IsNullOrEmpty(package.Description) && package.Description.Length > 150 
-                                                ? package.Description.Substring(0, 150) + "..." 
-                                                : package.Description)
-                                        </p>
+                                        <p class="mb-0">@(package.Description?.Length > 150 ? package.Description.Substring(0, 150) + "..." : package.Description)</p>
                                     </div>
-                                    <div class="mt-4 opacity-0 fade-in-btn" style="transition: opacity 0.5s 0.5s;">
-                                        <a asp-controller="Home" asp-action="PackageDetails" asp-route-id="@package.PackageID" class="btn btn-light text-primary fw-bold rounded-pill px-4">
-                                            View Deal
-                                        </a>
+                                    <div class="mt-4 opacity-0 fade-in-btn">
+                                        <a asp-controller="Home" asp-action="PackageDetails" asp-route-id="@package.PackageID" class="btn btn-light text-primary fw-bold rounded-pill px-4">View Deal</a>
                                     </div>
                                 </div>
                             </div>
@@ -79,204 +62,95 @@
                     <div class="swiper-button-prev swiper-button-white"></div>
                     <div class="swiper-button-next swiper-button-white"></div>
                 </div>
-
                 <div class="swiper-container nav-slider loading">
                     <div class="swiper-wrapper" role="navigation">
                         @foreach (var package in Model.SliderPackages)
                         {
                             var firstImg = package.ImageURL?.Split(';').FirstOrDefault();
                             var imgSrc = !string.IsNullOrEmpty(firstImg) ? firstImg : "/img/default-package.jpg";
-
                             <div class="swiper-slide">
-                                <figure class="slide-bgimg" style="background-image:url('@imgSrc')">
-                                    <img src="@imgSrc" class="entity-img" />
-                                </figure>
-                                <div class="content">
-                                    <p class="title text-truncate">@package.Destination</p>
-                                </div>
+                                <figure class="slide-bgimg" style="background-image:url('@imgSrc')"><img src="@imgSrc" class="entity-img" /></figure>
+                                <div class="content"><p class="title text-truncate">@package.Destination</p></div>
                             </div>
                         }
                     </div>
                 </div>
-
             </div>
         </div>
     </div>
 
     <div class="concepts-section">
-
-        @if (HasCategory("Desert"))
-        {
+        @if (HasCategory("Desert")) {
             <div class="concept concept-one" style="background-image: url('@GetCatBg("Desert")')">
-                @for (int i = 1; i <= 9; i++)
-                {
-                    <div class="hover hover-@i"></div>
-                }
-                <a asp-action="Packages" asp-route-categoryId="@GetCatId("Desert")" class="text-decoration-none">
-                    <h1>DESERT</h1>
-                </a>
+                @for (int i = 1; i <= 9; i++) { <div class="hover hover-@i"></div> }
+                <a asp-action="Packages" asp-route-categoryId="@GetCatId("Desert")" class="text-decoration-none"><h1>DESERT</h1></a>
             </div>
         }
-
-        @if (HasCategory("City"))
-        {
+        @if (HasCategory("City")) {
             <div class="concept concept-two" style="background-image: url('@GetCatBg("City")')">
                 <a asp-action="Packages" asp-route-categoryId="@GetCatId("City")" class="text-decoration-none">
                     <div class="word-wrapper">
-                        @foreach (var c in "CITY")
-                        {
-                            <div class="char-box">
-                                <h1>@c</h1>
-                            </div>
-                        }
+                        @foreach (var c in "CITY") { <div class="char-box"><h1>@c</h1></div> }
                     </div>
                 </a>
             </div>
         }
-
-        @if (HasCategory("Town"))
-        {
+        @if (HasCategory("Town")) {
             <div class="concept concept-three" style="background-image: url('@GetCatBg("Town")')">
                 <a asp-action="Packages" asp-route-categoryId="@GetCatId("Town")" class="text-decoration-none w-100 h-100">
                     <div class="word">
-                        @foreach (var c in "TOWN")
-                        {
-                            <div class="char-col">
-                                <div class="hover-top"></div>
-                                <div class="hover-bottom"></div>
-                                <h1>@c</h1>
-                            </div>
-                        }
+                        @foreach (var c in "TOWN") { <div class="char-col"><div class="hover-top"></div><div class="hover-bottom"></div><h1>@c</h1></div> }
                     </div>
                 </a>
             </div>
         }
-
-        @if (HasCategory("Mountain"))
-        {
+        @if (HasCategory("Mountain")) {
             <div class="concept concept-five" style="background-image: url('@GetCatBg("Mountain")')">
                 <a asp-action="Packages" asp-route-categoryId="@GetCatId("Mountain")" class="text-decoration-none">
-                    <div class="word">
-                        @foreach (var c in "MOUNTAIN")
-                        {
-                            <span class="char">@c</span>
-                        }
-                    </div>
+                    <div class="word">@foreach (var c in "MOUNTAIN") { <span class="char">@c</span> }</div>
                 </a>
             </div>
         }
-
-        @if (HasCategory("Beach"))
-        {
+        @if (HasCategory("Beach")) {
             <div class="concept concept-six" style="background-image: url('@GetCatBg("Beach")')">
                 <a asp-action="Packages" asp-route-categoryId="@GetCatId("Beach")" class="text-decoration-none">
-                    <div class="word">
-                        @foreach (var c in "BEACH")
-                        {
-                            <span class="char">@c</span>
-                        }
-                    </div>
+                    <div class="word">@foreach (var c in "BEACH") { <span class="char">@c</span> }</div>
                 </a>
             </div>
         }
-
-        @if (HasCategory("Waterfall"))
-        {
+        @if (HasCategory("Waterfall")) {
             <div class="concept concept-eight" style="background-image: url('@GetCatBg("Waterfall")')">
                 <a asp-action="Packages" asp-route-categoryId="@GetCatId("Waterfall")" class="text-decoration-none">
-                    <div class="word">
-                        @foreach (var c in "WATERFALL")
-                        {
-                            <div class="char" data-content="@c">@c</div>
-                        }
-                    </div>
+                    <div class="word">@foreach (var c in "WATERFALL") { <div class="char" data-content="@c">@c</div> }</div>
                 </a>
             </div>
         }
-
     </div>
+</div>
 
-</div> 
 @section Scripts {
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Swiper/8.4.7/swiper-bundle.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            let mainSliderSelector = '.main-slider',
-                navSliderSelector = '.nav-slider',
-                interleaveOffset = 0.5;
-
-            // Main Slider Options
-            let mainSliderOptions = {
-                loop: true,
-                speed: 1000,
-                autoplay: { delay: 4000 },
-                loopAdditionalSlides: 10,
-                grabCursor: true,
-                watchSlidesProgress: true,
-                navigation: {
-                    nextEl: '.swiper-button-next',
-                    prevEl: '.swiper-button-prev',
-                },
+            let mainSlider = new Swiper('.main-slider', {
+                loop: true, speed: 1000, autoplay: { delay: 4000 },
+                navigation: { nextEl: '.swiper-button-next', prevEl: '.swiper-button-prev' },
                 on: {
                     init: function () { this.autoplay.stop(); },
                     imagesReady: function () { this.el.classList.remove('loading'); this.autoplay.start(); },
                     slideChangeTransitionEnd: function () {
-                        let swiper = this, captions = swiper.el.querySelectorAll('.caption');
-                        for (let i = 0; i < captions.length; ++i) captions[i].classList.remove('show');
-                        
+                        let swiper = this;
+                        swiper.el.querySelectorAll('.caption').forEach(c => c.classList.remove('show'));
                         let activeSlide = swiper.slides[swiper.activeIndex];
-                        if(activeSlide){
-                            let caption = activeSlide.querySelector('.caption');
-                            if(caption) caption.classList.add('show');
-                        }
-                    },
-                    progress: function () {
-                        let swiper = this;
-                        for (let i = 0; i < swiper.slides.length; i++) {
-                            let slideProgress = swiper.slides[i].progress,
-                                innerOffset = swiper.width * interleaveOffset,
-                                innerTranslate = slideProgress * innerOffset;
-                            let bgImg = swiper.slides[i].querySelector(".slide-bgimg");
-                            if(bgImg) bgImg.style.transform = "translateX(" + innerTranslate + "px)";
-                        }
-                    },
-                    touchStart: function () {
-                        let swiper = this;
-                        for (let i = 0; i < swiper.slides.length; i++) swiper.slides[i].style.transition = "";
-                    },
-                    setTransition: function (speed) {
-                        let swiper = this;
-                        for (let i = 0; i < swiper.slides.length; i++) {
-                            swiper.slides[i].style.transition = speed + "ms";
-                            let bgImg = swiper.slides[i].querySelector(".slide-bgimg");
-                            if(bgImg) bgImg.style.transition = speed + "ms";
-                        }
+                        if(activeSlide) activeSlide.querySelector('.caption')?.classList.add('show');
                     }
                 }
-            };
-
-            let mainSlider = new Swiper(mainSliderSelector, mainSliderOptions);
-
-            // Nav Slider Options
-            let navSliderOptions = {
-                loop: true,
-                loopAdditionalSlides: 10,
-                speed: 1000,
-                spaceBetween: 5,
-                slidesPerView: 5,
-                centeredSlides: true,
-                touchRatio: 0.2,
-                slideToClickedSlide: true,
-                direction: 'vertical',
-                on: {
-                    imagesReady: function () { this.el.classList.remove('loading'); },
-                    click: function () { mainSlider.autoplay.stop(); }
-                }
-            };
-
-            let navSlider = new Swiper(navSliderSelector, navSliderOptions);
-
-            // Sync
+            });
+            let navSlider = new Swiper('.nav-slider', {
+                loop: true, speed: 1000, spaceBetween: 5, slidesPerView: 5, centeredSlides: true,
+                slideToClickedSlide: true, direction: 'vertical',
+                on: { imagesReady: function () { this.el.classList.remove('loading'); } }
+            });
             mainSlider.controller.control = navSlider;
             navSlider.controller.control = mainSlider;
         });
