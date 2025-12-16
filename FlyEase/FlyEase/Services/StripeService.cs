@@ -1,14 +1,23 @@
-﻿using Stripe;
+﻿using Microsoft.Extensions.Options;
+using Stripe;
 using Stripe.Checkout;
+using FlyEase.Model; // Ensure this namespace matches where your StripeSettings class is
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace FlyEase.Services
 {
     public class StripeService
     {
-        public StripeService(IConfiguration configuration)
+        private readonly StripeSettings _settings;
+
+        // 1. Inject IOptions<StripeSettings> to get the key from secrets.json/appsettings
+        public StripeService(IOptions<StripeSettings> settings)
         {
-            // This takes the value from your secrets.json/appsettings
-            StripeConfiguration.ApiKey = configuration["Stripe:SecretKey"];
+            _settings = settings.Value;
+
+            // Set the API Key globally for this instance context
+            StripeConfiguration.ApiKey = _settings.SecretKey;
         }
 
         public async Task<Session> CreateCheckoutSessionAsync(
@@ -16,25 +25,22 @@ namespace FlyEase.Services
             string currency,
             string successUrl,
             string cancelUrl,
-            string bookingReference)
+            string bookingReference,
+            List<string> paymentMethodTypes) // <--- Added this parameter
         {
             var options = new SessionCreateOptions
             {
-                // 1. ADD ALL PAYMENT METHODS HERE
-                PaymentMethodTypes = new List<string>
-                {
-                    "card",
-                    "grabpay",
-                    "fpx", // Online Banking (Maybank2u, CIMB Clicks, etc.)
-                },
+                // 2. Use the dynamic list passed from Controller
+                PaymentMethodTypes = paymentMethodTypes,
+
                 LineItems = new List<SessionLineItemOptions>
                 {
                     new SessionLineItemOptions
                     {
                         PriceData = new SessionLineItemPriceDataOptions
                         {
-                            UnitAmount = (long)(amount * 100), // Amount in cents
-                            Currency = currency, // e.g., "myr"
+                            UnitAmount = (long)(amount * 100),
+                            Currency = currency,
                             ProductData = new SessionLineItemPriceDataProductDataOptions
                             {
                                 Name = "FlyEase Travel Booking",
@@ -44,7 +50,7 @@ namespace FlyEase.Services
                         Quantity = 1,
                     },
                 },
-                Mode = "payment", // "payment" for one-time payments
+                Mode = "payment",
                 SuccessUrl = successUrl,
                 CancelUrl = cancelUrl,
                 Metadata = new Dictionary<string, string>
@@ -57,16 +63,11 @@ namespace FlyEase.Services
             return await service.CreateAsync(options);
         }
 
-        // =================================================================
-        // NEW: REFUND METHOD FOR CANCELLATIONS
-        // =================================================================
         public async Task<Refund> RefundPaymentAsync(string paymentIntentId)
         {
             var options = new RefundCreateOptions
             {
                 PaymentIntent = paymentIntentId,
-                // Note: If you leave Amount null, it defaults to a full refund.
-                // To do a partial refund, set: Amount = (long)(amountToRefund * 100)
             };
 
             var service = new RefundService();

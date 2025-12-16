@@ -7,9 +7,6 @@
 @section Head {
     <link rel="stylesheet" href="~/css/booking.css" />
     <style>
-        .d-flex{
-            color:black;
-        }
         .payment-method-card {
             transition: all 0.3s ease;
             border: 2px solid transparent;
@@ -17,10 +14,42 @@
             overflow: hidden;
             height: 100%;
             cursor: pointer;
+            background-color: #fff;
+        }
+
+        .payment-method-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.08);
+        }
+
+        .payment-method-card.active {
+            border-color: #0d6efd;
+            background-color: #f0f7ff;
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(13, 110, 253, 0.2);
         }
         
+        .payment-method-card.active .method-icon {
+            transform: scale(1.1);
+        }
 
-        /* NEW STYLES FOR PAYMENT TYPE TOGGLE */
+        .method-icon {
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            font-size: 1.5rem;
+            margin-right: 15px;
+            transition: transform 0.3s ease;
+        }
+
+        .card-primary { background-color: #e7f1ff; color: #0d6efd; } 
+        .card-purple  { background-color: #f3e8ff; color: #6f42c1; } 
+        .card-success { background-color: #d1e7dd; color: #198754; } 
+        .card-warning { background-color: #fff3cd; color: #ffc107; } 
+
         .payment-type-selector {
             background-color: #f8f9fa;
             border-radius: 12px;
@@ -41,9 +70,7 @@
             overflow: hidden;
         }
 
-        .payment-type-input {
-            display: none;
-        }
+        .payment-type-input { display: none; }
 
         .payment-type-input:checked + .payment-type-option {
             background-color: white;
@@ -56,10 +83,7 @@
         .payment-type-input:checked + .payment-type-option::after {
             content: '';
             position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            height: 3px;
+            bottom: 0; left: 0; width: 100%; height: 3px;
             background-color: #0d6efd;
         }
 
@@ -78,6 +102,9 @@
             vertical-align: middle;
             margin-left: 5px;
         }
+        d-flex{
+            color: black;
+        }
     </style>
 }
 
@@ -94,7 +121,7 @@
                         </div>
                         <div>
                             <h4 class="mb-1 fw-bold">Select Payment Method</h4>
-                            <p class="mb-0 opacity-75">Choose how you want to pay</p>
+                            <p class="mb-0 opacity-75">Secure payment via Stripe</p>
                         </div>
                     </div>
                 </div>
@@ -116,54 +143,87 @@
                         <input type="hidden" asp-for="FinalAmount" />
                         <input type="hidden" asp-for="DepositAmount" />
 
-                       <h5 class="fw-bold mb-3">Payment Option</h5>
-<div class="payment-type-selector">
-    
-    <label class="flex-grow-1">
-        <input type="radio" asp-for="PaymentType" value="Full" class="payment-type-input" checked onchange="updateTotalDisplay('full')">
-        <div class="payment-type-option">
-            <div class="small text-muted text-uppercase mb-1">Pay Full Amount</div>
-            <div class="amount-highlight text-primary">RM @Model.FinalAmount.ToString("N2")</div>
-        </div>
-    </label>
+                        <h5 class="fw-bold mb-3">Payment Option</h5>
+                        <div class="payment-type-selector">
+                            <label class="flex-grow-1">
+                                <input type="radio" asp-for="PaymentType" value="Full" class="payment-type-input" checked onchange="updateTotalDisplay('full')">
+                                <div class="payment-type-option">
+                                    <div class="small text-muted text-uppercase mb-1">Pay Full Amount</div>
+                                    <div class="amount-highlight text-primary">RM @Model.FinalAmount.ToString("N2")</div>
+                                </div>
+                            </label>
 
-    @if (ViewBag.AllowDeposit == true)
-    {
-        <label class="flex-grow-1">
-            <input type="radio" asp-for="PaymentType" value="Deposit" class="payment-type-input" onchange="updateTotalDisplay('deposit')">
-            <div class="payment-type-option">
-                <div class="small text-muted text-uppercase mb-1">
-                    Pay Deposit (30%) <span class="deposit-badge">Reserve Spot</span>
-                </div>
-                <div class="amount-highlight text-warning">RM @Model.DepositAmount.ToString("N2")</div>
-            </div>
-        </label>
-    }
-
-</div>
+                            @if (ViewBag.AllowDeposit == true)
+                            {
+                                <label class="flex-grow-1">
+                                    <input type="radio" asp-for="PaymentType" value="Deposit" class="payment-type-input" onchange="updateTotalDisplay('deposit')">
+                                    <div class="payment-type-option">
+                                        <div class="small text-muted text-uppercase mb-1">
+                                            Pay Deposit (30%) <span class="deposit-badge">Reserve Spot</span>
+                                        </div>
+                                        <div class="amount-highlight text-warning">RM @Model.DepositAmount.ToString("N2")</div>
+                                    </div>
+                                </label>
+                            }
+                        </div>
 
                         <h5 class="fw-bold mb-4 mt-5">Select Method</h5>
                         <span asp-validation-for="SelectedMethod" class="text-danger d-block mb-3"></span>
 
                         <div class="row g-4">
-                            <div class="col-lg-6">
+                            
+                            <div class="col-md-6">
                                 <input type="radio" class="btn-check" asp-for="SelectedMethod" id="method_card" value="Credit Card">
                                 <label class="btn p-0 w-100" for="method_card">
                                     <div class="payment-method-card p-4 shadow-sm">
                                         <div class="d-flex align-items-center">
                                             <div class="method-icon card-primary">
-                                                <i class="fas fa-globe"></i> 
+                                                <i class="fas fa-credit-card"></i> 
                                             </div>
                                             <div class="flex-grow-1 text-start">
-                                                <h6 class="fw-bold mb-1">Online Payment</h6>
-                                                <p class="text-muted small mb-0">Credit Card, GrabPay, FPX</p>
+                                                <h6 class="fw-bold mb-1">Credit / Debit Card</h6>
+                                                <p class="text-muted small mb-0">Visa, Mastercard</p>
                                             </div>
                                         </div>
-                                        </div>
+                                    </div>
                                 </label>
                             </div>
 
-                            <div class="col-lg-6">
+                            <div class="col-md-6">
+                                <input type="radio" class="btn-check" asp-for="SelectedMethod" id="method_fpx" value="Online Banking">
+                                <label class="btn p-0 w-100" for="method_fpx">
+                                    <div class="payment-method-card p-4 shadow-sm">
+                                        <div class="d-flex align-items-center">
+                                            <div class="method-icon card-purple">
+                                                <i class="fas fa-university"></i> 
+                                            </div>
+                                            <div class="flex-grow-1 text-start">
+                                                <h6 class="fw-bold mb-1">Online Banking (FPX)</h6>
+                                                <p class="text-muted small mb-0">Maybank2u, CIMB, etc.</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </label>
+                            </div>
+
+                            <div class="col-md-6">
+                                <input type="radio" class="btn-check" asp-for="SelectedMethod" id="method_grab" value="GrabPay">
+                                <label class="btn p-0 w-100" for="method_grab">
+                                    <div class="payment-method-card p-4 shadow-sm">
+                                        <div class="d-flex align-items-center">
+                                            <div class="method-icon card-success">
+                                                <i class="fas fa-mobile-alt"></i> 
+                                            </div>
+                                            <div class="flex-grow-1 text-start">
+                                                <h6 class="fw-bold mb-1">GrabPay</h6>
+                                                <p class="text-muted small mb-0">E-Wallet</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </label>
+                            </div>
+
+                            <div class="col-md-6">
                                 <input type="radio" class="btn-check" asp-for="SelectedMethod" id="method_tng" value="TouchNGo">
                                 <label class="btn p-0 w-100" for="method_tng">
                                     <div class="payment-method-card p-4 shadow-sm">
@@ -173,31 +233,13 @@
                                             </div>
                                             <div class="flex-grow-1 text-start">
                                                 <h6 class="fw-bold mb-1">Touch 'n Go</h6>
-                                                <p class="text-muted small mb-0">eWallet Payment</p>
+                                                <p class="text-muted small mb-0">E-Wallet</p>
                                             </div>
                                         </div>
-                                        </div>
+                                    </div>
                                 </label>
                             </div>
 
-                            <div class="col-lg-6">
-                                <input type="radio" class="btn-check" asp-for="SelectedMethod" id="method_cash" value="Cash">
-                                <label class="btn p-0 w-100" for="method_cash">
-                                    <div class="payment-method-card p-4 shadow-sm">
-                                        <div class="d-flex align-items-center">
-                                            <div class="method-icon card-info">
-                                                <i class="fas fa-money-bill-wave"></i>
-                                            </div>
-                                            <div class="flex-grow-1 text-start">
-                                                <h6 class="fw-bold mb-1">Cash / Counter</h6>
-                                                <p class="text-muted small mb-0">Pay at Office</p>
-                                            </div>
-                                        </div>
-                                        </div>
-                                </label>
-                            </div>
-                            
-                           
                         </div>
 
                         <div class="d-flex justify-content-between mt-5 pt-4 border-top">
@@ -232,23 +274,29 @@
     }
 
     document.addEventListener('DOMContentLoaded', function() {
-        // ... (Keep existing JS for card selection animation) ...
-        const form = document.getElementById('paymentMethodForm');
-        const continueBtn = document.getElementById('continueBtn');
         const radioButtons = document.querySelectorAll('input[name="SelectedMethod"]');
         
         radioButtons.forEach(radio => {
             radio.addEventListener('change', function() {
+                // Remove active class from all
                 document.querySelectorAll('.payment-method-card').forEach(card => card.classList.remove('active'));
+                
+                // Add active class to selected
                 if (this.checked) {
                     const label = document.querySelector(`label[for="${this.id}"]`);
-                    if (label) label.querySelector('.payment-method-card').classList.add('active');
+                    if (label) {
+                        const card = label.querySelector('.payment-method-card');
+                        if (card) card.classList.add('active');
+                    }
                 }
             });
         });
 
-        // Initialize display based on default selection
+        // Initialize display
         const checkedType = document.querySelector('input[name="PaymentType"]:checked');
         if(checkedType) updateTotalDisplay(checkedType.value.toLowerCase());
+        
+        const checkedMethod = document.querySelector('input[name="SelectedMethod"]:checked');
+        if(checkedMethod) checkedMethod.dispatchEvent(new Event('change'));
     });
 </script>

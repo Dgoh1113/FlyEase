@@ -26,15 +26,20 @@ namespace FlyEase.Controllers
     {
         private readonly FlyEaseDbContext _context;
         private readonly IConfiguration _configuration;
-        private readonly StripeService _stripeService;
+        private readonly StripeService _stripeService; // Dependency Injection
         private readonly ILogger<PaymentController> _logger;
 
-        public PaymentController(FlyEaseDbContext context, IConfiguration configuration, ILogger<PaymentController> logger)
+        // --- UPDATED CONSTRUCTOR ---
+        public PaymentController(
+            FlyEaseDbContext context,
+            IConfiguration configuration,
+            ILogger<PaymentController> logger,
+            StripeService stripeService) // Inject Service here
         {
             _context = context;
             _configuration = configuration;
             _logger = logger;
-            _stripeService = new StripeService(configuration);
+            _stripeService = stripeService; // Assign the injected instance
         }
 
         // =========================================================
@@ -52,7 +57,6 @@ namespace FlyEase.Controllers
                 TempData["Error"] = "Administrator and Staff accounts are not allowed to make bookings.";
                 return RedirectToAction("Index", "Home");
             }
-            // -------------------------------------------
 
             var package = await _context.Packages.FindAsync(packageId);
             if (package == null) return NotFound();
@@ -89,15 +93,12 @@ namespace FlyEase.Controllers
         [HttpPost]
         public IActionResult CustomerInfo(CustomerInfoViewModel model)
         {
-            // --- RESTRICT ADMIN & STAFF ---
             if (User.IsInRole("Admin") || User.IsInRole("Staff"))
             {
                 TempData["Error"] = "Administrator and Staff accounts are not allowed to make bookings.";
                 return RedirectToAction("Index", "Home");
             }
-            // ------------------------------
 
-            // Validation: Ensure Seniors + Juniors <= Total People
             if ((model.NumberOfSeniors + model.NumberOfJuniors) > model.NumberOfPeople)
             {
                 ModelState.AddModelError("NumberOfPeople", "Total people must be greater than or equal to Seniors + Juniors.");
@@ -124,7 +125,7 @@ namespace FlyEase.Controllers
             decimal totalDiscount = 0;
             var discountDetails = new List<string>();
 
-            // --- 1. BULK DISCOUNT (> 3 People) ---
+            // 1. BULK DISCOUNT (> 3 People)
             if (request.People > 3)
             {
                 decimal bulkDisc = basePriceTotal * 0.10m;
@@ -132,7 +133,7 @@ namespace FlyEase.Controllers
                 discountDetails.Add($"Bulk Group (>3 pax): -RM {bulkDisc:N2}");
             }
 
-            // --- 2. SENIOR DISCOUNT (60+) ---
+            // 2. SENIOR DISCOUNT (60+)
             if (request.Seniors > 0)
             {
                 decimal seniorDiscAmount = (package.Price * 0.20m) * request.Seniors;
@@ -140,7 +141,7 @@ namespace FlyEase.Controllers
                 discountDetails.Add($"Senior Citizen ({request.Seniors}x): -RM {seniorDiscAmount:N2}");
             }
 
-            // --- 3. JUNIOR DISCOUNT (<12) ---
+            // 3. JUNIOR DISCOUNT (<12)
             if (request.Juniors > 0)
             {
                 decimal juniorDiscAmount = (package.Price * 0.15m) * request.Juniors;
@@ -148,7 +149,7 @@ namespace FlyEase.Controllers
                 discountDetails.Add($"Junior/Child ({request.Juniors}x): -RM {juniorDiscAmount:N2}");
             }
 
-            // --- 4. DATABASE DISCOUNTS ---
+            // 4. DATABASE DISCOUNTS
             var dbDiscounts = await _context.DiscountTypes.ToListAsync();
             foreach (var d in dbDiscounts)
             {
@@ -165,9 +166,7 @@ namespace FlyEase.Controllers
                 }
             }
 
-            // Cap discount
             if (totalDiscount > basePriceTotal) totalDiscount = basePriceTotal;
-
             decimal finalAmount = basePriceTotal - totalDiscount;
 
             return Json(new
@@ -194,7 +193,6 @@ namespace FlyEase.Controllers
                 return RedirectToAction("CustomerInfo", new { packageId = 1 });
             }
 
-            // POLICY CHECK: DEPOSIT RESTRICTION
             var package = await _context.Packages.FindAsync(customerInfo.PackageID);
             bool allowDeposit = true;
             string depositMessage = "";
@@ -234,7 +232,6 @@ namespace FlyEase.Controllers
                 return RedirectToAction("PaymentMethod");
             }
 
-            // SERVER-SIDE POLICY VALIDATION
             var customerInfo = HttpContext.Session.GetCustomerInfo();
             if (customerInfo != null)
             {
@@ -243,7 +240,7 @@ namespace FlyEase.Controllers
                 {
                     if (model.PaymentType == "Deposit")
                     {
-                        TempData["Error"] = "Deposit option is not available due to late booking (within 14 days). Full payment required.";
+                        TempData["Error"] = "Deposit option is not available due to late booking.";
                         return RedirectToAction("PaymentMethod");
                     }
                 }
@@ -252,39 +249,67 @@ namespace FlyEase.Controllers
             HttpContext.Session.SetPaymentMethod(model.SelectedMethod);
             HttpContext.Session.SetString("PaymentType", model.PaymentType ?? "Full");
 
-            return model.SelectedMethod switch
-            {
-                "Credit Card" => RedirectToAction("CardPayment"),
-                "TouchNGo" => RedirectToAction("TNGPayment"),
-                "Cash" => RedirectToAction("ManualPayment", new { method = "Cash" }),
-                _ => RedirectToAction("ManualPayment", new { method = model.SelectedMethod })
-            };
+            // --- Route EVERYTHING to Stripe Checkout ---
+            return RedirectToAction("StripeCheckout");
         }
 
         // =========================================================
-        // STEP 3A: CARD PAYMENT (STRIPE)
+        // STEP 3: UNIFIED STRIPE CHECKOUT
         // =========================================================
         [HttpGet]
-        public async Task<IActionResult> CardPayment()
+        public async Task<IActionResult> StripeCheckout()
         {
             var customerInfo = HttpContext.Session.GetCustomerInfo();
             if (customerInfo == null) return RedirectToAction("Index", "Home");
 
+            // 1. Get Payment Info
             string paymentType = HttpContext.Session.GetString("PaymentType") ?? "Full";
+            string selectedMethod = HttpContext.Session.GetPaymentMethod(); // "Credit Card", "TouchNGo", etc.
+
             decimal amountToPay = (paymentType == "Deposit")
                 ? customerInfo.FinalAmount * 0.30m
                 : customerInfo.FinalAmount;
 
             var domain = $"{Request.Scheme}://{Request.Host}";
 
+            // 2. Configure Stripe Method Types based on selection
+            var paymentMethodTypes = new List<string>();
+
+            switch (selectedMethod)
+            {
+                case "Credit Card":
+                    paymentMethodTypes.Add("card");
+                    break;
+                case "Online Banking":
+                    paymentMethodTypes.Add("fpx"); // FPX for Malaysia
+                    break;
+                case "GrabPay":
+                    paymentMethodTypes.Add("grabpay");
+                    break;
+                case "TouchNGo":
+                    // Stripe often handles TNG via FPX or specialized wallets. 
+                    // Adding both ensures the user sees valid options.
+                    paymentMethodTypes.Add("fpx");
+                    paymentMethodTypes.Add("grabpay");
+                    break;
+                default:
+                    // Fallback: show everything relevant
+                    paymentMethodTypes.Add("card");
+                    paymentMethodTypes.Add("fpx");
+                    paymentMethodTypes.Add("grabpay");
+                    break;
+            }
+
             try
             {
+                // 3. Create Session with SPECIFIC method types
                 var session = await _stripeService.CreateCheckoutSessionAsync(
                     amountToPay,
                     "myr",
                     $"{domain}/Payment/StripeCallback?session_id={{CHECKOUT_SESSION_ID}}",
                     $"{domain}/Payment/PaymentMethod",
-                    $"BK-{DateTime.Now.Ticks}"
+                    $"BK-{DateTime.Now.Ticks}",
+                    paymentMethodTypes // <--- Passing the list here
                 );
 
                 return Redirect(session.Url);
@@ -296,55 +321,6 @@ namespace FlyEase.Controllers
             }
         }
 
-        [HttpPost]
-        public async Task<IActionResult> CardPayment(string cardNumber, string expiry, string cvv, string cardholder)
-        {
-            var customerInfo = HttpContext.Session.GetCustomerInfo();
-            if (customerInfo == null)
-            {
-                TempData["Error"] = "Session expired";
-                return RedirectToAction("Index", "Home");
-            }
-
-            string paymentType = HttpContext.Session.GetString("PaymentType") ?? "Full";
-            decimal amountToPay = (paymentType == "Deposit")
-                ? customerInfo.FinalAmount * 0.30m
-                : customerInfo.FinalAmount;
-
-            try
-            {
-                var options = new PaymentIntentCreateOptions
-                {
-                    Amount = (long)(amountToPay * 100),
-                    Currency = "myr",
-                    PaymentMethodTypes = new List<string> { "card" },
-                    Description = $"FlyEase Booking: {customerInfo.PackageName} ({paymentType})",
-                    Metadata = new Dictionary<string, string>
-                    {
-                        { "customer_name", customerInfo.FullName },
-                        { "customer_email", customerInfo.Email },
-                        { "package_id", customerInfo.PackageID.ToString() },
-                        { "payment_type", paymentType }
-                    }
-                };
-
-                var service = new PaymentIntentService();
-                var paymentIntent = await service.CreateAsync(options);
-
-                return await ProcessBooking("Credit Card", paymentIntent.Id);
-            }
-            catch (StripeException ex)
-            {
-                TempData["Error"] = $"Stripe Error: {ex.StripeError.Message}";
-                return RedirectToAction("CardPayment");
-            }
-            catch (Exception ex)
-            {
-                TempData["Error"] = $"Payment Error: {ex.Message}";
-                return RedirectToAction("CardPayment");
-            }
-        }
-
         [HttpGet]
         public async Task<IActionResult> StripeCallback(string session_id)
         {
@@ -353,11 +329,11 @@ namespace FlyEase.Controllers
 
             if (session.PaymentStatus == "paid")
             {
-                var customerInfo = HttpContext.Session.GetCustomerInfo();
-                if (customerInfo != null)
-                {
-                    return await ProcessBooking("Stripe Payment", session.PaymentIntentId);
-                }
+                // Payment Successful - Process Booking
+                // We use the generic "Online Payment" label or the one from session
+                string method = HttpContext.Session.GetPaymentMethod() ?? "Stripe";
+
+                return await ProcessBooking(method + " (Online)", session.PaymentIntentId);
             }
 
             TempData["Error"] = "Payment verification failed or was cancelled.";
@@ -365,240 +341,10 @@ namespace FlyEase.Controllers
         }
 
         // =========================================================
-        // STEP 3B: MANUAL PAYMENT (CASH & OTHERS)
+        // CORE PROCESSING LOGIC
         // =========================================================
-        [HttpGet]
-        public IActionResult ManualPayment(string method)
-        {
-            var customerInfo = HttpContext.Session.GetCustomerInfo();
-            if (customerInfo == null)
-            {
-                TempData["Error"] = "Session expired";
-                return RedirectToAction("Index", "Home");
-            }
-
-            string paymentType = HttpContext.Session.GetString("PaymentType") ?? "Full";
-            decimal amountToPay = (paymentType == "Deposit")
-                ? customerInfo.FinalAmount * 0.30m
-                : customerInfo.FinalAmount;
-
-            ViewBag.PaymentMethod = method;
-            ViewBag.FinalAmount = amountToPay;
-            return View();
-        }
-
-        [HttpPost]
-        public async Task<IActionResult> ManualPaymentPost(string reference)
-        {
-            if (string.IsNullOrEmpty(reference))
-            {
-                TempData["Error"] = "Please enter reference number";
-                var storedMethod = HttpContext.Session.GetPaymentMethod() ?? "Cash";
-                return RedirectToAction("ManualPayment", new { method = storedMethod });
-            }
-
-            var method = HttpContext.Session.GetPaymentMethod();
-
-            if (method == "TouchNGo")
-            {
-                return RedirectToAction("TNGPayment");
-            }
-            else
-            {
-                return await ProcessBooking(method, reference);
-            }
-        }
-
-        // =========================================================
-        // TOUCH 'N GO PAYMENT
-        // =========================================================
-        [HttpGet]
-        public IActionResult TNGPayment()
-        {
-            var customerInfo = HttpContext.Session.GetCustomerInfo();
-            if (customerInfo == null)
-            {
-                TempData["Error"] = "Session expired";
-                return RedirectToAction("Index", "Home");
-            }
-
-            string paymentType = HttpContext.Session.GetString("PaymentType") ?? "Full";
-            decimal amountToPay = (paymentType == "Deposit")
-                ? customerInfo.FinalAmount * 0.30m
-                : customerInfo.FinalAmount;
-
-            ViewBag.FinalAmount = amountToPay;
-            return View();
-        }
-
-        [HttpPost]
-        public async Task<IActionResult> ProcessTNGPayment(string transactionId, string phoneNumber,
-            DateTime paymentTime, string paymentMethod, string senderTngId = "")
-        {
-            if (!IsValidTNG(transactionId))
-            {
-                TempData["Error"] = "Invalid TNG transaction ID. Format: TNG-ABC123XYZ";
-                return RedirectToAction("TNGPayment");
-            }
-
-            if (string.IsNullOrEmpty(phoneNumber) || string.IsNullOrEmpty(paymentMethod))
-            {
-                TempData["Error"] = "Please fill all required fields";
-                return RedirectToAction("TNGPayment");
-            }
-
-            return await ProcessVerifiedManualPayment("TouchNGo", transactionId);
-        }
-
-        // =========================================================
-        // BOOKING HISTORY & CANCELLATION
-        // =========================================================
-        [HttpGet]
-        [Authorize]
-        public async Task<IActionResult> BookingHistoryDetails(int id)
-        {
-            var userEmail = User.FindFirst(ClaimTypes.Email)?.Value;
-            if (userEmail == null) return RedirectToAction("Login", "Auth");
-
-            var booking = await _context.Bookings
-                .Include(b => b.Package)
-                .Include(b => b.Payments)
-                .Include(b => b.User)
-                .FirstOrDefaultAsync(b => b.BookingID == id && b.User.Email == userEmail);
-
-            if (booking == null) return NotFound();
-
-            // --- AUTO-COMPLETE LOGIC ---
-            // If Confirmed AND Package End Date is in the past -> Mark Completed
-            if (booking.BookingStatus == "Confirmed" && booking.Package.EndDate < DateTime.Now)
-            {
-                booking.BookingStatus = "Completed";
-                _context.Bookings.Update(booking);
-                await _context.SaveChangesAsync();
-            }
-            // ---------------------------
-
-            ViewBag.CanCancel = (booking.Package.StartDate - DateTime.Now).TotalDays > 14
-                                && booking.BookingStatus != "Cancelled"
-                                && booking.BookingStatus != "Completed";
-
-            decimal totalPaid = booking.Payments
-                .Where(p => p.PaymentStatus == "Completed" || p.PaymentStatus == "Deposit")
-                .Sum(p => p.AmountPaid);
-
-            ViewBag.BalanceDue = booking.FinalAmount - totalPaid;
-
-            return View(booking);
-        }
-
-        [HttpPost]
-        [Authorize]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> CancelBooking(int bookingId)
-        {
-            var userEmail = User.FindFirst(ClaimTypes.Email)?.Value;
-            var user = _context.Users.FirstOrDefault(u => u.Email == userEmail);
-            if (user == null) return RedirectToAction("Login", "Auth");
-
-            var booking = await _context.Bookings
-                .Include(b => b.Package)
-                .Include(b => b.Payments)
-                .FirstOrDefaultAsync(b => b.BookingID == bookingId && b.UserID == user.UserID);
-
-            if (booking == null) return NotFound();
-
-            var daysUntilTrip = (booking.Package.StartDate - DateTime.Now).TotalDays;
-            if (daysUntilTrip <= 14)
-            {
-                TempData["Error"] = "Cancellation is not allowed within 14 days of the trip.";
-                return RedirectToAction("BookingHistoryDetails", new { id = bookingId });
-            }
-
-            try
-            {
-                bool refundInitiated = false;
-                foreach (var payment in booking.Payments)
-                {
-                    if (payment.PaymentStatus == "Completed" || payment.PaymentStatus == "Deposit")
-                    {
-                        if (!string.IsNullOrEmpty(payment.TransactionID) && payment.TransactionID.StartsWith("pi_"))
-                        {
-                            try
-                            {
-                                await _stripeService.RefundPaymentAsync(payment.TransactionID);
-                                payment.PaymentStatus = "Refunded";
-                                refundInitiated = true;
-                            }
-                            catch (Exception ex)
-                            {
-                                _logger.LogError($"Stripe refund failed: {ex.Message}");
-                                payment.PaymentStatus = "Refund Failed (Manual Check)";
-                            }
-                        }
-                        else
-                        {
-                            payment.PaymentStatus = "Refund Pending (Manual)";
-                        }
-                    }
-                }
-
-                booking.BookingStatus = "Cancelled";
-                booking.Package.AvailableSlots += booking.NumberOfPeople;
-
-                await _context.SaveChangesAsync();
-
-                string msg = "Booking cancelled successfully.";
-                if (refundInitiated) msg += " Refund processed via Stripe.";
-
-                TempData["Success"] = msg;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error cancelling booking");
-                TempData["Error"] = "An error occurred while cancelling.";
-            }
-
-            return RedirectToAction("BookingHistoryDetails", new { id = bookingId });
-        }
-
-        // =========================================================
-        // API FOR MODAL DISCOUNTS
-        // =========================================================
-        [HttpGet]
-        public async Task<IActionResult> GetDiscounts()
-        {
-            var discounts = await _context.DiscountTypes
-                .Select(d => new
-                {
-                    name = d.DiscountName,
-                    rate = d.DiscountRate,
-                    amount = d.DiscountAmount
-                })
-                .ToListAsync();
-
-            // Add Hardcoded Text for Modal
-            discounts.Add(new { name = "Bulk Discount (>3 Pax)", rate = (decimal?)0.10, amount = (decimal?)null });
-            discounts.Add(new { name = "Senior Citizen (60+)", rate = (decimal?)0.20, amount = (decimal?)null });
-            discounts.Add(new { name = "Junior/Child (<12)", rate = (decimal?)0.15, amount = (decimal?)null });
-
-            return Json(discounts);
-        }
-
-        // =========================================================
-        // CORE PROCESSING LOGIC (UPDATED FOR CONFIRMED STATUS)
-        // =========================================================
-
-        private async Task<IActionResult> ProcessVerifiedManualPayment(string paymentMethod, string transactionId)
-        {
-            return await ProcessBookingCore(paymentMethod, transactionId, isVerified: true);
-        }
 
         private async Task<IActionResult> ProcessBooking(string paymentMethod, string transactionId)
-        {
-            return await ProcessBookingCore(paymentMethod, transactionId, isVerified: false);
-        }
-
-        private async Task<IActionResult> ProcessBookingCore(string paymentMethod, string transactionId, bool isVerified)
         {
             var customerInfo = HttpContext.Session.GetCustomerInfo();
             var userId = HttpContext.Session.GetUserId();
@@ -619,20 +365,8 @@ namespace FlyEase.Controllers
                 return RedirectToAction("Index", "Home");
             }
 
-            // --- STATUS LOGIC UPDATED ---
-            string bookingStatus = "Pending";
-            bool isPaymentSuccessful = isVerified || paymentMethod == "Credit Card" || paymentMethod == "Stripe Payment" || paymentMethod == "DevBypass";
-
-            if (isPaymentSuccessful)
-            {
-                // CHANGE: Default successful payment to "Confirmed" (Ongoing), 
-                // "Completed" only happens when trip is done (handled in details page)
-                bookingStatus = isDeposit ? "Deposit" : "Confirmed";
-            }
-            else
-            {
-                bookingStatus = "Pending";
-            }
+            // Status is Confirmed because payment is successful via Stripe
+            string bookingStatus = isDeposit ? "Deposit" : "Confirmed";
 
             var booking = new Booking
             {
@@ -652,19 +386,14 @@ namespace FlyEase.Controllers
 
             decimal paidAmount = isDeposit ? (customerInfo.FinalAmount * 0.30m) : customerInfo.FinalAmount;
 
-            string paymentMethodText = GetPaymentMethodName(paymentMethod);
-            if (isVerified) paymentMethodText += $" (Verified: {transactionId})";
-            else if (paymentMethod == "Credit Card" || paymentMethod == "Stripe Payment")
-                paymentMethodText += transactionId.StartsWith("pi_") ? " (Stripe)" : "";
-
             var payment = new Payment
             {
                 BookingID = booking.BookingID,
-                PaymentMethod = paymentMethodText,
+                PaymentMethod = paymentMethod,
                 AmountPaid = paidAmount,
                 IsDeposit = isDeposit,
                 PaymentDate = DateTime.Now,
-                PaymentStatus = (bookingStatus == "Pending") ? "Pending" : "Completed",
+                PaymentStatus = "Completed",
                 TransactionID = transactionId
             };
 
@@ -678,7 +407,7 @@ namespace FlyEase.Controllers
         }
 
         // =========================================================
-        // VIEW ACTIONS
+        // VIEW ACTIONS & HISTORY
         // =========================================================
         [HttpGet]
         public async Task<IActionResult> Success(int bookingId)
@@ -719,55 +448,90 @@ namespace FlyEase.Controllers
             return View(booking);
         }
 
-        [HttpGet("Payment/DevQuickBook")]
-        public async Task<IActionResult> DevQuickBook(int packageId)
+        [HttpGet]
+        [Authorize]
+        public async Task<IActionResult> BookingHistoryDetails(int id)
         {
-            // --- RESTRICT ADMIN & STAFF ---
-            if (User.IsInRole("Admin") || User.IsInRole("Staff"))
+            var userEmail = User.FindFirst(ClaimTypes.Email)?.Value;
+            if (userEmail == null) return RedirectToAction("Login", "Auth");
+
+            var booking = await _context.Bookings
+                .Include(b => b.Package)
+                .Include(b => b.Payments)
+                .Include(b => b.User)
+                .FirstOrDefaultAsync(b => b.BookingID == id && b.User.Email == userEmail);
+
+            if (booking == null) return NotFound();
+
+            if (booking.BookingStatus == "Confirmed" && booking.Package.EndDate < DateTime.Now)
             {
-                return Content("Error: Administrator and Staff accounts are not allowed to make bookings.");
+                booking.BookingStatus = "Completed";
+                _context.Bookings.Update(booking);
+                await _context.SaveChangesAsync();
             }
-            // ------------------------------
 
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (userIdClaim == null) return Content("Error: Must be logged in");
-            int userId = int.Parse(userIdClaim);
+            ViewBag.CanCancel = (booking.Package.StartDate - DateTime.Now).TotalDays > 14
+                                && booking.BookingStatus != "Cancelled"
+                                && booking.BookingStatus != "Completed";
 
-            var package = await _context.Packages.FindAsync(packageId);
-            if (package == null) return Content("Error: Package not found");
+            decimal totalPaid = booking.Payments
+                .Where(p => p.PaymentStatus == "Completed" || p.PaymentStatus == "Deposit")
+                .Sum(p => p.AmountPaid);
 
-            var booking = new Booking
+            ViewBag.BalanceDue = booking.FinalAmount - totalPaid;
+
+            return View(booking);
+        }
+
+        [HttpPost]
+        [Authorize]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CancelBooking(int bookingId)
+        {
+            var userEmail = User.FindFirst(ClaimTypes.Email)?.Value;
+            var user = _context.Users.FirstOrDefault(u => u.Email == userEmail);
+            if (user == null) return RedirectToAction("Login", "Auth");
+
+            var booking = await _context.Bookings
+                .Include(b => b.Package)
+                .Include(b => b.Payments)
+                .FirstOrDefaultAsync(b => b.BookingID == bookingId && b.UserID == user.UserID);
+
+            if (booking == null) return NotFound();
+
+            var daysUntilTrip = (booking.Package.StartDate - DateTime.Now).TotalDays;
+            if (daysUntilTrip <= 14)
             {
-                UserID = userId,
-                PackageID = packageId,
-                BookingDate = DateTime.Now,
-                TravelDate = DateTime.Now.AddDays(7),
-                NumberOfPeople = 1,
-                TotalBeforeDiscount = package.Price,
-                TotalDiscountAmount = 0,
-                FinalAmount = package.Price,
-                BookingStatus = "Confirmed" // Changed from Completed to Confirmed
-            };
+                TempData["Error"] = "Cancellation is not allowed within 14 days of the trip.";
+                return RedirectToAction("BookingHistoryDetails", new { id = bookingId });
+            }
 
-            _context.Bookings.Add(booking);
-            await _context.SaveChangesAsync();
-
-            var payment = new Payment
+            try
             {
-                BookingID = booking.BookingID,
-                PaymentMethod = "DevBypass",
-                AmountPaid = package.Price,
-                IsDeposit = false,
-                PaymentDate = DateTime.Now,
-                PaymentStatus = "Completed",
-                TransactionID = "DEV_BYPASS"
-            };
+                foreach (var payment in booking.Payments)
+                {
+                    if (payment.PaymentStatus == "Completed" || payment.PaymentStatus == "Deposit")
+                    {
+                        if (!string.IsNullOrEmpty(payment.TransactionID) && payment.TransactionID.StartsWith("pi_"))
+                        {
+                            await _stripeService.RefundPaymentAsync(payment.TransactionID);
+                            payment.PaymentStatus = "Refunded";
+                        }
+                    }
+                }
 
-            _context.Payments.Add(payment);
-            package.AvailableSlots -= 1;
-            await _context.SaveChangesAsync();
+                booking.BookingStatus = "Cancelled";
+                booking.Package.AvailableSlots += booking.NumberOfPeople;
+                await _context.SaveChangesAsync();
+                TempData["Success"] = "Booking cancelled successfully.";
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error cancelling booking");
+                TempData["Error"] = "An error occurred while cancelling.";
+            }
 
-            return RedirectToAction("Success", new { bookingId = booking.BookingID });
+            return RedirectToAction("BookingHistoryDetails", new { id = bookingId });
         }
 
         // =========================================================
@@ -790,46 +554,23 @@ namespace FlyEase.Controllers
         private void CalculateDiscounts(CustomerInfoViewModel model)
         {
             decimal totalDiscount = 0;
-
-            // 1. Bulk Discount (> 3 People)
-            if (model.NumberOfPeople > 3)
-            {
-                totalDiscount += model.BasePrice * 0.10m;
-            }
-
-            // Calculate Unit Price for Age Discounts
+            if (model.NumberOfPeople > 3) totalDiscount += model.BasePrice * 0.10m;
             decimal unitPrice = model.BasePrice / (model.NumberOfPeople > 0 ? model.NumberOfPeople : 1);
-
-            // 2. Senior Discount
             totalDiscount += (unitPrice * 0.20m) * model.NumberOfSeniors;
-
-            // 3. Junior Discount
             totalDiscount += (unitPrice * 0.15m) * model.NumberOfJuniors;
-
-            // Cap discount at 100%
             if (totalDiscount > model.BasePrice) totalDiscount = model.BasePrice;
-
             model.DiscountAmount = totalDiscount;
             model.FinalAmount = model.BasePrice - totalDiscount;
         }
 
-        private string GetPaymentMethodName(string method)
+        [HttpGet]
+        public async Task<IActionResult> GetDiscounts()
         {
-            return method switch
-            {
-                "Credit Card" => "Credit Card",
-                "Stripe Payment" => "Credit Card",
-                "TouchNGo" => "Touch 'n Go",
-                "Cash" => "Cash Payment",
-                _ => method
-            };
-        }
-
-        private bool IsValidTNG(string reference)
-        {
-            if (string.IsNullOrEmpty(reference)) return false;
-            var pattern = @"^(TNG-|TNG)\w{9,12}$";
-            return System.Text.RegularExpressions.Regex.IsMatch(reference, pattern);
+            var discounts = await _context.DiscountTypes.Select(d => new { name = d.DiscountName, rate = d.DiscountRate, amount = d.DiscountAmount }).ToListAsync();
+            discounts.Add(new { name = "Bulk Discount (>3 Pax)", rate = (decimal?)0.10, amount = (decimal?)null });
+            discounts.Add(new { name = "Senior Citizen (60+)", rate = (decimal?)0.20, amount = (decimal?)null });
+            discounts.Add(new { name = "Junior/Child (<12)", rate = (decimal?)0.15, amount = (decimal?)null });
+            return Json(discounts);
         }
     }
 }
