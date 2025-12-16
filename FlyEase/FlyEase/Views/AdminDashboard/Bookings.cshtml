@@ -41,7 +41,8 @@
                         <th class="ps-4">ID</th>
                         <th>User</th>
                         <th>Package</th>
-                        <th>Date</th>
+                        <th>Booking Date</th>
+                        <th>Travel Date</th>
                         <th>Total</th>
                         <th>Status</th>
                         <th class="text-end pe-4">Actions</th>
@@ -59,7 +60,8 @@
                                     <small class="text-muted">@b.User?.Email</small>
                                 </td>
                                 <td>@b.Package?.PackageName</td>
-                                <td>@b.BookingDate.ToString("MMM dd, yyyy")</td>
+                                <td>@b.BookingDate.ToString("dd MMM yyyy")</td>
+                                <td>@b.TravelDate.ToString("dd MMM yyyy")</td>
                                 <td class="fw-bold text-success">RM @b.FinalAmount.ToString("N2")</td>
                                 <td>
                                     @if (b.BookingStatus == "Completed")
@@ -68,12 +70,10 @@
                                     }
                                     else if (b.BookingStatus == "Pending")
                                     {
-
                                         <span class="badge bg-warning text-dark">Pending</span>
                                     }
                                     else
                                     {
-
                                         <span class="badge bg-danger">@b.BookingStatus</span>
                                     }
                                 </td>
@@ -92,7 +92,7 @@
                     }
                     else
                     {
-                        <tr><td colspan="7" class="text-center py-4 text-muted">No bookings found.</td></tr>
+                        <tr><td colspan="8" class="text-center py-4 text-muted">No bookings found.</td></tr>
                     }
                 </tbody>
             </table>
@@ -104,7 +104,6 @@
             <small class="text-muted">
                 Page @(Model.Bookings.PageCount < Model.Bookings.PageNumber ? 0 : Model.Bookings.PageNumber) of @Model.Bookings.PageCount
             </small>
-
             @Html.PagedListPager(Model.Bookings, page => Url.Action("Bookings", new { page, search = Model.SearchTerm, status = Model.StatusFilter }),
             new PagedListRenderOptions
             {
@@ -115,3 +114,52 @@
         </div>
     </div>
 </div>
+
+<div class="modal fade" id="bookingModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form asp-action="UpdateBookingStatus" method="post">
+                <div class="modal-header">
+                    <h5 class="modal-title">Edit Booking</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="bookingId" name="CurrentBooking.BookingID" />
+
+                    <div class="mb-3">
+                        <label class="form-label">Booking Status</label>
+                        <select class="form-select" id="bookingStatus" name="CurrentBooking.BookingStatus">
+                            <option value="Pending">Pending</option>
+                            <option value="Completed">Completed</option>
+                            <option value="Cancelled">Cancelled</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Travel Date</label>
+                        <input type="date" class="form-control" id="travelDate" name="CurrentBooking.TravelDate" />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    function editBooking(id, status, travelDate) {
+        document.getElementById('bookingId').value = id;
+        document.getElementById('bookingStatus').value = status;
+
+        // Ensure date is in yyyy-MM-dd format for input type="date"
+        if(travelDate) {
+            document.getElementById('travelDate').value = travelDate.split('T')[0];
+        }
+
+        var modal = new bootstrap.Modal(document.getElementById('bookingModal'));
+        modal.show();
+    }
+</script>
