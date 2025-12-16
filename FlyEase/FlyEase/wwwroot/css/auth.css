@@ -699,3 +699,163 @@
     pointer-events: none;
 }
 
+/* Login Lockout Styles */
+
+/* Lockout Container */
+.lockout-card {
+    background: linear-gradient(135deg, #fff5f5 0%, #ffeaea 100%);
+    border-left: 4px solid #dc3545 !important;
+    animation: slideDown 0.5s ease-out;
+}
+
+/* Countdown Circle */
+.countdown-circle {
+    position: relative;
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #dc3545;
+    border-radius: 50%;
+    color: white;
+    font-weight: bold;
+    animation: pulse 2s infinite;
+}
+
+.countdown-number {
+    font-size: 1.5rem;
+    font-weight: 700;
+    font-family: 'Courier New', monospace;
+}
+
+/* Locked Form Elements */
+.form-control-locked {
+    background-color: #f8f9fa !important;
+    border-color: #dc3545 !important;
+    color: #6c757d !important;
+    cursor: not-allowed !important;
+    opacity: 0.7;
+}
+
+.btn-locked {
+    background-color: #6c757d !important;
+    border-color: #6c757d !important;
+    opacity: 0.7;
+    cursor: not-allowed !important;
+}
+
+/* Security Alert */
+.security-alert {
+    animation: fadeIn 0.3s ease-out;
+    border-left: 4px solid;
+}
+
+    .security-alert.alert-warning {
+        border-left-color: #ffc107;
+    }
+
+    .security-alert.alert-danger {
+        border-left-color: #dc3545;
+    }
+
+    .security-alert.alert-success {
+        border-left-color: #198754;
+    }
+
+/* Attempt Counter (Visual) */
+.attempt-counter {
+    display: inline-flex;
+    gap: 5px;
+    margin-left: 10px;
+}
+
+.attempt-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: #28a745;
+    transition: all 0.3s ease;
+}
+
+    .attempt-dot.used {
+        background-color: #dc3545;
+        transform: scale(0.8);
+    }
+
+/* Animations */
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7);
+    }
+
+    70% {
+        box-shadow: 0 0 0 10px rgba(220, 53, 69, 0);
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 rgba(220, 53, 69, 0);
+    }
+}
+
+@keyframes progressStripes {
+    from {
+        background-position: 1rem 0;
+    }
+
+    to {
+        background-position: 0 0;
+    }
+}
+
+.progress-bar-animated {
+    animation: progressStripes 1s linear infinite;
+}
+
+/* Dark Mode Support */
+[data-bs-theme="dark"] .lockout-card {
+    background: linear-gradient(135deg, #2c1818 0%, #3a1f1f 100%);
+}
+
+[data-bs-theme="dark"] .form-control-locked {
+    background-color: #343a40 !important;
+    color: #adb5bd !important;
+}
+
+/* Responsive Design */
+@media (max-width: 576px) {
+    .countdown-circle {
+        width: 50px;
+        height: 50px;
+    }
+
+    .countdown-number {
+        font-size: 1.25rem;
+    }
+
+    .lockout-card {
+        padding: 15px !important;
+    }
+}
