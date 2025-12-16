@@ -101,7 +101,7 @@
     margin: 0 auto;
 }
 
-.sidebar-header {
+.profile-sidebar-header {
     background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-hover) 100%);
     padding: 2rem 1.5rem !important;
     border-radius: 15px 15px 0 0;
@@ -365,3 +365,61 @@
         opacity: 1;
         transform: translateY(0);
     }
+
+/* ======================================================
+   IMPORTED FORM STYLES (Moved from auth.css)
+   ====================================================== */
+
+/* 1. Floating Labels & Inputs */
+.form-floating > .form-control:focus ~ label,
+.form-floating > .form-control:not(:placeholder-shown) ~ label {
+    color: var(--accent-primary);
+    transform: scale(0.85) translateY(-0.5rem) translateX(0.15rem);
+}
+
+.form-control:focus {
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 4px rgba(0, 102, 161, 0.1); /* Adjusted to match your layout blue */
+}
+
+/* 2. Password Toggle Button */
+.password-toggle {
+    position: absolute;
+    top: 50%;
+    right: 10px;
+    transform: translateY(-50%);
+    z-index: 10;
+    background: transparent;
+    border: none;
+    padding: 0.5rem;
+    cursor: pointer;
+    color: var(--text-muted);
+}
+
+    .password-toggle:hover {
+        color: var(--accent-primary) !important;
+    }
+
+/* 3. Password Strength Meter (if used on profile) */
+.strength-bar {
+    height: 4px;
+    background-color: var(--border-color, #e9ecef);
+    border-radius: 2px;
+    margin: 5px 0;
+    overflow: hidden;
+}
+
+.strength-fill {
+    height: 100%;
+    width: 0%;
+    transition: width 0.3s ease, background-color 0.3s ease;
+}
+
+/* 4. Fix Dark Mode for Forms (if needed) */
+[data-bs-theme="dark"] .form-floating label {
+    color: var(--text-muted);
+}
+
+[data-bs-theme="dark"] .password-toggle {
+    color: var(--text-muted);
+}
