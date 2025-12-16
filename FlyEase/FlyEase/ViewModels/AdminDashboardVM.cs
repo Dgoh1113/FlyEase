@@ -69,5 +69,5 @@ namespace FlyEase.ViewModels
         public string? SearchTerm { get; set; }
     }
 
-   
+
 }
