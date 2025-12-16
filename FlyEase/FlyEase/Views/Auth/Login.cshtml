@@ -8,18 +8,16 @@
 @section Head {
     <link rel="stylesheet" href="~/css/auth.css" />
     <style>
-        /* Add margin to fix header overlap */
         .auth-wrapper {
-            margin-top: 120px; /* Pushes content down below fixed header */
+            margin-top: 120px;
             min-height: calc(100vh - 120px);
             display: flex;
             align-items: center;
             justify-content: center;
         }
 
-        /* Card styling */
         .auth-card {
-            margin-top: -50px; /* Adjust as needed */
+            margin-top: -50px;
         }
     </style>
 }
@@ -43,7 +41,6 @@
                             </div>
                         }
 
-                        <!-- Lockout Countdown Container (Hidden by default) -->
                         <div id="lockoutContainer" class="d-none mb-4">
                             <div class="lockout-card p-3 border border-danger rounded">
                                 <div class="d-flex align-items-center mb-3">
@@ -61,20 +58,11 @@
                                         </div>
                                     </div>
                                 </div>
-
                                 <div class="progress mb-2" style="height: 6px;">
-                                    <div id="countdownProgress"
-                                         class="progress-bar bg-danger progress-bar-striped progress-bar-animated"
-                                         role="progressbar"
-                                         style="width: 100%"
-                                         aria-valuenow="100"
-                                         aria-valuemin="0"
-                                         aria-valuemax="100"></div>
+                                    <div id="countdownProgress" class="progress-bar bg-danger progress-bar-striped progress-bar-animated" role="progressbar" style="width: 100%"></div>
                                 </div>
-
                                 <div class="text-center small text-muted">
-                                    <i class="fas fa-clock me-1"></i>
-                                    Unlocks in <span id="remainingTime">30 seconds</span>
+                                    <i class="fas fa-clock me-1"></i> Unlocks in <span id="remainingTime">30 seconds</span>
                                 </div>
                             </div>
                         </div>
@@ -97,7 +85,7 @@
                                 <span asp-validation-for="Password" class="text-danger small"></span>
                             </div>
 
-                            <div class="form-check mb-3">
+                            <div class="mb-3 ps-1">
                                 <label class="remember-me-container">
                                     <input type="checkbox" class="remember-me-checkbox" name="remember" id="remember">
                                     <span class="remember-me-checkmark"></span>
@@ -133,16 +121,11 @@
     </div>
 </div>
 
-<!-- Security Data (Hidden) -->
-<div id="securityConfig"
-     data-max-attempts="3"
-     data-lockout-seconds="30"
-     class="d-none"></div>
+<div id="securityConfig" data-max-attempts="3" data-lockout-seconds="30" class="d-none"></div>
 
 @section Scripts {
     <script src="~/js/auth.js"></script>
     <script>
-        // Server-side integration for failed login attempts
         @if (!ViewData.ModelState.IsValid && ViewData.ModelState.ContainsKey(""))
         {
                 var errorMessage = ViewData.ModelState[""].Errors.FirstOrDefault()?.ErrorMessage;
@@ -151,24 +134,17 @@
                         <text>
                         document.addEventListener('DOMContentLoaded', function() {
                             if (window.loginLockout) {
-                                // Add a small delay to ensure the lockout system is initialized
-                                setTimeout(function() {
-                                    window.loginLockout.recordFailedAttempt();
-                                }, 100);
+                                setTimeout(function() { window.loginLockout.recordFailedAttempt(); }, 100);
                             }
                         });
                         </text>
                 }
         }
-
-        // Reset on successful login
         @if (ViewBag.SuccessMessage != null)
         {
                 <text>
                 document.addEventListener('DOMContentLoaded', function() {
-                    if (window.loginLockout) {
-                        window.loginLockout.resetLockout();
-                    }
+                    if (window.loginLockout) { window.loginLockout.resetLockout(); }
                 });
                 </text>
         }

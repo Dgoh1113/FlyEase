@@ -1,4 +1,18 @@
 ﻿/* =========================================
+   GLOBAL VARIABLES (Ensure these exist)
+   ========================================= */
+:root {
+    --accent-primary: #4e73df; /* Main Brand Color */
+    --accent-primary-rgb: 78, 115, 223;
+    --accent-hover: #2e59d9; /* Darker Hover Color */
+    --bg-input: #ffffff; /* Light Mode Input BG */
+    --bg-input-dark: #2c2c2c; /* Dark Mode Input BG */
+    --text-muted: #858796;
+    --text-main: #5a5c69;
+    --border-color: #d1d3e2;
+}
+
+/* =========================================
    AUTH PAGE STYLES (Cleaned for Dark Mode)
    ========================================= */
 
@@ -18,9 +32,8 @@
 }
 
 /* 3. Password Toggle Button */
-/* Add this to the bottom of auth.css */
 .password-toggle {
-    z-index: 10; /* Ensures button is ABOVE the label */
+    z-index: 10;
     cursor: pointer;
     background: transparent;
     border: none;
@@ -49,19 +62,17 @@
     transition: width 0.3s ease, background-color 0.3s ease;
 }
 
-/* Colors for strength */
 .strength-weak {
     background-color: #dc3545;
 }
-/* Red */
+
 .strength-medium {
     background-color: #ffc107;
 }
-/* Yellow */
+
 .strength-strong {
     background-color: #198754;
 }
-/* Green */
 
 /* 5. Requirement List Styling */
 .requirement-list {
@@ -70,7 +81,7 @@
     margin: 10px 0 0 0;
     font-size: 0.8rem;
     display: grid;
-    grid-template-columns: 1fr 1fr; /* Two columns */
+    grid-template-columns: 1fr 1fr;
     gap: 5px;
 }
 
@@ -82,27 +93,26 @@
     }
 
         .requirement-list li i {
-            font-size: 0.4rem; /* Small dot */
+            font-size: 0.4rem;
             margin-right: 8px;
         }
 
-/* When requirement is met */
 .requirement-met {
-    color: #198754 !important; /* Green */
+    color: #198754 !important;
 }
 
     .requirement-met i {
-        font-size: 0.9rem !important; /* Larger checkmark */
+        font-size: 0.9rem !important;
         color: #198754;
     }
 
 /* 6. Phone Number Input Group Fix */
-/* Ensures the +60 box and the input look seamless in dark mode */
 [data-bs-theme="dark"] .input-group-text {
-    background-color: var(--bg-input);
-    border-color: var(--border-color);
+    background-color: var(--bg-input-dark);
+    border-color: #444;
     color: var(--text-muted);
 }
+
 /* Validation states */
 .is-valid {
     border-color: #198754 !important;
@@ -117,516 +127,13 @@
     font-size: 0.875rem;
 }
 
-/* Password strength improvements */
-.requirement-unmet {
-    color: #dc3545 !important;
-}
-
-.requirement-met {
-    color: #198754 !important;
-}
-
-/* ===== FORGOT PASSWORD PAGE ===== */
-.forgot-password-container {
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
-    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-    background-size: 400% 400%;
-    animation: gradientBG 15s ease infinite;
-}
-
-.forgot-password-card {
-    background: white;
-    border-radius: 16px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
-    width: 100%;
-    max-width: 450px;
-    overflow: hidden;
-    transform: translateY(0);
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-
-    .forgot-password-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
-    }
-
-.forgot-password-header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    padding: 40px 30px;
-    text-align: center;
-    position: relative;
-    overflow: hidden;
-}
-
-    .forgot-password-header::before {
-        content: '';
-        position: absolute;
-        top: -50%;
-        right: -50%;
-        width: 200%;
-        height: 200%;
-        background: radial-gradient(circle, rgba(255,255,255,0.1) 1px, transparent 1px);
-        background-size: 20px 20px;
-        opacity: 0.3;
-        animation: floatPattern 20s linear infinite;
-    }
-
-.forgot-password-icon {
-    font-size: 64px;
-    margin-bottom: 20px;
-    animation: bounce 2s ease infinite;
-}
-
-.forgot-password-header h2 {
-    font-weight: 700;
-    margin-bottom: 8px;
-    font-size: 28px;
-}
-
-.forgot-password-subtitle {
-    opacity: 0.9;
-    font-size: 16px;
-    margin: 0;
-}
-
-.forgot-password-body {
-    padding: 40px 30px;
-}
-
-.forgot-password-footer {
-    margin-top: 30px;
-    padding-top: 20px;
-    border-top: 1px solid #e9ecef;
-    text-align: center;
-}
-
-/* ===== RESET PASSWORD PAGE ===== */
-.reset-password-container {
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
-    background: linear-gradient(135deg, #f0f4ff 0%, #e6f7ff 100%);
-    background-size: 400% 400%;
-    animation: gradientBG 15s ease infinite;
-}
-
-.reset-password-card {
-    background: white;
-    border-radius: 16px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
-    width: 100%;
-    max-width: 450px;
-    overflow: hidden;
-}
-
-.reset-password-header {
-    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-    color: white;
-    padding: 40px 30px;
-    text-align: center;
-    position: relative;
-}
-
-.reset-password-icon {
-    font-size: 64px;
-    margin-bottom: 20px;
-    animation: pulse 2s ease infinite;
-}
-
-.reset-password-header h2 {
-    font-weight: 700;
-    margin-bottom: 8px;
-    font-size: 28px;
-}
-
-.reset-password-subtitle {
-    opacity: 0.9;
-    font-size: 16px;
-    margin: 0 0 15px 0;
-}
-
-/* Timer Styling */
-.timer {
-    display: inline-block;
-    background: rgba(255, 255, 255, 0.2);
-    border-radius: 50px;
-    padding: 8px 20px;
-    font-size: 18px;
-    font-weight: 600;
-    animation: timerPulse 1s ease infinite;
-}
-
-    .timer.warning {
-        background: rgba(220, 53, 69, 0.2);
-        color: #ff6b6b;
-        animation: warningPulse 0.5s ease infinite;
-    }
-
-    .timer.expired {
-        background: rgba(220, 53, 69, 0.3);
-        color: #dc3545;
-    }
-
-/* Form Elements */
-.form-group {
-    margin-bottom: 1.5rem;
-}
-
-.form-label {
-    font-weight: 600;
-    color: #495057;
-    margin-bottom: 8px;
-    display: block;
-}
-
-.input-group {
-    border-radius: 10px;
-    overflow: hidden;
-    border: 2px solid #e9ecef;
-    transition: border-color 0.3s ease;
-}
-
-    .input-group:focus-within {
-        border-color: #667eea;
-        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-    }
-
-.input-group-text {
-    background: #f8f9fa;
-    border: none;
-    padding: 0.75rem 1rem;
-    color: #667eea;
-}
-
-.form-control {
-    border: none;
-    padding: 0.75rem;
-    font-size: 16px;
-    transition: all 0.3s ease;
-}
-
-    .form-control:focus {
-        box-shadow: none;
-    }
-
-.toggle-password {
-    cursor: pointer;
-    background: #f8f9fa;
-    border: none;
-    color: #667eea;
-    transition: all 0.3s ease;
-}
-
-    .toggle-password:hover {
-        background: #e9ecef;
-    }
-
-/* Password Strength Indicator */
-.password-strength {
-    margin-top: 10px;
-}
-
-.strength-bar {
-    height: 6px;
-    background: #e9ecef;
-    border-radius: 3px;
-    overflow: hidden;
-    margin-bottom: 5px;
-}
-
-.strength-fill {
-    height: 100%;
-    width: 0%;
-    background: #dc3545;
-    border-radius: 3px;
-    transition: all 0.3s ease;
-}
-
-    .strength-fill.weak {
-        width: 33%;
-        background: #dc3545;
-    }
-
-    .strength-fill.medium {
-        width: 66%;
-        background: #ffc107;
-    }
-
-    .strength-fill.strong {
-        width: 100%;
-        background: #198754;
-    }
-
-/* Buttons */
-.btn {
-    border-radius: 10px;
-    font-weight: 600;
-    padding: 0.75rem 1.5rem;
-    font-size: 16px;
-    transition: all 0.3s ease;
-    border: none;
-}
-
-.btn-primary {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border: none;
-    position: relative;
-    overflow: hidden;
-}
-
-    .btn-primary:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
-    }
-
-    .btn-primary:active {
-        transform: translateY(0);
-    }
-
-.btn-success {
-    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-    border: none;
-}
-
-    .btn-success:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 20px rgba(40, 167, 69, 0.4);
-    }
-
-.btn-outline-secondary {
-    border: 2px solid #dee2e6;
-    color: #6c757d;
-}
-
-    .btn-outline-secondary:hover {
-        background: #f8f9fa;
-        border-color: #adb5bd;
-    }
-
-.btn-link {
-    color: #667eea;
-    text-decoration: none;
-}
-
-    .btn-link:hover {
-        color: #764ba2;
-        text-decoration: underline;
-    }
-
-/* Loading State */
-.btn-loading {
-    position: relative;
-    color: transparent !important;
-    pointer-events: none;
-}
-
-    .btn-loading::after {
-        content: '';
-        position: absolute;
-        left: 50%;
-        top: 50%;
-        width: 20px;
-        height: 20px;
-        margin: -10px 0 0 -10px;
-        border: 2px solid rgba(255, 255, 255, 0.3);
-        border-top-color: white;
-        border-radius: 50%;
-        animation: spin 0.8s linear infinite;
-    }
-
-/* Alerts */
-.alert {
-    border-radius: 10px;
-    border: none;
-    padding: 1rem 1.25rem;
-    margin-bottom: 1.5rem;
-    animation: slideDown 0.5s ease;
-}
-
-.alert-success {
-    background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
-    color: #155724;
-    border-left: 4px solid #28a745;
-}
-
-.alert-danger {
-    background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
-    color: #721c24;
-    border-left: 4px solid #dc3545;
-}
-
-/* Ripple Effect */
-.ripple {
-    position: absolute;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.5);
-    transform: scale(0);
-    animation: rippleEffect 0.6s linear;
-}
-
-/* ===== ANIMATIONS ===== */
-@keyframes gradientBG {
-    0% {
-        background-position: 0% 50%;
-    }
-
-    50% {
-        background-position: 100% 50%;
-    }
-
-    100% {
-        background-position: 0% 50%;
-    }
-}
-
-@keyframes bounce {
-    0%, 100% {
-        transform: translateY(0);
-    }
-
-    50% {
-        transform: translateY(-10px);
-    }
-}
-
-@keyframes floatPattern {
-    0% {
-        transform: rotate(0deg);
-    }
-
-    100% {
-        transform: rotate(360deg);
-    }
-}
-
-@keyframes pulse {
-    0%, 100% {
-        transform: scale(1);
-    }
-
-    50% {
-        transform: scale(1.1);
-    }
-}
-
-@keyframes timerPulse {
-    0%, 100% {
-        transform: scale(1);
-    }
-
-    50% {
-        transform: scale(1.05);
-    }
-}
-
-@keyframes warningPulse {
-    0%, 100% {
-        opacity: 1;
-    }
-
-    50% {
-        opacity: 0.7;
-    }
-}
-
-@keyframes slideDown {
-    from {
-        opacity: 0;
-        transform: translateY(-20px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-@keyframes spin {
-    to {
-        transform: rotate(360deg);
-    }
-}
-
-@keyframes rippleEffect {
-    to {
-        transform: scale(4);
-        opacity: 0;
-    }
-}
-
-/* ===== RESPONSIVE DESIGN ===== */
-@media (max-width: 576px) {
-    .forgot-password-container,
-    .reset-password-container {
-        padding: 15px;
-    }
-
-    .forgot-password-header,
-    .reset-password-header {
-        padding: 30px 20px;
-    }
-
-    .forgot-password-body,
-    .reset-password-body {
-        padding: 30px 20px;
-    }
-
-    .forgot-password-icon,
-    .reset-password-icon {
-        font-size: 48px;
-    }
-
-    .forgot-password-header h2,
-    .reset-password-header h2 {
-        font-size: 24px;
-    }
-
-    .timer {
-        font-size: 16px;
-        padding: 6px 16px;
-    }
-
-    .btn {
-        padding: 0.65rem 1.25rem;
-        font-size: 15px;
-    }
-}
-
-/* Small screens */
-@media (max-width: 400px) {
-    .forgot-password-card,
-    .reset-password-card {
-        border-radius: 12px;
-    }
-
-    .forgot-password-body,
-    .reset-password-body {
-        padding: 20px 15px;
-    }
-
-    .form-control {
-        font-size: 15px;
-        padding: 0.65rem;
-    }
-}
-
 /* Login Lockout Styles */
-
-/* Lockout Container */
 .lockout-card {
     background: linear-gradient(135deg, #fff5f5 0%, #ffeaea 100%);
     border-left: 4px solid #dc3545 !important;
     animation: slideDown 0.5s ease-out;
 }
 
-/* Countdown Circle */
 .countdown-circle {
     position: relative;
     width: 60px;
@@ -647,141 +154,8 @@
     font-family: 'Courier New', monospace;
 }
 
-/* Locked Form Elements */
-.form-control-locked {
-    background-color: #f8f9fa !important;
-    border-color: #dc3545 !important;
-    color: #6c757d !important;
-    cursor: not-allowed !important;
-    opacity: 0.7;
-}
-
-.btn-locked {
-    background-color: #6c757d !important;
-    border-color: #6c757d !important;
-    opacity: 0.7;
-    cursor: not-allowed !important;
-}
-
-/* Security Alert */
-.security-alert {
-    animation: fadeIn 0.3s ease-out;
-    border-left: 4px solid;
-}
-
-    .security-alert.alert-warning {
-        border-left-color: #ffc107;
-    }
-
-    .security-alert.alert-danger {
-        border-left-color: #dc3545;
-    }
-
-    .security-alert.alert-success {
-        border-left-color: #198754;
-    }
-
-/* Attempt Counter (Visual) */
-.attempt-counter {
-    display: inline-flex;
-    gap: 5px;
-    margin-left: 10px;
-}
-
-.attempt-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background-color: #28a745;
-    transition: all 0.3s ease;
-}
-
-    .attempt-dot.used {
-        background-color: #dc3545;
-        transform: scale(0.8);
-    }
-
-/* Animations */
-@keyframes slideDown {
-    from {
-        opacity: 0;
-        transform: translateY(-20px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-    }
-
-    to {
-        opacity: 1;
-    }
-}
-
-@keyframes pulse {
-    0% {
-        box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7);
-    }
-
-    70% {
-        box-shadow: 0 0 0 10px rgba(220, 53, 69, 0);
-    }
-
-    100% {
-        box-shadow: 0 0 0 0 rgba(220, 53, 69, 0);
-    }
-}
-
-@keyframes progressStripes {
-    from {
-        background-position: 1rem 0;
-    }
-
-    to {
-        background-position: 0 0;
-    }
-}
-
-.progress-bar-animated {
-    animation: progressStripes 1s linear infinite;
-}
-
-/* Dark Mode Support */
-[data-bs-theme="dark"] .lockout-card {
-    background: linear-gradient(135deg, #2c1818 0%, #3a1f1f 100%);
-}
-
-[data-bs-theme="dark"] .form-control-locked {
-    background-color: #343a40 !important;
-    color: #adb5bd !important;
-}
-
-/* Responsive Design */
-@media (max-width: 576px) {
-    .countdown-circle {
-        width: 50px;
-        height: 50px;
-    }
-
-    .countdown-number {
-        font-size: 1.25rem;
-    }
-
-    .lockout-card {
-        padding: 15px !important;
-    }
-}
-
-/* Remember Me & Terms Validation Styles - Updated with Outline Support */
-
 /* ==========================================
-   REMEMBER ME STYLES (NO HOVER, WITH OUTLINE)
+   REMEMBER ME STYLES (FIXED)
    ========================================== */
 
 /* Custom checkbox styling */
@@ -790,6 +164,7 @@
     padding-left: 35px;
     cursor: pointer;
     user-select: none;
+    display: block; /* Ensure it takes width */
 }
 
 .remember-me-checkbox {
@@ -807,20 +182,14 @@
     height: 22px;
     width: 22px;
     background-color: var(--bg-input);
-    border: 2px solid #000000; /* Black outline for light mode */
+    border: 2px solid #d1d3e2; /* Visible gray border by default */
     border-radius: 4px;
-    transition: all 0.3s ease;
+    transition: all 0.2s ease;
 }
-
-/* REMOVED HOVER EFFECTS - User requested to remove hover */
-/* .remember-me-container:hover .remember-me-checkbox ~ .remember-me-checkmark {
-    border-color: var(--accent-primary);
-    background-color: rgba(var(--accent-primary-rgb), 0.1);
-} */
 
 .remember-me-checkbox:checked ~ .remember-me-checkmark {
     background-color: var(--accent-primary);
-    border-color: var(--accent-primary); /* Keep same color when checked */
+    border-color: var(--accent-primary);
 }
 
 .remember-me-checkmark:after {
@@ -846,6 +215,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
+    line-height: 22px; /* Align with box height */
 }
 
 .remember-me-icon {
@@ -854,7 +224,7 @@
 }
 
 /* ==========================================
-   TERMS CHECKBOX STYLES (WITH OUTLINE)
+   TERMS CHECKBOX STYLES (FIXED)
    ========================================== */
 
 .terms-check {
@@ -862,13 +232,6 @@
     transition: all 0.3s ease;
 }
 
-    .terms-check.highlight-terms {
-        background-color: rgba(var(--accent-primary-rgb), 0.05);
-        border-color: var(--accent-primary) !important;
-        box-shadow: 0 0 0 3px rgba(var(--accent-primary-rgb), 0.1);
-    }
-
-/* Custom terms checkbox */
 .terms-checkbox-container {
     display: flex;
     align-items: flex-start;
@@ -894,20 +257,15 @@
     width: 20px;
     height: 20px;
     background-color: var(--bg-input);
-    border: 2px solid #000000; /* Black outline for light mode */
+    border: 2px solid #d1d3e2; /* Visible gray border */
     border-radius: 4px;
-    transition: all 0.3s ease;
+    transition: all 0.2s ease;
     position: relative;
 }
 
-/* REMOVED HOVER EFFECTS for terms checkbox as well for consistency */
-/* .terms-checkbox-input:hover ~ .terms-checkbox-checkmark {
-    border-color: var(--accent-primary);
-} */
-
 .terms-checkbox-input:checked ~ .terms-checkbox-checkmark {
     background-color: var(--accent-primary);
-    border-color: var(--accent-primary); /* Keep same color when checked */
+    border-color: var(--accent-primary);
 }
 
 .terms-checkbox-checkmark:after {
@@ -945,313 +303,15 @@
         text-decoration: none !important;
     }
 
-/* Terms error message */
-.terms-error {
-    border-left: 4px solid #dc3545;
-    animation: slideDown 0.3s ease-out;
-}
-
-/* ==========================================
-   DISABLED BUTTON STYLES
-   ========================================== */
-
-.btn-disabled {
-    opacity: 0.6;
-    cursor: not-allowed !important;
-    position: relative;
-}
-
-    .btn-disabled:hover {
-        transform: none !important;
-        box-shadow: none !important;
-    }
-
-    .btn-disabled:before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: rgba(255, 255, 255, 0.1);
-        border-radius: inherit;
-    }
-
-/* ==========================================
-   DARK MODE SUPPORT (WHITE OUTLINE)
-   ========================================== */
-
-[data-bs-theme="dark"] .remember-me-checkmark {
-    background-color: var(--bg-input-dark);
-    border-color: #ffffff; /* White outline for dark mode */
-}
-
+/* Dark Mode Overrides */
+[data-bs-theme="dark"] .remember-me-checkmark,
 [data-bs-theme="dark"] .terms-checkbox-checkmark {
     background-color: var(--bg-input-dark);
-    border-color: #ffffff; /* White outline for dark mode */
+    border-color: #555;
 }
 
-[data-bs-theme="dark"] .remember-me-checkbox:checked ~ .remember-me-checkmark {
-    background-color: var(--accent-primary);
-    border-color: var(--accent-primary); /* Keep same color when checked in dark mode */
-}
-
+[data-bs-theme="dark"] .remember-me-checkbox:checked ~ .remember-me-checkmark,
 [data-bs-theme="dark"] .terms-checkbox-input:checked ~ .terms-checkbox-checkmark {
     background-color: var(--accent-primary);
-    border-color: var(--accent-primary); /* Keep same color when checked in dark mode */
-}
-
-[data-bs-theme="dark"] .terms-check.highlight-terms {
-    background-color: rgba(var(--accent-primary-rgb), 0.1);
-}
-
-/* ==========================================
-   CHECKBOX FOCUS STATES (For Accessibility)
-   ========================================== */
-
-.remember-me-checkbox:focus ~ .remember-me-checkmark,
-.terms-checkbox-input:focus ~ .terms-checkbox-checkmark {
-    outline: 2px solid var(--accent-primary);
-    outline-offset: 2px;
-}
-
-/* Focus styles for keyboard navigation */
-.remember-me-container:focus-within,
-.terms-checkbox-container:focus-within {
-    outline: 2px solid var(--accent-primary);
-    outline-offset: 4px;
-    border-radius: 4px;
-}
-
-/* ==========================================
-   ANIMATIONS
-   ========================================== */
-
-@keyframes shake-animation {
-    0%, 100% {
-        transform: translateX(0);
-    }
-
-    10%, 30%, 50%, 70%, 90% {
-        transform: translateX(-5px);
-    }
-
-    20%, 40%, 60%, 80% {
-        transform: translateX(5px);
-    }
-}
-
-.shake-animation {
-    animation: shake-animation 0.5s ease-in-out;
-}
-
-@keyframes slideDown {
-    from {
-        opacity: 0;
-        transform: translateY(-10px);
-        max-height: 0;
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
-        max-height: 200px;
-    }
-}
-
-.fade-in {
-    animation: fadeIn 0.3s ease-out;
-}
-
-.fade-out {
-    animation: fadeOut 0.3s ease-out;
-    opacity: 0;
-}
-
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-    }
-
-    to {
-        opacity: 1;
-    }
-}
-
-@keyframes fadeOut {
-    from {
-        opacity: 1;
-    }
-
-    to {
-        opacity: 0;
-    }
-}
-
-@keyframes pulse-border {
-    0% {
-        box-shadow: 0 0 0 0 rgba(var(--accent-primary-rgb), 0.7);
-    }
-
-    70% {
-        box-shadow: 0 0 0 10px rgba(var(--accent-primary-rgb), 0);
-    }
-
-    100% {
-        box-shadow: 0 0 0 0 rgba(var(--accent-primary-rgb), 0);
-    }
-}
-
-.highlight-terms {
-    animation: pulse-border 2s infinite;
-}
-
-/* ==========================================
-   RESPONSIVE DESIGN
-   ========================================== */
-
-@media (max-width: 576px) {
-    .remember-me-label {
-        font-size: 0.85rem;
-    }
-
-    .terms-checkbox-label {
-        font-size: 0.8rem;
-    }
-
-    .terms-error {
-        padding: 12px !important;
-    }
-
-    .remember-me-checkmark,
-    .terms-checkbox-checkmark {
-        width: 20px;
-        height: 20px;
-    }
-
-        .remember-me-checkmark:after {
-            left: 6px;
-            top: 2px;
-        }
-}
-
-/* ==========================================
-   CHECKBOX SIZE CONSISTENCY
-   ========================================== */
-
-/* Ensure both checkboxes have same visual size */
-.remember-me-checkmark,
-.terms-checkbox-checkmark {
-    min-width: 22px;
-    min-height: 22px;
-}
-
-    /* Checkmark positioning */
-    .remember-me-checkmark:after {
-        left: 7px;
-        top: 3px;
-        width: 5px;
-        height: 10px;
-    }
-
-    .terms-checkbox-checkmark:after {
-        left: 6px;
-        top: 2px;
-        width: 5px;
-        height: 10px;
-    }
-
-/* ==========================================
-   DISABLED STATE FOR CHECKBOXES
-   ========================================== */
-
-.remember-me-checkbox:disabled ~ .remember-me-checkmark,
-.terms-checkbox-input:disabled ~ .terms-checkbox-checkmark {
-    opacity: 0.5;
-    cursor: not-allowed;
-    border-color: #6c757d; /* Gray border when disabled */
-}
-
-[data-bs-theme="dark"] .remember-me-checkbox:disabled ~ .remember-me-checkmark,
-[data-bs-theme="dark"] .terms-checkbox-input:disabled ~ .terms-checkbox-checkmark {
-    border-color: #adb5bd; /* Lighter gray for dark mode */
-}
-
-/* ==========================================
-   CHECKED STATE ANIMATION (Subtle)
-   ========================================== */
-
-.remember-me-checkbox:checked ~ .remember-me-checkmark,
-.terms-checkbox-input:checked ~ .terms-checkbox-checkmark {
-    animation: checkPulse 0.3s ease;
-}
-
-@keyframes checkPulse {
-    0% {
-        transform: scale(1);
-    }
-
-    50% {
-        transform: scale(1.1);
-    }
-
-    100% {
-        transform: scale(1);
-    }
-}
-
-/* ==========================================
-   PRINT STYLES
-   ========================================== */
-
-@media print {
-    .remember-me-checkmark,
-    .terms-checkbox-checkmark {
-        border-color: #000000 !important; /* Always black for printing */
-    }
-
-    [data-bs-theme="dark"] .remember-me-checkmark,
-    [data-bs-theme="dark"] .terms-checkbox-checkmark {
-        border-color: #000000 !important; /* Force black for printing */
-    }
-}
-
-/* ==========================================
-   HIGH CONTRAST MODE SUPPORT
-   ========================================== */
-
-@media (prefers-contrast: high) {
-    .remember-me-checkmark,
-    .terms-checkbox-checkmark {
-        border-width: 3px; /* Thicker border for high contrast */
-    }
-
-    .remember-me-checkbox:checked ~ .remember-me-checkmark,
-    .terms-checkbox-input:checked ~ .terms-checkbox-checkmark {
-        background-color: #000000; /* Black for high contrast */
-        border-color: #000000;
-    }
-
-    [data-bs-theme="dark"] .remember-me-checkmark,
-    [data-bs-theme="dark"] .terms-checkbox-checkmark {
-        border-color: #ffffff;
-    }
-
-    [data-bs-theme="dark"] .remember-me-checkbox:checked ~ .remember-me-checkmark,
-    [data-bs-theme="dark"] .terms-checkbox-input:checked ~ .terms-checkbox-checkmark {
-        background-color: #ffffff; /* White for high contrast dark mode */
-        border-color: #ffffff;
-    }
-}
-
-/* ==========================================
-   COLOR BLIND MODE SUPPORT
-   ========================================== */
-
-@media (prefers-color-scheme: light) and (prefers-contrast: more) {
-    /* Use different border styles for color blind users */
-    .remember-me-checkmark,
-    .terms-checkbox-checkmark {
-        border-style: double; /* Double border for better visibility */
-    }
+    border-color: var(--accent-primary);
 }
