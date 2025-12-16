@@ -142,12 +142,12 @@ namespace FlyEase.Controllers
 
                     // Create claims
                     var claims = new List<Claim>
-                    {
-                        new Claim(ClaimTypes.NameIdentifier, user.UserID.ToString()),
-                        new Claim(ClaimTypes.Name, user.FullName),
-                        new Claim(ClaimTypes.Email, user.Email),
-                        new Claim(ClaimTypes.Role, user.Role ?? "User")
-                    };
+            {
+                new Claim(ClaimTypes.NameIdentifier, user.UserID.ToString()),
+                new Claim(ClaimTypes.Name, user.FullName),
+                new Claim(ClaimTypes.Email, user.Email),
+                new Claim(ClaimTypes.Role, user.Role ?? "User")
+            };
 
                     var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
                     var principal = new ClaimsPrincipal(identity);
@@ -158,7 +158,11 @@ namespace FlyEase.Controllers
                         ExpiresUtc = model.RememberMe ? DateTime.UtcNow.AddDays(30) : null
                     };
 
-                    await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal, authProperties);
+                    await HttpContext.SignInAsync(
+                        CookieAuthenticationDefaults.AuthenticationScheme,
+                        principal,
+                        authProperties
+                    );
 
                     if (user.Role == "Admin" || user.Role == "Staff")
                         return RedirectToAction("AdminDashboard", "AdminDashboard");

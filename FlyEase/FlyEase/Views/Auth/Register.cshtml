@@ -131,14 +131,19 @@
                                 <div id="passwordMatch"></div>
                             </div>
 
-                            <div class="terms-check mb-4">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" id="agreeTerms" name="AgreeToTerms" value="true" required>
-                                    <label class="form-check-label text-muted small" for="agreeTerms">
-                                        I agree to the <a href="#" class="highlight-link">Terms</a> and <a href="#" class="highlight-link">Privacy Policy</a>
+                            <div class="terms-check mb-4" id="termsContainer">
+                                <div class="terms-checkbox-container">
+                                    <label class="terms-checkbox-custom">
+                                        <input class="terms-checkbox-input" type="checkbox" id="agreeTerms" name="AgreeToTerms" value="true" required>
+                                        <span class="terms-checkbox-checkmark"></span>
+                                    </label>
+                                    <label class="terms-checkbox-label text-muted small" for="agreeTerms">
+                                        I agree to the <a href="#" class="terms-link" onclick="openTermsModal()">Terms</a>
+                                        and <a href="#" class="terms-link" onclick="openPrivacyModal()">Privacy Policy</a>
+                                        <span class="text-danger">*</span>
                                     </label>
                                 </div>
-                                <span asp-validation-for="AgreeToTerms" class="text-danger small"></span>
+                                <span asp-validation-for="AgreeToTerms" class="text-danger small mt-2 d-block"></span>
                             </div>
 
                             <div class="d-grid gap-2 mb-0">

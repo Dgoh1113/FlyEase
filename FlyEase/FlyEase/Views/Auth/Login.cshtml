@@ -98,9 +98,13 @@
                             </div>
 
                             <div class="form-check mb-3">
-                                <input class="form-check-input" asp-for="RememberMe" id="rememberMe" />
-                                <label class="form-check-label text-muted" for="rememberMe">
-                                    <i class="fas fa-clock me-1"></i> Remember me for 30 days
+                                <label class="remember-me-container">
+                                    <input type="checkbox" class="remember-me-checkbox" name="remember" id="remember">
+                                    <span class="remember-me-checkmark"></span>
+                                    <span class="remember-me-label">
+                                        <i class="fas fa-user-check remember-me-icon"></i>
+                                        Remember me
+                                    </span>
                                 </label>
                             </div>
 
