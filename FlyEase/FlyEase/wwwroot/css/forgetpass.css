@@ -467,3 +467,184 @@
     text-align: left;
 }
 
+/* =========================================
+   FORGOT & RESET PASSWORD STYLES
+   (Matches Login Page Layout & Blue Buttons)
+   ========================================= */
+
+:root {
+    /* --- Brand Color (Blue) --- */
+    --btn-primary-bg: #0d6efd;
+    --btn-primary-hover: #0b5ed7;
+    --btn-text: #ffffff;
+    --success-color: #198754;
+    --error-color: #dc3545;
+}
+
+/* 1. AUTH WRAPPER (Matches Login.cshtml)
+   Replaces the previous full-screen centered container 
+   to respect the site's header spacing.
+*/
+.auth-wrapper-unified {
+    margin-top: 120px; /* Matches Login.cshtml margin */
+    min-height: calc(100vh - 120px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-bottom: 40px;
+    /* No background-color set here, so it inherits body/layout background */
+}
+
+/* 2. CARD STYLING (Matches Login.cshtml)
+   Using Bootstrap classes in HTML, but ensuring overrides here if needed.
+*/
+.auth-card-unified {
+    width: 100%;
+    max-width: 450px;
+    /* Background comes from Bootstrap .card (white/dark-grey) */
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+/* 3. Header Section */
+.auth-header-unified {
+    padding: 30px 30px 10px 30px;
+    text-align: center;
+}
+
+.auth-icon-circle {
+    width: 70px;
+    height: 70px;
+    background: rgba(13, 110, 253, 0.1); /* Blue Tint */
+    color: var(--btn-primary-bg); /* Blue Icon */
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    margin: 0 auto 20px;
+}
+
+.auth-header-unified h2 {
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 10px;
+    /* Color inherits from body/card text */
+}
+
+.auth-subtitle {
+    font-size: 15px;
+    margin-bottom: 0;
+    opacity: 0.75;
+}
+
+/* 4. Body Content */
+.auth-body {
+    padding: 30px;
+}
+
+/* 5. Inputs - Consistent Focus State */
+.form-control:focus {
+    border-color: #86b7fe;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+/* 6. Buttons (Blue) */
+.btn-primary-auth {
+    background-color: var(--btn-primary-bg);
+    border: 1px solid var(--btn-primary-bg);
+    color: var(--btn-text);
+    padding: 12px;
+    font-weight: 600;
+    border-radius: 8px;
+    width: 100%;
+    transition: all 0.3s ease;
+}
+
+    .btn-primary-auth:hover {
+        background-color: var(--btn-primary-hover);
+        border-color: var(--btn-primary-hover);
+        color: var(--btn-text);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 15px rgba(13, 110, 253, 0.3);
+    }
+
+.btn-back {
+    text-decoration: none;
+    font-size: 14px;
+    transition: color 0.2s;
+    display: inline-flex;
+    align-items: center;
+    margin-top: 20px;
+    color: inherit;
+    opacity: 0.7;
+}
+
+    .btn-back:hover {
+        color: var(--btn-primary-bg);
+        opacity: 1;
+    }
+
+/* 7. Password Requirements & Steps */
+.password-requirements, .check-steps {
+    background: rgba(0,0,0,0.03); /* Subtle background works on white or dark */
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 20px;
+}
+
+[data-bs-theme="dark"] .password-requirements,
+[data-bs-theme="dark"] .check-steps {
+    background: rgba(255,255,255,0.05);
+}
+
+.requirement-item {
+    margin-bottom: 5px;
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    opacity: 0.8;
+}
+
+    .requirement-item.valid {
+        color: var(--success-color);
+        opacity: 1;
+    }
+
+    .requirement-item i {
+        width: 20px;
+        font-size: 12px;
+    }
+
+/* 8. Steps for Confirmation */
+.step-number {
+    background: var(--btn-primary-bg);
+    color: white;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: bold;
+    margin-right: 12px;
+}
+
+/* 9. Toggle Eye */
+.password-toggle-btn {
+    background: none;
+    border: none;
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    opacity: 0.6;
+    z-index: 10;
+    cursor: pointer;
+}
+
+    .password-toggle-btn:hover {
+        opacity: 1;
+    }

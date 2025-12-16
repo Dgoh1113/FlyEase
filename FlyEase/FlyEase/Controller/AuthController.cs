@@ -126,59 +126,49 @@ namespace FlyEase.Controllers
         }
 
         [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Login(LoginViewModel model, string? returnUrl = null)
+        public async Task<IActionResult> Login(LoginViewModel model)
         {
-            if (ModelState.IsValid)
-            {
-                try
-                {
-                    var user = _context.Users.FirstOrDefault(u => u.Email == model.Email);
-                    if (user == null || !VerifyPassword(model.Password, user.PasswordHash))
-                    {
-                        ModelState.AddModelError("", "Invalid email or password.");
-                        return View(model);
-                    }
+            if (!ModelState.IsValid) return View(model);
 
-                    // Create claims
-                    var claims = new List<Claim>
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == model.Email);
+
+            if (user != null && VerifyPassword(model.Password, user.PasswordHash))
             {
+                var claims = new List<Claim>
+                {
                 new Claim(ClaimTypes.NameIdentifier, user.UserID.ToString()),
                 new Claim(ClaimTypes.Name, user.FullName),
                 new Claim(ClaimTypes.Email, user.Email),
                 new Claim(ClaimTypes.Role, user.Role ?? "User")
-            };
+                };
 
-                    var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-                    var principal = new ClaimsPrincipal(identity);
+                var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
 
-                    var authProperties = new AuthenticationProperties
-                    {
-                        IsPersistent = model.RememberMe,
-                        ExpiresUtc = model.RememberMe ? DateTime.UtcNow.AddDays(30) : null
-                    };
-
-                    await HttpContext.SignInAsync(
-                        CookieAuthenticationDefaults.AuthenticationScheme,
-                        principal,
-                        authProperties
-                    );
-
-                    if (user.Role == "Admin" || user.Role == "Staff")
-                        return RedirectToAction("AdminDashboard", "AdminDashboard");
-
-                    return RedirectToAction("Profile", "Auth");
-                }
-                catch (Exception ex)
+                // FIX: Set IsPersistent based on RememberMe checkbox
+                var authProperties = new AuthenticationProperties
                 {
-                    _logger.LogError(ex, "Login error");
-                    ModelState.AddModelError("", "An error occurred.");
-                    return View(model);
-                }
+                    // IsPersistent = true tells the browser to save the cookie to disk
+                    // allowing it to survive a browser restart.
+                    IsPersistent = model.RememberMe,
+
+                    // Set expiration to 30 days if remembered, otherwise default session
+                    ExpiresUtc = model.RememberMe ? DateTime.UtcNow.AddDays(30) : null,
+
+                    AllowRefresh = true
+                };
+
+                await HttpContext.SignInAsync(
+                    CookieAuthenticationDefaults.AuthenticationScheme,
+                    new ClaimsPrincipal(claimsIdentity),
+                    authProperties);
+
+                return RedirectToAction("Index", "Home");
             }
+
+            ModelState.AddModelError("", "Invalid email or password.");
             return View(model);
         }
-
+        
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Logout()
