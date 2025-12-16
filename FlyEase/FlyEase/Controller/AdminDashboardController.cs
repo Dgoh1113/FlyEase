@@ -10,7 +10,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using FlyEase.Services;
-using X.PagedList; // <--- Required
+using X.PagedList;
 
 namespace FlyEase.Controllers
 {
@@ -33,42 +33,25 @@ namespace FlyEase.Controllers
         [HttpGet("AdminDashboard")]
         public async Task<IActionResult> AdminDashboard()
         {
+            // 1. Basic Stats
             var totalUsers = await _context.Users.CountAsync();
             var totalBookings = await _context.Bookings.CountAsync();
             var pendingBookings = await _context.Bookings.CountAsync(b => b.BookingStatus == "Pending");
             var totalRevenue = await _context.Payments.Where(p => p.PaymentStatus == "Completed").SumAsync(p => p.AmountPaid);
 
+            // 2. Recent & Low Stock
             var recentBookings = await _context.Bookings
                 .Include(b => b.User).Include(b => b.Package)
                 .OrderByDescending(b => b.BookingDate).Take(5).ToListAsync();
 
             var lowStock = await _context.Packages.Where(p => p.AvailableSlots < 10).OrderBy(p => p.AvailableSlots).Take(5).ToListAsync();
 
-            var sixMonthsAgo = DateTime.Now.AddMonths(-6);
-
-            var rawRevenueData = await _context.Payments
-                .Where(p => p.PaymentDate >= sixMonthsAgo && p.PaymentStatus == "Completed")
-                .GroupBy(p => new { p.PaymentDate.Year, p.PaymentDate.Month })
-                .Select(g => new {
-                    Year = g.Key.Year,
-                    Month = g.Key.Month,
-                    Total = g.Sum(p => p.AmountPaid)
-                })
-                .OrderBy(x => x.Year)
-                .ThenBy(x => x.Month)
-                .ToListAsync();
-
-            var revenueMonths = rawRevenueData
-                .Select(x => new DateTime(x.Year, x.Month, 1).ToString("MMM"))
-                .ToList();
-
-            var revenueValues = rawRevenueData
-                .Select(x => x.Total)
-                .ToList();
-
-            var statusCounts = await _context.Bookings
-                .GroupBy(b => b.BookingStatus)
-                .Select(g => new { Status = g.Key, Count = g.Count() })
+            // 3. REVENUE CHART DATA PREPARATION
+            // Fetch all completed payments from the last year once to reduce DB calls
+            var oneYearAgo = DateTime.Now.AddYears(-1).AddDays(-1);
+            var allPayments = await _context.Payments
+                .Where(p => p.PaymentStatus == "Completed" && p.PaymentDate >= oneYearAgo)
+                .Select(p => new { p.PaymentDate, p.AmountPaid })
                 .ToListAsync();
 
             var vm = new AdminDashboardVM
@@ -78,19 +61,70 @@ namespace FlyEase.Controllers
                 PendingBookings = pendingBookings,
                 TotalRevenue = totalRevenue,
                 RecentBookings = recentBookings,
-                LowStockPackages = lowStock,
-                RevenueMonths = revenueMonths,
-                RevenueValues = revenueValues,
-                PendingBookingsCount = statusCounts.FirstOrDefault(x => x.Status == "Pending")?.Count ?? 0,
-                CompletedBookingsCount = statusCounts.FirstOrDefault(x => x.Status == "Completed")?.Count ?? 0,
-                CancelledBookingsCount = statusCounts.FirstOrDefault(x => x.Status == "Cancelled")?.Count ?? 0
+                LowStockPackages = lowStock
             };
+
+            // --- A. 7 Days Data ---
+            vm.RevenueLabels7Days = new List<string>();
+            vm.RevenueValues7Days = new List<decimal>();
+            for (int i = 6; i >= 0; i--)
+            {
+                var date = DateTime.Now.AddDays(-i).Date;
+                vm.RevenueLabels7Days.Add(date.ToString("dd MMM"));
+                vm.RevenueValues7Days.Add(allPayments.Where(p => p.PaymentDate.Date == date).Sum(p => p.AmountPaid));
+            }
+
+            // --- B. 30 Days (1 Month) Data ---
+            vm.RevenueLabels30Days = new List<string>();
+            vm.RevenueValues30Days = new List<decimal>();
+            for (int i = 29; i >= 0; i--)
+            {
+                var date = DateTime.Now.AddDays(-i).Date;
+                vm.RevenueLabels30Days.Add(date.ToString("dd MMM"));
+                vm.RevenueValues30Days.Add(allPayments.Where(p => p.PaymentDate.Date == date).Sum(p => p.AmountPaid));
+            }
+
+            // --- C. 1 Year Data (Group by Month) ---
+            vm.RevenueLabels1Year = new List<string>();
+            vm.RevenueValues1Year = new List<decimal>();
+            for (int i = 11; i >= 0; i--)
+            {
+                var d = DateTime.Now.AddMonths(-i);
+                var monthStart = new DateTime(d.Year, d.Month, 1);
+                var monthEnd = monthStart.AddMonths(1).AddTicks(-1);
+
+                vm.RevenueLabels1Year.Add(monthStart.ToString("MMM yyyy"));
+                vm.RevenueValues1Year.Add(allPayments
+                    .Where(p => p.PaymentDate >= monthStart && p.PaymentDate <= monthEnd)
+                    .Sum(p => p.AmountPaid));
+            }
+
+            // Assign 1 Year as default legacy properties to prevent errors if view uses them
+            vm.RevenueMonths = vm.RevenueLabels1Year;
+            vm.RevenueValues = vm.RevenueValues1Year;
+
+            // 4. TOP PACKAGES REVENUE (Doughnut Chart)
+            var packageRevenue = await _context.Payments
+                .Include(p => p.Booking).ThenInclude(b => b.Package)
+                .Where(p => p.PaymentStatus == "Completed")
+                .GroupBy(p => p.Booking.Package.PackageName)
+                .Select(g => new
+                {
+                    Name = g.Key,
+                    Revenue = g.Sum(p => p.AmountPaid)
+                })
+                .OrderByDescending(x => x.Revenue)
+                .Take(5)
+                .ToListAsync();
+
+            vm.PackageRevenueLabels = packageRevenue.Select(x => x.Name).ToList();
+            vm.PackageRevenueValues = packageRevenue.Select(x => x.Revenue).ToList();
 
             return View(vm);
         }
 
         // ==========================================
-        // 2. USERS MANAGEMENT (Paginated like Home)
+        // 2. USERS MANAGEMENT
         // ==========================================
         [HttpGet("Users")]
         public async Task<IActionResult> Users(string? search = null, string? role = null, int? page = 1)
@@ -113,7 +147,6 @@ namespace FlyEase.Controllers
                 query = query.Where(u => u.Role == role);
             }
 
-            // Pagination Logic from HomeController
             var totalItems = await query.CountAsync();
             var pagedData = await query
                 .OrderByDescending(u => u.CreatedDate)
@@ -170,7 +203,7 @@ namespace FlyEase.Controllers
         }
 
         // ==========================================
-        // 3. BOOKINGS MANAGEMENT (Paginated like Home)
+        // 3. BOOKINGS MANAGEMENT
         // ==========================================
         [HttpGet("Bookings")]
         public async Task<IActionResult> Bookings(string? search = null, string status = "All", int? page = 1)
@@ -195,7 +228,6 @@ namespace FlyEase.Controllers
                     b.Package.PackageName.Contains(search));
             }
 
-            // Pagination Logic from HomeController
             var totalItems = await query.CountAsync();
             var pagedData = await query
                 .OrderByDescending(b => b.BookingDate)
@@ -257,7 +289,7 @@ namespace FlyEase.Controllers
                             if (images.Length > 0) packageImage = images[0];
                         }
 
-                        var emailService = new EmailService(); // Ideally use Dependency Injection
+                        var emailService = new EmailService();
                         await emailService.SendReviewInvitation(
                             booking.User.Email,
                             booking.User.FullName,
@@ -296,7 +328,7 @@ namespace FlyEase.Controllers
         }
 
         // ==========================================
-        // 4. PACKAGES MANAGEMENT (Paginated like Home)
+        // 4. PACKAGES MANAGEMENT
         // ==========================================
         [HttpGet("Packages")]
         public async Task<IActionResult> Packages(string? search = null, int? page = 1)
@@ -314,7 +346,6 @@ namespace FlyEase.Controllers
                 query = query.Where(p => p.PackageName.Contains(search));
             }
 
-            // Pagination Logic from HomeController
             var totalItems = await query.CountAsync();
             var pagedData = await query
                 .OrderByDescending(p => p.PackageID)
@@ -322,7 +353,6 @@ namespace FlyEase.Controllers
                 .Take(pageSize)
                 .ToListAsync();
 
-            // Calculate ratings for only the visible page
             foreach (var p in pagedData)
             {
                 var ratings = p.Bookings.SelectMany(b => b.Feedbacks).Select(f => f.Rating);
@@ -424,7 +454,7 @@ namespace FlyEase.Controllers
         }
 
         // ==========================================
-        // 5. SALES REPORT (Unchanged)
+        // 5. SALES REPORT
         // ==========================================
         [HttpGet("Report")]
         public async Task<IActionResult> Report(
@@ -576,7 +606,7 @@ namespace FlyEase.Controllers
         }
 
         // ==========================================
-        // 6. ANALYTICS (Unchanged)
+        // 6. ANALYTICS
         // ==========================================
         [HttpGet("Analytics")]
         public async Task<IActionResult> Analytics()
@@ -631,7 +661,7 @@ namespace FlyEase.Controllers
         }
 
         // ==========================================
-        // 7. DISCOUNTS (Paginated like Home)
+        // 7. DISCOUNTS
         // ==========================================
         [HttpGet("Discounts")]
         public async Task<IActionResult> Discounts(string? search = null, int? page = 1)
@@ -648,7 +678,6 @@ namespace FlyEase.Controllers
                     d.DiscountName.Contains(search));
             }
 
-            // Pagination Logic from HomeController
             var totalItems = await query.CountAsync();
             var pagedData = await query
                 .OrderBy(d => d.DiscountName)
@@ -676,7 +705,6 @@ namespace FlyEase.Controllers
                 return RedirectToAction(nameof(Discounts));
             }
 
-            // Basic Validation for Rate/Amount
             if (input.DiscountRate == null && input.DiscountAmount == null)
             {
                 TempData["Error"] = "Please specify either a Discount Rate or a Fixed Amount.";
