@@ -88,7 +88,7 @@
                     <div class="form-group border p-3 bg-light rounded">
                         <label class="form-label fw-bold">Location (Search & Pin)</label>
                         <div class="input-group mb-2">
-                            <input type="text" id="locSearch" class="form-control" placeholder="Search place (e.g. Tokyo, KLCC)...">
+                            <input type="text" id="locSearch" class="form-control" placeholder="Search place...">
                             <button type="button" class="btn btn-secondary" onclick="searchLocation()">Search</button>
                         </div>
                         <div id="adminMap"></div>
@@ -101,7 +101,7 @@
                         <div class="form-group">
                             <label class="form-label">Start Date</label>
                             <div class="calendar-wrapper">
-                                <input class="form-control" name="StartDate" id="startDate" type="text" readonly placeholder="Select Start Date" required onclick="toggleCalendar('start')" onchange="syncItineraryDays()" />
+                                <input class="form-control" name="StartDate" id="startDate" type="text" readonly placeholder="Select Date" required onclick="toggleCalendar('start')" onchange="syncItineraryDays()" />
                                 <div id="calendar_start" class="flyease-calendar">
                                     <div class="calendar-header"><i class="fas fa-chevron-left prev-btn"></i><h1></h1><i class="fas fa-chevron-right next-btn"></i></div>
                                     <div class="calendar-weekdays"></div><div class="calendar-content"></div>
@@ -111,7 +111,7 @@
                         <div class="form-group">
                             <label class="form-label">End Date</label>
                             <div class="calendar-wrapper">
-                                <input class="form-control" name="EndDate" id="endDate" type="text" readonly placeholder="Select End Date" required onclick="toggleCalendar('end')" onchange="syncItineraryDays()" />
+                                <input class="form-control" name="EndDate" id="endDate" type="text" readonly placeholder="Select Date" required onclick="toggleCalendar('end')" onchange="syncItineraryDays()" />
                                 <div id="calendar_end" class="flyease-calendar">
                                     <div class="calendar-header"><i class="fas fa-chevron-left prev-btn"></i><h1></h1><i class="fas fa-chevron-right next-btn"></i></div>
                                     <div class="calendar-weekdays"></div><div class="calendar-content"></div>
@@ -129,14 +129,14 @@
                         <label class="form-label">Package Images</label>
                         <div class="input-group">
                             <input class="form-control" name="ImageFiles" id="imageInput" type="file" accept="image/*" multiple onchange="handleFileSelect(this)" />
-                            <button type="button" class="btn btn-outline-danger" id="clearNewBtn" style="display:none;" onclick="clearNewUploads()">Clear All New</button>
+                            <button type="button" class="btn btn-outline-danger" id="clearNewBtn" style="display:none;" onclick="clearNewUploads()">Clear All</button>
                         </div>
                         <div class="mt-3" id="previewContainer" style="display:none; border: 1px dashed #28a745; padding: 10px; border-radius: 8px;">
-                            <label class="small fw-bold text-success">New Images (To be uploaded):</label>
+                            <label class="small fw-bold text-success">New Images:</label>
                             <div class="image-gallery" id="newImagesGallery"></div>
                         </div>
                         <div id="existingImagesWrapper" style="display:none;" class="mt-3">
-                            <label class="small fw-bold text-primary">Previously Saved Images:</label>
+                            <label class="small fw-bold text-primary">Saved Images:</label>
                             <div class="image-gallery" id="existingImagesGallery"></div>
                         </div>
                         <div id="deletedImagesContainer"></div>
@@ -153,12 +153,12 @@
                     <div class="form-group mb-4">
                         <div class="d-flex justify-content-between align-items-center mb-2">
                             <label class="form-label mb-0 h5">Itinerary</label>
-                            <small class="text-muted">Days will automatically appear based on date selection.</small>
+                            <small class="text-muted">Days appear on date selection.</small>
                         </div>
                         <div id="itinerary-container"></div>
                         <button type="button" class="btn btn-outline-secondary mt-2 w-100" onclick="addItineraryRow()">+ Add Extra Day</button>
                         <small class="text-danger d-none" id="itineraryError" style="font-size: 1rem; font-weight: bold;">
-                            <i class="fas fa-exclamation-circle"></i> Please fill in the Title and Description for all itinerary days.
+                            <i class="fas fa-exclamation-circle"></i> Please fill in itinerary details.
                         </small>
                     </div>
 
@@ -183,20 +183,17 @@
 
 @section Scripts {
     <script>
-        // --- 1. PAGINATION & AJAX LOGIC ---
         let currentPage = 1;
 
         async function loadPage(page) {
             if (page < 1) return;
             currentPage = page;
             await refreshPackageList();
-            // Scroll to top of list card so user sees new items
             document.querySelector('.list-card').scrollIntoView({ behavior: 'smooth' });
         }
 
         async function refreshPackageList() {
             try {
-                // Pass current page to controller
                 const response = await fetch(`@Url.Action("GetPackageList")?page=${currentPage}`);
                 const html = await response.text();
                 document.getElementById('packagesGrid').innerHTML = html;
@@ -205,13 +202,10 @@
 
         async function submitForm() {
             if (!validateForm()) return;
-
             const form = document.getElementById('packageForm');
             const formData = new FormData(form);
             const id = document.getElementById('packageIdInput').value;
-            const isUpdate = id && id !== "0";
-            const url = isUpdate ? '@Url.Action("Update")' : '@Url.Action("Create")';
-
+            const url = (id && id !== "0") ? '@Url.Action("Update")' : '@Url.Action("Create")';
             const btn = document.getElementById('submitBtn');
             const originalText = btn.innerHTML;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
@@ -219,22 +213,14 @@
 
             try {
                 const response = await fetch(url, {
-                    method: 'POST',
-                    body: formData,
-                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    method: 'POST', body: formData, headers: { 'X-Requested-With': 'XMLHttpRequest' }
                 });
-
                 const result = await response.json();
-
                 if (result.success) {
                     showAlert('success', result.message);
                     resetForm();
-
-                    // Reset to first page on successful create/update so user sees most relevant data or default view
                     currentPage = 1;
                     refreshPackageList();
-
-                    // Scroll nicely to top alert
                     document.getElementById('alertArea').scrollIntoView({ behavior: 'smooth', block: 'center' });
                 } else {
                     showAlert('danger', result.message);
@@ -256,7 +242,6 @@
                 if (!res.ok) throw new Error("Failed to fetch package");
                 const data = await res.json();
 
-                // Populate Fields
                 document.getElementById('packageIdInput').value = data.packageID;
                 document.querySelector('input[name="PackageName"]').value = data.packageName;
                 document.querySelector('textarea[name="Description"]').value = data.description;
@@ -266,12 +251,10 @@
                 document.querySelector('input[name="StartDate"]').value = data.startDate;
                 document.querySelector('input[name="EndDate"]').value = data.endDate;
 
-                // Category
                 const catSelect = document.getElementById('categorySelect');
                 if(catSelect) catSelect.value = data.categoryID;
                 toggleNewCategoryInput();
 
-                // Map
                 if(map && marker) {
                     const lat = data.latitude || 3.1390;
                     const lng = data.longitude || 101.6869;
@@ -282,12 +265,10 @@
                     map.setView(newLatLng, 13);
                 }
 
-                // Existing Images
                 const existingContainer = document.getElementById('existingImagesWrapper');
                 const gallery = document.getElementById('existingImagesGallery');
                 gallery.innerHTML = '';
                 document.getElementById('deletedImagesContainer').innerHTML = '';
-
                 if(data.images && data.images.length > 0) {
                     existingContainer.style.display = 'block';
                     data.images.forEach(img => {
@@ -297,11 +278,8 @@
                          div.innerHTML = `<img src="${img}" /><span class="remove-btn" onclick="toggleDeletion('${img}', '${div.id}')" title="Delete">&times;</span>`;
                          gallery.appendChild(div);
                     });
-                } else {
-                    existingContainer.style.display = 'none';
-                }
+                } else { existingContainer.style.display = 'none'; }
 
-                // Inclusions
                 const incContainer = document.getElementById('inclusions-container');
                 incContainer.innerHTML = '';
                 if(data.inclusions) {
@@ -313,24 +291,18 @@
                     });
                 }
 
-                // Itinerary
                 const itinContainer = document.getElementById('itinerary-container');
                 itinContainer.innerHTML = '';
                 itineraryIndex = 0;
                 if(data.itinerary) {
-                    data.itinerary.forEach((day) => {
-                         addItineraryRow(day.dayNumber, day.title, day.activityDescription);
-                    });
+                    data.itinerary.forEach((day) => { addItineraryRow(day.dayNumber, day.title, day.activityDescription); });
                 }
 
-                // UI State
                 document.getElementById('formTitle').innerText = "Edit Package";
                 const btn = document.getElementById('submitBtn');
                 btn.innerHTML = '<i class="fas fa-save"></i> Update Package';
                 btn.className = 'btn btn-warning';
                 document.getElementById('cancelBtn').style.display = 'inline-flex';
-
-                // Scroll to form
                 document.querySelector('.management-grid').scrollIntoView({ behavior: 'smooth' });
 
             } catch (e) { console.error(e); showAlert('danger', 'Could not load package details.'); }
@@ -339,8 +311,6 @@
         function resetForm() {
             document.getElementById('packageForm').reset();
             document.getElementById('packageIdInput').value = "0";
-
-            // Clear dynamic areas
             dt.items.clear();
             document.getElementById('newImagesGallery').innerHTML = '';
             document.getElementById('previewContainer').style.display = 'none';
@@ -350,13 +320,11 @@
             document.getElementById('inclusions-container').innerHTML = '';
             document.getElementById('itinerary-container').innerHTML = '';
 
-            // Reset UI
             document.getElementById('formTitle').innerText = "Create New Package";
             const btn = document.getElementById('submitBtn');
             btn.innerHTML = '<i class="fas fa-plus"></i> Create Package';
             btn.className = 'btn btn-primary';
             document.getElementById('cancelBtn').style.display = 'none';
-
             if(map) { map.setView([3.1390, 101.6869], 13); marker.setLatLng([3.1390, 101.6869]); }
         }
 
@@ -372,7 +340,6 @@
             return hash;
         }
 
-        // --- 2. CALENDAR, MAP, DELETE (Keep existing logic) ---
         class CalendarWidget {
             constructor(containerId, inputId, type) {
                 this.container = document.getElementById(containerId);
@@ -477,7 +444,6 @@
             if(s && e.value && e.value < s) { e.value = s; if(typeof syncItineraryDays === 'function') syncItineraryDays(); }
         }
 
-        // CONFIRM DELETE
         function confirmDelete(packageId, bookingCount) {
              const title = bookingCount > 0 ? '⚠️ Active Bookings Found!' : 'Delete Package?';
              const text = bookingCount > 0 ? `This package has <b>${bookingCount} active bookings</b>.<br>Deleting it will <b>automatically cancel</b> & <b>refund</b> bookings.` : "You won't be able to revert this!";
@@ -497,7 +463,6 @@
              });
         }
 
-        // MAP LOGIC
         let map, marker;
         function initMap() {
             if (!document.getElementById('adminMap')) return;
@@ -531,7 +496,6 @@
         }
         document.addEventListener("DOMContentLoaded", function () { initMap(); });
 
-        // ITINERARY LOGIC
         let itineraryIndex = 0;
         function createItineraryRowHTML(index, dayNumber, title = "", desc = "") {
             return `
@@ -600,7 +564,6 @@
             }
         }
 
-        // VALIDATION
         function validateForm() {
             const rows = document.querySelectorAll('.itinerary-row');
             let isValid = true;

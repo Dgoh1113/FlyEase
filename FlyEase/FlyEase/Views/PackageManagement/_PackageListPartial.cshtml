@@ -11,27 +11,30 @@
             <div class="package-management-card">
                 <div class="package-image">
                     <img src="@firstImage" alt="@package.PackageName" onerror="this.src='/img/default-package.jpg'" />
-                    <div class="package-actions">
-                        <button type="button" class="btn-edit" onclick="editPackage(@package.PackageID)">
+                </div>
+                <div class="package-content">
+                    <div class="content-body">
+                        <h4>@package.PackageName</h4>
+                        <div class="package-category"><strong>Category:</strong> @package.Category?.CategoryName</div>
+                        <div class="package-price">$@package.Price.ToString("N2")</div>
+                        @if (bookingCount > 0)
+                        {
+                            <span class="badge bg-warning text-dark mt-1">@bookingCount Active Booking(s)</span>
+                        }
+                    </div>
+
+                    <div class="package-card-footer border-top pt-3 mt-3 d-flex justify-content-end gap-2">
+                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="editPackage(@package.PackageID)" title="Edit">
                             <i class="fas fa-edit"></i>
                         </button>
 
-                        <form id="delete-form-@package.PackageID" method="post" action="@Url.Action("Delete", "PackageManagement", new { id = package.PackageID })">
+                        <form id="delete-form-@package.PackageID" method="post" action="@Url.Action("Delete", "PackageManagement", new { id = package.PackageID })" class="d-inline">
                             @Html.AntiForgeryToken()
-                            <button type="button" class="btn-delete" onclick="confirmDelete(@package.PackageID, @bookingCount)">
+                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="confirmDelete(@package.PackageID, @bookingCount)" title="Delete">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </form>
                     </div>
-                </div>
-                <div class="package-content">
-                    <h4>@package.PackageName</h4>
-                    <div class="package-category"><strong>Category:</strong> @package.Category?.CategoryName</div>
-                    <div class="package-price">$@package.Price.ToString("N2")</div>
-                    @if (bookingCount > 0)
-                    {
-                        <span class="badge bg-warning text-dark mt-1">@bookingCount Active Booking(s)</span>
-                    }
                 </div>
             </div>
         }
@@ -49,7 +52,6 @@
                         <svg class="w-4 h-4 rtl:rotate-180" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m15 19-7-7 7-7" /></svg>
                     </button>
                 </li>
-
                 @for (int i = 1; i <= Model.TotalPages; i++)
                 {
                     <li>
@@ -59,7 +61,6 @@
                         </button>
                     </li>
                 }
-
                 <li>
                     <button onclick="loadPage(@(Model.CurrentPage + 1))"
                             class="page-link rounded-end @(Model.CurrentPage == Model.TotalPages ? "disabled" : "")"

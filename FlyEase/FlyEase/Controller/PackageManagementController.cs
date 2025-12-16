@@ -12,23 +12,20 @@ namespace FlyEase.Controllers
     {
         private readonly FlyEaseDbContext _context;
         private readonly IWebHostEnvironment _environment;
-        private readonly StripeService _stripeService;
-        private readonly EmailService _emailService;
 
-        public PackageManagementController(FlyEaseDbContext context, IWebHostEnvironment environment, StripeService stripeService, EmailService emailService)
+        public PackageManagementController(FlyEaseDbContext context, IWebHostEnvironment environment)
         {
             _context = context;
             _environment = environment;
-            _stripeService = stripeService;
-            _emailService = emailService;
         }
 
-        public async Task<IActionResult> PackageManagement()
+        // 1. Main Page Load
+        public async Task<IActionResult> PackageManagement(int page = 1)
         {
-            return View(await LoadViewModelAsync());
+            return View(await LoadViewModelAsync(page));
         }
 
-        // === 1. NEW: API to get single package data ===
+        // 2. AJAX: Get Single Package for Editing
         [HttpGet]
         public async Task<IActionResult> GetPackage(int id)
         {
@@ -39,8 +36,7 @@ namespace FlyEase.Controllers
 
             if (p == null) return NotFound();
 
-            // Return pure JSON data
-            var data = new
+            return Json(new
             {
                 p.PackageID,
                 p.PackageName,
@@ -56,42 +52,48 @@ namespace FlyEase.Controllers
                 Inclusions = p.PackageInclusions.Select(i => i.InclusionItem).ToList(),
                 Itinerary = p.Itinerary.OrderBy(i => i.DayNumber).Select(i => new { i.DayNumber, i.Title, i.ActivityDescription }).ToList(),
                 Images = !string.IsNullOrEmpty(p.ImageURL) ? p.ImageURL.Split(';', StringSplitOptions.RemoveEmptyEntries) : new string[0]
-            };
-            return Json(data);
+            });
         }
 
-        // === 2. NEW: API to get updated list HTML ===
+        // 3. AJAX: Refresh List (With Pagination)
         [HttpGet]
-        public async Task<IActionResult> GetPackageList()
+        public async Task<IActionResult> GetPackageList(int page = 1)
         {
-            var packages = await _context.Packages
+            int pageSize = 4;
+            var query = _context.Packages
                 .Include(p => p.Category)
                 .Include(p => p.Bookings)
-                .OrderByDescending(p => p.PackageID)
-                .ToListAsync();
+                .OrderByDescending(p => p.PackageID);
 
-            return PartialView("_PackageListPartial", packages);
+            int totalItems = await query.CountAsync();
+            var items = await query.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
+
+            var vm = new PackageManagementViewModel
+            {
+                Packages = items,
+                CurrentPage = page,
+                TotalPages = (int)Math.Ceiling(totalItems / (double)pageSize),
+                PageSize = pageSize
+            };
+
+            // Pass the whole VM so partial has access to CurrentPage/TotalPages
+            return PartialView("_PackageListPartial", vm);
         }
 
-        // === 3. UPDATED: Create with AJAX support ===
+        // 4. Create Action
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(CreatePackageRequest request)
         {
             if (!ModelState.IsValid)
             {
-                // Return JSON error if AJAX
-                if (IsAjaxRequest()) return Json(new { success = false, message = "Validation failed. Please check inputs." });
-
-                // Fallback for normal post
-                var vm = await LoadViewModelAsync();
-                vm.Message = "Validation Error";
-                vm.IsSuccess = false;
-                return View("PackageManagement", vm);
+                if (IsAjaxRequest()) return Json(new { success = false, message = "Validation failed." });
+                return View("PackageManagement", await LoadViewModelAsync());
             }
 
             try
             {
+                // Image Handling
                 var imagePaths = new List<string>();
                 if (request.ImageFiles != null && request.ImageFiles.Count > 0)
                 {
@@ -130,7 +132,7 @@ namespace FlyEase.Controllers
                 }
 
                 // Add Itinerary
-                if (request.Itinerary != null && request.Itinerary.Any())
+                if (request.Itinerary != null)
                 {
                     foreach (var item in request.Itinerary)
                     {
@@ -142,22 +144,16 @@ namespace FlyEase.Controllers
                 await _context.SaveChangesAsync();
 
                 if (IsAjaxRequest()) return Json(new { success = true, message = "Package created successfully!" });
-
-                var viewModel = await LoadViewModelAsync();
-                viewModel.Message = "Package created successfully!";
-                viewModel.IsSuccess = true;
-                return View("PackageManagement", viewModel);
+                return RedirectToAction("PackageManagement");
             }
             catch (Exception ex)
             {
                 if (IsAjaxRequest()) return Json(new { success = false, message = "Error: " + ex.Message });
-                var vm = await LoadViewModelAsync();
-                vm.Message = ex.Message;
-                return View("PackageManagement", vm);
+                return View("PackageManagement", await LoadViewModelAsync());
             }
         }
 
-        // === 4. UPDATED: Update with AJAX support ===
+        // 5. Update Action
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Update(UpdatePackageRequest request)
@@ -173,7 +169,6 @@ namespace FlyEase.Controllers
                 var existingPackage = await _context.Packages.Include(p => p.PackageInclusions).Include(p => p.Itinerary).FirstOrDefaultAsync(p => p.PackageID == request.PackageID);
                 if (existingPackage == null) return NotFound();
 
-                // Image Logic (Simplified for brevity, keep your full logic)
                 var currentImages = string.IsNullOrEmpty(existingPackage.ImageURL) ? new List<string>() : existingPackage.ImageURL.Split(';', StringSplitOptions.RemoveEmptyEntries).ToList();
 
                 // Handle Deletions
@@ -226,7 +221,6 @@ namespace FlyEase.Controllers
                 await _context.SaveChangesAsync();
 
                 if (IsAjaxRequest()) return Json(new { success = true, message = "Package updated successfully!" });
-
                 return RedirectToAction("PackageManagement");
             }
             catch (Exception ex)
@@ -236,16 +230,56 @@ namespace FlyEase.Controllers
             }
         }
 
-        // KEEP your Delete, HandleImageUpload, DeleteImageFile, methods here (omitted for space, do not delete them)
-        // ...
-
-        private bool IsAjaxRequest()
+        // 6. Delete Action
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Delete(int id)
         {
-            return Request.Headers["X-Requested-With"] == "XMLHttpRequest";
+            try
+            {
+                var package = await _context.Packages.FindAsync(id);
+                if (package != null)
+                {
+                    if (!string.IsNullOrEmpty(package.ImageURL))
+                    {
+                        foreach (var img in package.ImageURL.Split(';', StringSplitOptions.RemoveEmptyEntries)) DeleteImageFile(img);
+                    }
+                    _context.Packages.Remove(package);
+                    await _context.SaveChangesAsync();
+                }
+
+                if (IsAjaxRequest()) return Json(new { success = true, message = "Deleted successfully" });
+                return RedirectToAction("PackageManagement");
+            }
+            catch
+            {
+                if (IsAjaxRequest()) return Json(new { success = false, message = "Error deleting" });
+                return RedirectToAction("PackageManagement");
+            }
         }
 
-        // Helper methods... (GetOrCreateCategoryId, LoadViewModelAsync etc)
-        // ... (Keep your existing implementations)
+        // --- Helpers ---
+        private async Task<PackageManagementViewModel> LoadViewModelAsync(int page = 1)
+        {
+            int pageSize = 4;
+            var query = _context.Packages
+                .Include(p => p.Category)
+                .Include(p => p.PackageInclusions)
+                .Include(p => p.Bookings)
+                .OrderByDescending(p => p.PackageID);
+
+            int totalItems = await query.CountAsync();
+            var items = await query.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
+
+            return new PackageManagementViewModel
+            {
+                Packages = items,
+                Categories = await _context.PackageCategories.OrderBy(c => c.CategoryName).ToListAsync(),
+                CurrentPage = page,
+                TotalPages = (int)Math.Ceiling(totalItems / (double)pageSize),
+                PageSize = pageSize
+            };
+        }
 
         private async Task<int> GetOrCreateCategoryId(int? categoryId, string? newCategoryName)
         {
@@ -259,35 +293,7 @@ namespace FlyEase.Controllers
                 await _context.SaveChangesAsync();
                 return newCat.CategoryID;
             }
-            return 0;
-        }
-
-        private async Task<PackageManagementViewModel> LoadViewModelAsync()
-        {
-            return new PackageManagementViewModel
-            {
-                Packages = await _context.Packages
-                    .Include(p => p.Category)
-                    .Include(p => p.PackageInclusions)
-                    .Include(p => p.Bookings)
-                    .OrderByDescending(p => p.PackageID)
-                    .ToListAsync(),
-                Categories = await _context.PackageCategories.OrderBy(c => c.CategoryName).ToListAsync()
-            };
-        }
-
-        // Ensure DeleteImageFile and HandleImageUpload are kept as they were in your code
-        private void DeleteImageFile(string? imageUrl)
-        {
-            if (!string.IsNullOrEmpty(imageUrl) && !imageUrl.Contains("default-package.jpg"))
-            {
-                try
-                {
-                    var path = Path.Combine(_environment.WebRootPath, imageUrl.TrimStart('/').Replace("/", "\\"));
-                    if (System.IO.File.Exists(path)) System.IO.File.Delete(path);
-                }
-                catch { }
-            }
+            return 0; // Or handle default category
         }
 
         private async Task<string> HandleImageUpload(IFormFile? imageFile)
@@ -304,6 +310,24 @@ namespace FlyEase.Controllers
                 await imageFile.CopyToAsync(stream);
             }
             return $"/img/{fileName}";
+        }
+
+        private void DeleteImageFile(string? imageUrl)
+        {
+            if (!string.IsNullOrEmpty(imageUrl) && !imageUrl.Contains("default-package.jpg"))
+            {
+                try
+                {
+                    var path = Path.Combine(_environment.WebRootPath, imageUrl.TrimStart('/').Replace("/", "\\"));
+                    if (System.IO.File.Exists(path)) System.IO.File.Delete(path);
+                }
+                catch { }
+            }
+        }
+
+        private bool IsAjaxRequest()
+        {
+            return Request.Headers["X-Requested-With"] == "XMLHttpRequest";
         }
     }
 }

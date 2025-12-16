@@ -34,16 +34,19 @@
     grid-template-columns: 1fr 1.2fr;
     gap: 30px;
     margin-top: 20px;
+    align-items: start;
 }
 
 /* =========================================
-   2. FORM STYLES
+   2. FORM & LIST CARD STYLES
    ========================================= */
 .form-card, .list-card {
     background: white;
     border-radius: 15px;
     box-shadow: 0 5px 25px rgba(0,0,0,0.1);
     overflow: hidden;
+    height: fit-content;
+    align-self: start;
 }
 
 .form-header, .list-header {
@@ -101,7 +104,6 @@
     margin-top: 25px;
 }
 
-/* Error Text Styling */
 .text-danger {
     font-size: 0.875em;
     margin-top: 0.25rem;
@@ -143,6 +145,13 @@
     box-shadow: 0 5px 15px rgba(0,0,0,0.2);
 }
 
+/* Smaller buttons for card actions */
+.btn-sm {
+    padding: 6px 12px;
+    font-size: 0.875rem;
+    border-radius: 4px;
+}
+
 /* =========================================
    4. IMAGE GALLERY STYLES
    ========================================= */
@@ -155,8 +164,8 @@
 
 .gallery-item {
     position: relative;
-    width: 120px;
-    height: 120px;
+    width: 100px;
+    height: 100px;
     border: 2px solid #ddd;
     border-radius: 8px;
     overflow: hidden;
@@ -177,13 +186,13 @@
         background: rgba(255, 68, 68, 0.9);
         color: white;
         border-radius: 50%;
-        width: 24px;
-        height: 24px;
+        width: 20px;
+        height: 20px;
         text-align: center;
-        line-height: 22px;
+        line-height: 18px;
         cursor: pointer;
         font-weight: bold;
-        font-size: 14px;
+        font-size: 12px;
         border: 2px solid white;
         z-index: 10;
         transition: all 0.2s;
@@ -208,9 +217,9 @@
             transform: translate(-50%, -50%);
             color: red;
             font-weight: 900;
-            font-size: 14px;
+            font-size: 10px;
             background: rgba(255,255,255,0.8);
-            padding: 4px 8px;
+            padding: 2px 4px;
             border-radius: 4px;
             pointer-events: none;
         }
@@ -230,12 +239,34 @@
    6. PACKAGES LIST GRID
    ========================================= */
 .packages-grid {
+    padding: 15px;
+    max-height: 700px;
+    overflow-y: auto;
+    height: auto;
+}
+
+    .packages-grid::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    .packages-grid::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 4px;
+    }
+
+    .packages-grid::-webkit-scrollbar-thumb {
+        background: #ccc;
+        border-radius: 4px;
+    }
+
+        .packages-grid::-webkit-scrollbar-thumb:hover {
+            background: #999;
+        }
+
+.packages-grid-content {
     display: grid;
     grid-template-columns: 1fr;
     gap: 20px;
-    max-height: 600px;
-    overflow-y: auto;
-    padding: 10px;
 }
 
 .package-management-card {
@@ -269,46 +300,6 @@
     transform: scale(1.05);
 }
 
-.package-actions {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    display: flex;
-    gap: 5px;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-}
-
-.package-management-card:hover .package-actions {
-    opacity: 1;
-}
-
-.btn-edit, .btn-delete {
-    width: 35px;
-    height: 35px;
-    border: none;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-size: 14px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-.btn-edit {
-    background: #28a745;
-}
-
-.btn-delete {
-    background: #dc3545;
-}
-
-    .btn-edit:hover, .btn-delete:hover {
-        transform: scale(1.1);
-    }
-
 .package-content {
     padding: 15px;
 }
@@ -332,33 +323,11 @@
     margin: 8px 0;
 }
 
-.package-details {
-    display: flex;
-    justify-content: space-between;
-    margin-top: 10px;
-    padding-top: 10px;
-    border-top: 1px solid #e9ecef;
-    font-size: 0.8rem;
-    color: #666;
-}
-
-/* Empty State & Alerts */
 .empty-state {
     text-align: center;
     padding: 40px 20px;
     color: #666;
 }
-
-    .empty-state i {
-        font-size: 3rem;
-        color: #dee2e6;
-        margin-bottom: 15px;
-    }
-
-    .empty-state h4 {
-        margin: 0 0 10px 0;
-        color: #333;
-    }
 
 .alert {
     border-radius: 10px;
@@ -386,7 +355,7 @@
 }
 
 /* =========================================
-   7. CUSTOM CALENDAR WIDGET STYLES (UPDATED)
+   7. CALENDAR WIDGET
    ========================================= */
 body {
     background-color: #F5F1E9;
@@ -394,16 +363,16 @@ body {
 
 .calendar-wrapper {
     position: relative;
-    max-width: 100%; /* Ensure it doesn't break layout */
+    max-width: 100%;
 }
 
 .flyease-calendar {
     font-family: 'Lato', sans-serif;
-    width: 280px; /* Reduced width */
+    width: 250px;
     background: #fff;
     box-shadow: 0 5px 15px rgba(0,0,0,0.2);
     border-radius: 12px;
-    display: none; /* Hidden by default */
+    display: none;
     position: absolute;
     top: 100%;
     left: 0;
@@ -417,7 +386,7 @@ body {
 
 .calendar-header {
     width: 100%;
-    height: 45px; /* Reduced height */
+    height: 40px;
     text-align: center;
     background-color: #FF6860;
     padding: 0;
@@ -429,7 +398,7 @@ body {
 }
 
     .calendar-header h1 {
-        font-size: 1em; /* Smaller font */
+        font-size: 0.9em;
         color: #FFFFFF;
         margin: 0;
         font-weight: bold;
@@ -439,7 +408,7 @@ body {
     .calendar-header i {
         color: #FFFFFF;
         cursor: pointer;
-        font-size: 1em;
+        font-size: 0.9em;
         width: 25px;
         height: 25px;
         line-height: 25px;
@@ -461,12 +430,12 @@ body {
 }
 
     .calendar-weekdays div {
-        width: 40px; /* 280px / 7 */
+        width: 35px;
         float: left;
         height: 30px;
         line-height: 30px;
         text-align: center;
-        font-size: 0.75em;
+        font-size: 0.7em;
         font-weight: bold;
     }
 
@@ -479,15 +448,15 @@ body {
 
     .calendar-content div {
         float: left;
-        width: 40px; /* 280px / 7 */
-        height: 35px; /* Reduced height */
-        line-height: 35px;
+        width: 35px;
+        height: 30px;
+        line-height: 30px;
         text-align: center;
         cursor: pointer;
         margin-bottom: 0;
         border-radius: 4px;
         transition: background-color 0.2s;
-        font-size: 0.9em;
+        font-size: 0.8em;
     }
 
         .calendar-content div:hover:not(.blank):not(.disabled) {
@@ -510,7 +479,6 @@ body {
             color: #fff !important;
         }
 
-        /* Disabled State for End Date < Start Date */
         .calendar-content div.disabled {
             color: #ccc;
             background-color: #f9f9f9;
@@ -519,69 +487,12 @@ body {
         }
 
 /* =========================================
-   8. RESPONSIVE MEDIA QUERIES
-   ========================================= */
-@media (max-width: 1024px) {
-    .management-grid {
-        grid-template-columns: 1fr;
-    }
-}
-
-@media (max-width: 768px) {
-    .form-row {
-        grid-template-columns: 1fr;
-    }
-
-    .management-container {
-        padding: 15px;
-    }
-
-    .form-actions {
-        flex-direction: column;
-    }
-
-    .btn {
-        width: 100%;
-        justify-content: center;
-    }
-}
-
-@media (max-width: 480px) {
-    .management-hero {
-        height: 150px;
-    }
-
-    .hero-content h1 {
-        font-size: 2rem;
-    }
-
-    .hero-content p {
-        font-size: 1rem;
-    }
-
-    .form-body {
-        padding: 15px;
-    }
-
-    .package-details {
-        flex-direction: column;
-        gap: 5px;
-    }
-}
-/* =========================================
-   EXISTING STYLES ... (Keep your previous styles here)
-   ========================================= */
-
-/* ... (Your previous CSS code) ... */
-
-/* =========================================
-   9. PAGINATION STYLES
+   8. PAGINATION STYLES
    ========================================= */
 .pagination-nav {
     display: flex;
     justify-content: center;
     margin-top: 20px;
-    padding-bottom: 20px;
 }
 
 .pagination-list {
@@ -589,7 +500,7 @@ body {
     list-style: none;
     padding: 0;
     margin: 0;
-    font-size: 0.875rem; /* text-sm */
+    font-size: 0.875rem;
     line-height: 1.25rem;
 }
 
@@ -597,7 +508,6 @@ body {
         display: flex;
     }
 
-        /* Remove double borders */
         .pagination-list li:not(:first-child) .page-link {
             margin-left: -1px;
         }
@@ -606,8 +516,8 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 2.5rem; /* w-10 */
-    height: 2.5rem; /* h-10 */
+    width: 2.5rem;
+    height: 2.5rem;
     padding: 0;
     background-color: #ffffff;
     border: 1px solid #dee2e6;
@@ -625,8 +535,8 @@ body {
     }
 
     .page-link.active {
-        background-color: #e0f2fe; /* Light blue brand tint */
-        color: #0077b6; /* Brand color */
+        background-color: #e0f2fe;
+        color: #0077b6;
         border-color: #0077b6;
         z-index: 3;
     }
@@ -663,4 +573,32 @@ body {
     clip: rect(0, 0, 0, 0);
     white-space: nowrap;
     border-width: 0;
+}
+
+/* =========================================
+   9. RESPONSIVE
+   ========================================= */
+@media (max-width: 1024px) {
+    .management-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+
+    .management-container {
+        padding: 15px;
+    }
+
+    .form-actions {
+        flex-direction: column;
+    }
+
+    .btn {
+        width: 100%;
+        justify-content: center;
+    }
 }
