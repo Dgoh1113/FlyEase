@@ -1,11 +1,12 @@
 ﻿using FlyEase.Data;
 using FlyEase.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Localization; // Added for Localization
+using Microsoft.AspNetCore.Localization;
 using Microsoft.EntityFrameworkCore;
 using Stripe;
-using System.Globalization; // Added for Localization
-using FlyEase.Model; // <--- ADD THIS LINE
+using System.Globalization;
+using FlyEase.Model;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add logging
@@ -14,27 +15,25 @@ builder.Logging.AddConsole();
 builder.Logging.AddDebug();
 builder.Logging.SetMinimumLevel(LogLevel.Information);
 
+// Configure Stripe Settings
 builder.Services.Configure<StripeSettings>(builder.Configuration.GetSection("Stripe"));
-
-// 2. Set the global Stripe API Key immediately
 StripeConfiguration.ApiKey = builder.Configuration["Stripe:SecretKey"];
 
-// 3. Register the StripeService so Controllers can use it
-builder.Services.AddScoped<StripeService>();
+// 1. REGISTER SERVICES
+// ====================================================================
+builder.Services.AddScoped<StripeService>(); // Existing Stripe Service
+builder.Services.AddTransient<EmailService>(); // <--- ADD THIS LINE (Fixes the error)
+builder.Services.AddScoped<IEmailService, ForgetEmailService>(); // Existing Forget Password Service
 // ====================================================================
 
 string path = builder.Environment.ContentRootPath;
 AppDomain.CurrentDomain.SetData("DataDirectory", path);
 
-// ====================================================================
-// 2. REGISTER SERVICES (Modified for Localization)
-// ====================================================================
-
 builder.Services.AddSingleton<IConfiguration>(builder.Configuration);
-// A. Add Localization Service (Points to "Resources" folder)
+
+// Add Localization Service
 builder.Services.AddLocalization(options => options.ResourcesPath = "Resources");
 
-// B. Update ControllersWithViews to support View Localization
 builder.Services.AddControllersWithViews()
     .AddViewLocalization(Microsoft.AspNetCore.Mvc.Razor.LanguageViewLocationExpanderFormat.Suffix)
     .AddDataAnnotationsLocalization();
@@ -44,11 +43,11 @@ builder.Services.AddDbContext<FlyEaseDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
-builder.Services.AddScoped<IEmailService, ForgetEmailService>();
+
 // Add session support
 builder.Services.AddSession(options =>
 {
-    options.IdleTimeout = TimeSpan.FromMinutes(5); // Shorter for reset links
+    options.IdleTimeout = TimeSpan.FromMinutes(5);
     options.Cookie.HttpOnly = true;
     options.Cookie.IsEssential = true;
     options.Cookie.Name = "FlyEase.Session";
@@ -62,25 +61,17 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.LoginPath = "/Auth/Login";
         options.LogoutPath = "/Auth/Logout";
         options.AccessDeniedPath = "/Auth/AccessDenied";
-        options.ExpireTimeSpan = TimeSpan.FromHours(1); // Default session length
+        options.ExpireTimeSpan = TimeSpan.FromHours(1);
         options.SlidingExpiration = true;
-        
-        // Important: Set cookie options
         options.Cookie.HttpOnly = true;
         options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
         options.Cookie.SameSite = SameSiteMode.Lax;
     });
 
-
-// Add Authorization
 builder.Services.AddAuthorization();
-
-// Add distributed memory cache (required for session)
 builder.Services.AddDistributedMemoryCache();
 
 var app = builder.Build();
-
-
 
 // Configure the HTTP request pipeline
 if (!app.Environment.IsDevelopment())
@@ -91,24 +82,19 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-// ====================================================================
-// 4. ADD LOCALIZATION MIDDLEWARE (Multi-Language Support)
-// ====================================================================
-var supportedCultures = new[] { "en", "ms", "zh-CN" }; // English, Malay, Chinese
+// Localization Middleware
+var supportedCultures = new[] { "en", "ms", "zh-CN" };
 var localizationOptions = new RequestLocalizationOptions()
     .SetDefaultCulture("en")
     .AddSupportedCultures(supportedCultures)
     .AddSupportedUICultures(supportedCultures);
 
 app.UseRequestLocalization(localizationOptions);
-// ====================================================================
 
 app.UseStaticFiles();
 app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
-
-// Add session middleware
 app.UseSession();
 
 app.MapControllerRoute(

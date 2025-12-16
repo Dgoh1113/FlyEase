@@ -1,1 +1,183 @@
-﻿
+﻿/* Report Page Styling */
+
+.summary-card {
+    transition: all 0.3s ease;
+    background-color: var(--bg-card, #fff);
+}
+
+    .summary-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15) !important;
+    }
+
+    .summary-card .card-body {
+        padding: 1.5rem;
+    }
+
+    .summary-card h4 {
+        color: #333;
+        font-size: 1.75rem;
+    }
+
+    .summary-card p {
+        font-size: 0.875rem;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+    }
+
+/* Table Styling */
+.table-responsive {
+    border-radius: 8px;
+}
+
+.table thead th {
+    background-color: #f8f9fa;
+    border-bottom: 2px solid #dee2e6;
+    font-weight: 700;
+    color: #333;
+    text-transform: uppercase;
+    font-size: 0.8rem;
+    letter-spacing: 0.5px;
+    padding: 1rem 0.75rem;
+}
+
+.table tbody tr {
+    border-bottom: 1px solid #dee2e6;
+    transition: all 0.2s ease;
+}
+
+    .table tbody tr:hover {
+        background-color: #f8f9fa;
+    }
+
+.table tbody td {
+    padding: 1rem 0.75rem;
+    vertical-align: middle;
+}
+
+/* Badge Styling */
+.badge {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    border-radius: 4px;
+}
+
+/* Chart Container */
+canvas {
+    max-height: 100%;
+}
+
+/* Filter Card */
+.card-header {
+    background-color: #fff;
+    border-bottom: 2px solid #f1f3f5;
+}
+
+    .card-header h5 {
+        color: #4e73df;
+        margin-bottom: 0;
+    }
+
+/* Export Button */
+.btn-danger {
+    background-color: #e74a3b;
+    border-color: #e74a3b;
+    transition: all 0.3s ease;
+}
+
+    .btn-danger:hover {
+        background-color: #d63126;
+        border-color: #d63126;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(231, 74, 59, 0.3);
+    }
+
+/* Responsive */
+@media (max-width: 768px) {
+    .table {
+        font-size: 0.85rem;
+    }
+
+    .summary-card .card-body {
+        padding: 1rem;
+    }
+
+    .summary-card h4 {
+        font-size: 1.5rem;
+    }
+}
+
+@media print {
+    /* 1. Hide Sidebar, Navbar, and Buttons */
+    #sidebar-wrapper,
+    .navbar,
+    .btn,
+    #menu-toggle {
+        display: none !important;
+    }
+
+    /* 2. Reset Layout Constraints */
+    #wrapper {
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+
+    #page-content-wrapper {
+        margin-left: 0 !important;
+        width: 100% !important;
+        padding: 0 !important;
+    }
+
+    /* 3. Ensure Content fits */
+    .container-fluid, #printable-area {
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    /* Optional: Remove shadows/backgrounds to save ink */
+    .card {
+        box-shadow: none !important;
+        border: 1px solid #ddd !important;
+    }
+}
+
+/* Report Switcher Buttons */
+.btn-group {
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+    .btn-group .btn {
+        border-radius: 6px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        padding: 0.5rem 1rem;
+    }
+
+        .btn-group .btn.active {
+            background-color: #4e73df;
+            color: white;
+            box-shadow: 0 4px 8px rgba(78, 115, 223, 0.3);
+        }
+
+    .btn-group .btn-outline-primary:hover {
+        background-color: #4e73df;
+        color: white;
+    }
+
+/* Progress bars styling */
+.progress {
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.progress-bar {
+    font-size: 0.75rem;
+    font-weight: bold;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}

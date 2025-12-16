@@ -1,24 +1,38 @@
 /* =========================================
-   1. THEME CONTROL CENTER
+   0. FONTS & IMPORTS
+   ========================================= */
+@import url('https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@100..900&display=swap');
+
+/* =========================================
+   1. THEME VARIABLES
    ========================================= */
 :root {
-    /* --- COLORS --- */
+    /* Colors */
     --bg-body: #f0f2f5;
     --bg-card: #ffffff;
     --bg-input: #f8f9fa;
     --text-main: #2d3436;
     --text-muted: #636e72;
-    --text-inverse: black;
     --accent-primary: #0066a1;
     --accent-hover: #00a3e0;
     --accent-secondary: #ff9f43;
-    /* --- MODERN UI VARIABLES --- */
-    --border-radius-card: 24px;
+    /* Dimensions */
+    --expanded: 16.875rem; /* ~270px */
+    --collapsed: 4.5rem; /* ~72px */
+
+    --item-height: 3rem;
+    /* UPDATED: More Rounded Layout Variables */
+    --border-radius-inner: 50px; /* Pill shape for sidebar items */
+    --border-radius-card: 30px; /* Softer cards */
     --border-radius-btn: 50px;
-    --border-radius-input: 16px;
+    --border-radius-input: 20px;
+    /* UI Elements */
     --shadow-soft: 0 10px 40px -10px rgba(0,0,0,0.08);
     --shadow-hover: 0 20px 50px -10px rgba(0,0,0,0.15);
     --grad-header: linear-gradient(135deg, #0066a1 0%, #00a3e0 100%);
+    /* Fonts */
+    --bs-body-font-family: 'Roboto Slab', serif;
+    --bs-font-sans-serif: 'Roboto Slab', serif;
 }
 
 [data-bs-theme="dark"] {
@@ -31,171 +45,341 @@
 }
 
 /* =========================================
-   2. GLOBAL RESET & TYPOGRAPHY
+   2. GLOBAL LAYOUT
    ========================================= */
 body {
-    font-family: 'Poppins', sans-serif !important;
+    box-sizing: border-box;
+    margin: 0;
+    min-height: 100vh;
+    font-family: 'Roboto Slab', serif !important;
+    font-weight: 300;
     background-color: var(--bg-body);
-    /* CHANGED: Use variable instead of 'black' so it switches to white in dark mode */
     color: var(--text-main);
-    line-height: 1.6;
+    overflow-x: hidden;
 }
 
-a {
-    text-decoration: none;
-    /* Optional: Ensure links inherit color or use accent */
-    color: inherit;
+h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
+    font-family: 'Roboto Slab', serif !important;
+    font-weight: 500 !important;
+}
+
+.layout-wrapper {
+    display: flex;
+    width: 100%;
+    min-height: 100vh;
+}
+
+/* Fixed Header */
+header.fixed-top {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+    height: var(--header-height);
+    z-index: 1040;
+}
+
+[data-bs-theme="dark"] header.fixed-top {
+    background: rgba(30, 30, 30, 0.85);
+}
+
+.navbar-brand {
+    /* UPDATED: Smaller font size */
+    font-size: 1.25rem;
+    font-weight: 500;
+    color: var(--text-main) !important;
+}
+
+/* Main Content Area */
+main {
+    margin-top: var(--header-height);
+    min-height: calc(100vh - var(--header-height));
+    transition: all 0.3s ease;
 }
 
 /* =========================================
-   3. MODERN CARDS
+   3. SIDEBAR STYLES (Consolidated)
    ========================================= */
-.card,
-.package-card,
-.dashboard-card,
-.search-container-custom {
+.vertical-sidebar {
+    display: flex;
+    width: var(--collapsed);
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    z-index: 1040;
+    background: var(--bg-card);
+    border-right: 1px solid rgba(0,0,0,0.05);
+    transition: width 300ms ease-out;
+}
+
+    .vertical-sidebar:has(.checkbox-input:checked) {
+        width: var(--expanded);
+    }
+
+.checkbox-input {
+    display: none;
+}
+
+nav.sidebar-nav {
+    display: flex;
+    flex-flow: column;
+    width: 100%;
+    height: 100%;
+    padding: 1rem 0.75rem; /* Slightly more side padding for rounded look */
+}
+
+/* Header & Logo */
+header.sidebar-header {
+    display: flex;
+    flex-flow: column;
+    justify-content: center;
+    /* UPDATED: Reduce gap and margin to save space */
+    gap: 0.25rem;
+    margin-bottom: 0.5rem;
+}
+
+.sidebar__toggle-container {
+    height: var(--item-height);
+    display: flex;
+    justify-content: center;
+}
+
+.vertical-sidebar:has(.checkbox-input:checked) .sidebar__toggle-container {
+    justify-content: flex-end;
+}
+
+.nav__toggle {
+    height: 100%;
+    width: var(--item-height);
+    background: none;
+    /* Uses new rounded variable */
+    border-radius: var(--border-radius-inner);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+    .nav__toggle:hover {
+        background-color: rgba(0,0,0,0.05);
+        color: var(--accent-primary);
+    }
+
+.toggle--icons {
+    display: grid;
+    place-content: center;
+}
+
+.toggle-svg-icon {
+    grid-area: 1/1;
+    transition: opacity 0.3s;
+    fill: currentColor;
+}
+
+.toggle--open {
+    opacity: 1;
+}
+
+.toggle--close {
+    opacity: 0;
+}
+
+.vertical-sidebar:has(.checkbox-input:checked) .toggle--open {
+    opacity: 0;
+}
+
+.vertical-sidebar:has(.checkbox-input:checked) .toggle--close {
+    opacity: 1;
+}
+
+/* Logo Animation */
+figure.sidebar-logo {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow: hidden;
+    height: 0;
+    opacity: 0;
+    margin: 0;
+    transition: all 0.3s ease;
+}
+
+.vertical-sidebar:has(.checkbox-input:checked) figure.sidebar-logo {
+    opacity: 1;
+    height: auto;
+    /* UPDATED: Reduced margin to prevent pushing content */
+    margin-bottom: 0.5rem;
+}
+
+.user-id {
+    /* UPDATED: Smaller font size */
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: var(--accent-primary);
+    margin: 0;
+}
+
+.user-role {
+    font-size: 0.8rem; /* Slightly smaller */
+    color: var(--text-muted);
+    margin: 0;
+}
+
+/* Menu Items */
+.sidebar__wrapper {
+    display: flex;
+    flex-flow: column;
+    gap: 0.35rem; /* Tighter gap */
+    flex: 1;
+    /* UPDATED: Enable scrolling to prevent "push out" */
+    overflow-y: auto;
+    overflow-x: hidden;
+    min-height: 0; /* Important for flex scrolling */
+    /* Scrollbar Styling */
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0,0,0,0.1) transparent;
+}
+    /* Hide scrollbar for Chrome/Safari/Webkit */
+    .sidebar__wrapper::-webkit-scrollbar {
+        width: 4px;
+    }
+
+    .sidebar__wrapper::-webkit-scrollbar-thumb {
+        background-color: rgba(0,0,0,0.1);
+        border-radius: 4px;
+    }
+
+.sidebar__list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-flow: column;
+    gap: 0.25rem;
+}
+
+.sidebar__item {
+    height: var(--item-height);
+    /* UPDATED: Uses 50px for Pill Shape */
+    border-radius: var(--border-radius-inner);
+}
+
+.item--heading {
+    display: flex;
+    align-items: flex-end;
+    padding-left: 1rem;
+    height: 2rem;
+}
+
+.sidebar__item--heading {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    font-weight: 500;
+    color: var(--text-muted);
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.vertical-sidebar:has(.checkbox-input:checked) .sidebar__item--heading {
+    opacity: 1;
+}
+
+.sidebar__link {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    height: 100%;
+    padding: 0 1rem; /* Adjusted padding for rounded pill look */
+    color: var(--text-main);
+    text-decoration: none;
+    border-radius: inherit;
+    transition: background 0.2s;
+    background: transparent;
+    border: none;
+    width: 100%;
+    text-align: left;
+}
+
+    .sidebar__link:hover {
+        background: rgba(0,0,0,0.05);
+        color: var(--accent-primary);
+    }
+
+    .sidebar__link.active {
+        background: rgba(0, 102, 161, 0.1);
+        color: var(--accent-primary);
+        font-weight: 500; /* Highlight active text weight */
+    }
+
+.icon {
+    width: 1.25rem;
+    display: flex;
+    justify-content: center;
+}
+
+.text {
+    white-space: nowrap;
+    opacity: 0;
+    font-weight: 300;
+    transition: opacity 0.2s;
+}
+
+.vertical-sidebar:has(.checkbox-input:checked) .text {
+    opacity: 1;
+}
+
+/* Tooltips */
+[data-tooltip] {
+    position: relative;
+}
+
+.vertical-sidebar:not(:has(.checkbox-input:checked)) [data-tooltip]:hover::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    left: 100%;
+    top: 50%;
+    transform: translateY(-50%);
+    margin-left: 10px;
+    background: #333;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    white-space: nowrap;
+    z-index: 1050;
+    pointer-events: none;
+}
+
+/* =========================================
+   4. COMPONENTS (Cards, Buttons)
+   ========================================= */
+.card, .package-card, .dashboard-card {
     background-color: var(--bg-card);
     border: none !important;
     border-radius: var(--border-radius-card) !important;
     box-shadow: var(--shadow-soft) !important;
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    color: var(--text-main);
     overflow: hidden;
-    margin-bottom: 24px;
-    /* Added: Ensure text inside cards is correct color */
-    color: var(--text-main);
 }
 
-    .card:hover, .package-card:hover {
-        transform: translateY(-8px);
+    .card:hover {
         box-shadow: var(--shadow-hover) !important;
-    }
-
-.card-body {
-    padding: 2rem !important;
-}
-
-/* =========================================
-   4. HEADER & NAVIGATION
-   ========================================= */
-header.fixed-top {
-    background: rgba(255, 255, 255, 0.01) !important;
-    backdrop-filter: blur(20px);
-    border-bottom: none !important;
-    height: 80px;
-}
-
-[data-bs-theme="dark"] header.fixed-top {
-    background: rgba(18, 18, 18, 0.5) !important;
-}
-
-.container-fluid.d-flex.align-items-center {
-    /* REMOVED: background-color: slategrey; - This was hardcoded and ugly */
-    background-color: transparent;
-}
-
-.navbar-brand, .btn-hamburger {
-    padding: 12px 24px !important;
-    border-radius: 12px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    margin-right: 15px;
-    transition: transform 0.2s ease, background-color 0.2s ease;
-    /* Added: Ensure brand text uses theme color */
-    color: var(--text-main);
-}
-
-.navbar-brand {
-    font-size: 1.5rem;
-    font-weight: 700;
-    letter-spacing: -0.5px;
-}
-
-/* --- UPDATED HAMBURGER BUTTON --- */
-.btn-hamburger {
-    border: none !important;
-    box-shadow: none !important;
-    height: 10%; /* Be careful with % height, usually auto or px is safer */
-    color: var(--text-main); /* Ensure icon is visible */
-}
-
-    .btn-hamburger:hover {
-        color: var(--accent-primary) !important;
-        transform: scale(1.1);
-        background: transparent !important;
-    }
-
-/* =========================================
-   5. SIDEBAR (Updated Width)
-   ========================================= */
-.offcanvas {
-    border-radius: 0 30px 30px 0;
-    border: none;
-    background-color: var(--bg-card);
-    width: 380px !important;
-}
-
-.list-group-item {
-    border: none;
-    margin-bottom: 8px;
-    border-radius: 12px !important;
-    padding: 14px 24px;
-    font-weight: 500;
-    /* CHANGED: Use variable so it turns white in dark mode */
-    color: var(--text-main);
-    background-color: transparent; /* Use transparent so it takes parent bg */
-}
-
-    .list-group-item:hover,
-    .list-group-item.active {
-        background-color: rgba(0, 102, 161, 0.08);
-        /* CHANGED: Keep text readable on hover (or use primary color) */
-        color: var(--accent-primary);
-    }
-
-    .list-group-item i {
-        width: 30px;
-        /* CHANGED: Icon follows text color */
-        color: inherit;
-    }
-
-/* =========================================
-   6. INPUTS & BUTTONS
-   ========================================= */
-.form-control,
-.form-select {
-    background-color: var(--bg-input);
-    border: 1px solid transparent;
-    border-radius: var(--border-radius-input);
-    padding: 12px 20px;
-    font-size: 0.95rem;
-    transition: all 0.3s;
-    /* Added: Ensure input text color is correct */
-    color: var(--text-main);
-}
-
-    .form-control:focus {
-        background-color: var(--bg-card);
-        border-color: var(--accent-primary);
-        box-shadow: 0 0 0 4px rgba(0, 102, 161, 0.1);
-        color: var(--text-main);
+        transform: translateY(-5px);
     }
 
 .btn {
     border-radius: var(--border-radius-btn);
     padding: 10px 24px;
-    font-weight: 600;
-    letter-spacing: 0.3px;
+    font-weight: 500;
     text-transform: uppercase;
     font-size: 0.85rem;
-    box-shadow: 0 4px 15px rgba(0, 102, 161, 0.2);
     border: none;
-    color: white; /* Buttons usually keep white text if they have background */
 }
 
 .btn-primary {
     background: var(--grad-header);
     color: white;
+    box-shadow: 0 4px 15px rgba(0, 102, 161, 0.2);
 }
 
     .btn-primary:hover {
@@ -203,78 +387,34 @@ header.fixed-top {
         transform: translateY(-1px);
     }
 
-/* =========================================
-   7. EXTRAS
-   ========================================= */
-.package-card .card-img-wrapper {
-    border-radius: var(--border-radius-card);
-    margin: 10px;
-    overflow: hidden;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+.form-control {
+    background-color: var(--bg-input);
+    border: 1px solid transparent;
+    border-radius: var(--border-radius-input);
+    padding: 12px 20px;
+    color: var(--text-main);
+    font-weight: 300;
 }
 
-.price-badge {
-    border-radius: 20px 0 20px 0;
-    padding: 8px 16px;
-    background: var(--accent-secondary);
-    box-shadow: 0 4px 10px rgba(255, 159, 67, 0.4);
-    color: white; /* Ensure badge text is white */
-}
-
-#flybot-window {
-    border-radius: 20px;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.2) !important;
-    border: none !important;
-    overflow: hidden;
-    background-color: var(--bg-card); /* Ensure chat window is dark in dark mode */
-}
-
-#flybot-header {
-    background: var(--grad-header);
-    border-radius: 20px 20px 0 0;
-    color: white;
-}
+    .form-control:focus {
+        background-color: var(--bg-card);
+        border-color: var(--accent-primary);
+        box-shadow: 0 0 0 4px rgba(0, 102, 161, 0.1);
+    }
 
 /* =========================================
-   8. AUTH PAGE FIXES (Add to existing file)
+   5. AUTH PAGES & EXTRAS
    ========================================= */
-
-/* Fix for all pages with fixed header */
-main {
-    margin-top: 80px; /* Height of your fixed header */
-    min-height: calc(100vh - 80px);
-}
-
-
-/* Fix header overlap for auth pages */
-.profile-container,
-.auth-container,
-.register-wrapper,
-.auth-wrapper {
-    margin-top: 80px !important;
-    min-height: calc(100vh - 80px);
+.auth-container, .profile-container {
     display: flex;
+    justify-content: center;
     align-items: center;
-    padding: 40px 0;
-}
-/* Smooth scroll behavior */
-html {
-    scroll-behavior: smooth;
+    padding: 20px;
 }
 
-/* Ensure content doesn't hide behind fixed header */
-:target {
-    scroll-margin-top: 100px;
-}
-
-/* Animation for page transitions */
-.page-enter {
-    animation: pageFadeIn 0.5s ease;
-}
-/* Make the auth card more prominent */
-.auth-card,
-.card.shadow-lg {
-    margin-top: 0;
+.auth-card {
+    width: 100%;
+    max-width: 500px;
     animation: slideUp 0.5s ease-out;
 }
 
@@ -290,64 +430,25 @@ html {
     }
 }
 
-/* Make links more visible */
 .highlight-link {
-    color: var(--accent-primary) !important;
-    font-weight: 600;
-    text-decoration: underline !important;
-    transition: all 0.3s ease;
+    color: var(--accent-primary);
+    font-weight: 500;
+    text-decoration: underline;
 }
 
     .highlight-link:hover {
-        color: var(--accent-hover) !important;
-        text-decoration: none !important;
-        transform: translateY(-1px);
+        color: var(--accent-hover);
     }
 
-/* Terms checkbox styling */
-.terms-check {
-    border: 1px solid rgba(0, 0, 0, 0.1);
-    border-radius: 12px;
-    padding: 15px;
-    background: rgba(0, 0, 0, 0.02);
-    transition: all 0.3s ease;
+/* Chatbot */
+#flybot-window {
+    border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.2) !important;
+    background-color: var(--bg-card);
 }
 
-[data-bs-theme="dark"] .terms-check {
-    border-color: rgba(255, 255, 255, 0.1);
-    background: rgba(255, 255, 255, 0.05);
-}
-
-.terms-check:hover {
-    border-color: var(--accent-primary);
-    box-shadow: 0 0 0 1px rgba(0, 102, 161, 0.2);
-}
-
-/* Password toggle button styling */
-.password-toggle {
-    color: var(--text-muted) !important;
-    transition: color 0.2s ease;
-}
-
-    .password-toggle:hover {
-        color: var(--accent-primary) !important;
-    }
-
-/* Card header styling */
-.booking-header {
-    background: linear-gradient(135deg, #0066a1 0%, #00a3e0 100%);
+#flybot-header {
+    background: var(--grad-header);
+    border-radius: 20px 20px 0 0;
     color: white;
-    border-radius: 15px 15px 0 0 !important;
-    padding: 2rem !important;
 }
-
-    .booking-header h3 {
-        font-weight: 300;
-        font-size: 1.8rem;
-    }
-
-    .booking-header small {
-        opacity: 0.9;
-        font-size: 0.9rem;
-    }
-

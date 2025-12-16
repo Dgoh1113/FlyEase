@@ -2,47 +2,55 @@
 
 @if (Model != null && Model.Any())
 {
-    // NOTICE: We loop through "Model", NOT "Model.MyBookings"
-    @foreach (var b in Model)
+    foreach (var item in Model)
     {
-        // 1. FORCE "Confirmed" to look and act like "Pending"
-        var displayStatus = (b.Status == "Confirmed") ? "Pending" : b.Status;
-
-        // 2. Color Logic based on the NEW displayStatus
-        string statusClass = "bg-secondary";
-        switch (displayStatus)
-        {
-            case "Completed": statusClass = "bg-success"; break;           // Green
-            case "Pending": statusClass = "bg-warning text-dark"; break; // Yellow
-            case "Cancelled": statusClass = "bg-danger"; break;            // Red
-        }
-
         <tr>
-            <td class="text-muted small">#@b.BookingID</td>
-            <td class="fw-bold">@b.PackageTitle</td>
-            <td>@b.BookingDate.ToString("dd MMM yyyy")</td>
-            <td>RM @b.TotalAmount.ToString("N2")</td>
-
-            <td><span class="badge @statusClass">@displayStatus</span></td>
-
+            <td>#@item.BookingID</td>
             <td>
-                @if (displayStatus == "Completed")
+                <span class="fw-bold text-dark">@item.PackageTitle</span>
+            </td>
+            <td>@item.BookingDate.ToString("dd MMM yyyy")</td>
+            <td>
+                @if (item.Status == "Completed")
                 {
-                    @if (b.IsReviewed)
-                    {
-                        <a asp-controller="Feedback" asp-action="Edit" asp-route-bookingId="@b.BookingID"
-                           class="btn btn-sm btn-outline-secondary" title="Edit your review">
-                            <i class="fas fa-edit me-1"></i> Edit
-                        </a>
-                    }
-                    else
-                    {
-                        <a asp-controller="Feedback" asp-action="Create" asp-route-bookingId="@b.BookingID"
-                           class="btn btn-sm btn-outline-warning">
-                            <i class="fas fa-star me-1"></i> Rate
-                        </a>
-                    }
+                    <span class="badge bg-success">Paid</span>
                 }
+                else if (item.Status == "Deposit")
+                {
+                    <span class="badge bg-warning text-dark">Deposit</span>
+                }
+                else if (item.Status == "Cancelled")
+                {
+                    <span class="badge bg-danger">Cancelled</span>
+                }
+                else
+                {
+                    <span class="badge bg-secondary">Pending</span>
+                }
+            </td>
+            <td class="fw-bold">RM @item.TotalAmount.ToString("N2")</td>
+            <td>
+                @if (item.Status == "Completed" && !item.IsReviewed)
+                {
+                    <a asp-controller="Feedback" asp-action="Create" asp-route-bookingId="@item.BookingID"
+                       class="btn btn-sm btn-outline-warning">
+                        <i class="fas fa-star me-1"></i>Rate
+                    </a>
+                }
+                else if (item.IsReviewed)
+                {
+                    <span class="text-success small"><i class="fas fa-check me-1"></i>Reviewed</span>
+                }
+                else
+                {
+                    <span class="text-muted small">-</span>
+                }
+            </td>
+            <td>
+                <a asp-controller="Payment" asp-action="BookingHistoryDetails" asp-route-id="@item.BookingID"
+                   class="btn btn-sm btn-primary">
+                    <i class="fas fa-eye me-1"></i> View Details
+                </a>
             </td>
         </tr>
     }
@@ -50,6 +58,10 @@
 else
 {
     <tr>
-        <td colspan="6" class="text-center py-5 text-muted">No bookings found.</td>
+        <td colspan="7" class="text-center py-4 text-muted">
+            <i class="fas fa-box-open fa-2x mb-2"></i>
+            <p class="mb-0">No bookings found.</p>
+            <a asp-controller="Home" asp-action="Packages" class="btn btn-sm btn-link">Browse Packages</a>
+        </td>
     </tr>
 }

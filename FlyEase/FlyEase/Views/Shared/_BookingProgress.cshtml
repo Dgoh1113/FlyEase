@@ -1,22 +1,50 @@
-﻿<!-- [file name]: Views/Shared/_BookingProgress.cshtml -->
-@{
+﻿@{
     var currentAction = ViewContext.RouteData.Values["Action"]?.ToString();
+
+    // Define steps with the list of Actions that belong to each step
     var steps = new[]
     {
-        new { Step = 1, Action = "CustomerInfo", Name = "Customer Info", Icon = "fas fa-user" },
-        new { Step = 2, Action = "PaymentDetails", Name = "Payment", Icon = "fas fa-credit-card" },
-        new { Step = 3, Action = "Confirmation", Name = "Confirmation", Icon = "fas fa-check-circle" },
-        new { Step = 4, Action = "Success", Name = "Complete", Icon = "fas fa-flag-checkered" }
+        new {
+            Step = 1,
+            Actions = new[] { "CustomerInfo" },
+            Name = "Customer Info",
+            Icon = "fas fa-user"
+        },
+        new {
+            Step = 2,
+            Actions = new[] { "PaymentMethod" },
+            Name = "Select Method",
+            Icon = "fas fa-wallet"
+        },
+        new {
+            Step = 3,
+            Actions = new[] { "CardPayment", "TNGPayment", "ManualPayment", "BankTransfer" },
+            Name = "Payment",
+            Icon = "fas fa-credit-card"
+        },
+        new {
+            Step = 4,
+            Actions = new[] { "Success", "Receipt" },
+            Name = "Complete",
+            Icon = "fas fa-check-circle"
+        }
     };
 
-    var currentStep = steps.FirstOrDefault(s => s.Action == currentAction)?.Step ?? 1;
+    // Find which step contains the current action
+    var currentStepObj = steps.FirstOrDefault(s => s.Actions.Contains(currentAction));
+
+    // Default to Step 1 if action not found (or if starting fresh)
+    var currentStep = currentStepObj?.Step ?? 1;
+
+    // Calculate percentage for the bar (33% per step transition)
+    var progressWidth = (currentStep - 1) * 33;
 }
 
 <div class="booking-progress mb-5">
     <div class="progress" style="height: 8px;">
         <div class="progress-bar bg-success" role="progressbar"
-             style="width: @((currentStep - 1) * 33)%;"
-             aria-valuenow="@((currentStep - 1) * 33)"
+             style="width: @progressWidth%; transition: width 0.5s ease;"
+             aria-valuenow="@progressWidth"
              aria-valuemin="0"
              aria-valuemax="100">
         </div>
@@ -25,10 +53,11 @@
     <div class="d-flex justify-content-between mt-3">
         @foreach (var step in steps)
         {
-            <div class="text-center">
+            <div class="text-center position-relative" style="width: 80px;">
                 <div class="step-icon @(step.Step <= currentStep ? "active" : "")">
                     <i class="@step.Icon"></i>
                 </div>
+
                 <div class="step-label mt-2">
                     <small class="@(step.Step <= currentStep ? "text-success fw-bold" : "text-muted")">
                         @step.Name
@@ -40,6 +69,12 @@
 </div>
 
 <style>
+    .booking-progress {
+        max-width: 700px;
+        margin: 0 auto;
+        position: relative;
+    }
+
     .step-icon {
         width: 50px;
         height: 50px;
@@ -48,23 +83,29 @@
         align-items: center;
         justify-content: center;
         margin: 0 auto;
-        background: #f8f9fa;
+        background: #fff;
         border: 3px solid #dee2e6;
+        color: #6c757d;
         transition: all 0.3s ease;
+        z-index: 2;
+        position: relative;
     }
 
         .step-icon.active {
             background: #198754;
             border-color: #198754;
             color: white;
+            box-shadow: 0 4px 10px rgba(25, 135, 84, 0.3);
         }
 
         .step-icon i {
             font-size: 1.2rem;
         }
 
-    .booking-progress {
-        max-width: 600px;
-        margin: 0 auto;
+    /* Ensure labels don't overlap on mobile */
+    .step-label small {
+        font-size: 0.85rem;
+        display: block;
+        line-height: 1.2;
     }
 </style>

@@ -10,6 +10,16 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 
+// Data Transfer Object for Price Calculation API
+public class PriceRequest
+{
+    public int PackageId { get; set; }
+    public int People { get; set; }
+    public int Seniors { get; set; } // Count of Seniors
+    public int Juniors { get; set; } // Count of Juniors
+    public DateTime TravelDate { get; set; }
+}
+
 namespace FlyEase.Controllers
 {
     public class PaymentController : Controller
@@ -17,14 +27,13 @@ namespace FlyEase.Controllers
         private readonly FlyEaseDbContext _context;
         private readonly IConfiguration _configuration;
         private readonly StripeService _stripeService;
-        private readonly ILogger<PaymentController> _logger; // Added Logger
+        private readonly ILogger<PaymentController> _logger;
 
         public PaymentController(FlyEaseDbContext context, IConfiguration configuration, ILogger<PaymentController> logger)
         {
             _context = context;
             _configuration = configuration;
             _logger = logger;
-            // Initialize StripeService manually to ensure it works
             _stripeService = new StripeService(configuration);
         }
 
@@ -36,6 +45,14 @@ namespace FlyEase.Controllers
         {
             var user = await GetCurrentUserAsync();
             if (user == null) { TempData["Error"] = "Please login first"; return RedirectToAction("Login", "Auth"); }
+
+            // --- RESTRICT ADMIN & STAFF FROM BOOKING ---
+            if (User.IsInRole("Admin") || User.IsInRole("Staff"))
+            {
+                TempData["Error"] = "Administrator and Staff accounts are not allowed to make bookings.";
+                return RedirectToAction("Index", "Home");
+            }
+            // -------------------------------------------
 
             var package = await _context.Packages.FindAsync(packageId);
             if (package == null) return NotFound();
@@ -54,7 +71,9 @@ namespace FlyEase.Controllers
                 FullName = user.FullName,
                 Email = user.Email,
                 Phone = displayPhone,
-                Address = user.Address
+                Address = user.Address,
+                NumberOfSeniors = 0,
+                NumberOfJuniors = 0
             };
 
             CalculateDiscounts(vm);
@@ -70,12 +89,95 @@ namespace FlyEase.Controllers
         [HttpPost]
         public IActionResult CustomerInfo(CustomerInfoViewModel model)
         {
+            // --- RESTRICT ADMIN & STAFF ---
+            if (User.IsInRole("Admin") || User.IsInRole("Staff"))
+            {
+                TempData["Error"] = "Administrator and Staff accounts are not allowed to make bookings.";
+                return RedirectToAction("Index", "Home");
+            }
+            // ------------------------------
+
+            // Validation: Ensure Seniors + Juniors <= Total People
+            if ((model.NumberOfSeniors + model.NumberOfJuniors) > model.NumberOfPeople)
+            {
+                ModelState.AddModelError("NumberOfPeople", "Total people must be greater than or equal to Seniors + Juniors.");
+            }
+
             if (!ModelState.IsValid) return View(model);
 
             CalculateDiscounts(model);
 
             HttpContext.Session.SetCustomerInfo(model);
             return RedirectToAction("PaymentMethod");
+        }
+
+        // =========================================================
+        // API: DYNAMIC PRICE CALCULATION
+        // =========================================================
+        [HttpPost]
+        public async Task<IActionResult> CalculatePrice([FromBody] PriceRequest request)
+        {
+            var package = await _context.Packages.FindAsync(request.PackageId);
+            if (package == null) return Json(new { success = false, message = "Package not found" });
+
+            decimal basePriceTotal = package.Price * request.People;
+            decimal totalDiscount = 0;
+            var discountDetails = new List<string>();
+
+            // --- 1. BULK DISCOUNT (> 3 People) ---
+            if (request.People > 3)
+            {
+                decimal bulkDisc = basePriceTotal * 0.10m;
+                totalDiscount += bulkDisc;
+                discountDetails.Add($"Bulk Group (>3 pax): -RM {bulkDisc:N2}");
+            }
+
+            // --- 2. SENIOR DISCOUNT (60+) ---
+            if (request.Seniors > 0)
+            {
+                decimal seniorDiscAmount = (package.Price * 0.20m) * request.Seniors;
+                totalDiscount += seniorDiscAmount;
+                discountDetails.Add($"Senior Citizen ({request.Seniors}x): -RM {seniorDiscAmount:N2}");
+            }
+
+            // --- 3. JUNIOR DISCOUNT (<12) ---
+            if (request.Juniors > 0)
+            {
+                decimal juniorDiscAmount = (package.Price * 0.15m) * request.Juniors;
+                totalDiscount += juniorDiscAmount;
+                discountDetails.Add($"Junior/Child ({request.Juniors}x): -RM {juniorDiscAmount:N2}");
+            }
+
+            // --- 4. DATABASE DISCOUNTS ---
+            var dbDiscounts = await _context.DiscountTypes.ToListAsync();
+            foreach (var d in dbDiscounts)
+            {
+                if (d.DiscountRate.HasValue && d.DiscountRate.Value > 0)
+                {
+                    decimal amount = basePriceTotal * d.DiscountRate.Value;
+                    totalDiscount += amount;
+                    discountDetails.Add($"{d.DiscountName} ({d.DiscountRate.Value * 100:0}%): -RM {amount:N2}");
+                }
+                else if (d.DiscountAmount.HasValue && d.DiscountAmount.Value > 0)
+                {
+                    totalDiscount += d.DiscountAmount.Value;
+                    discountDetails.Add($"{d.DiscountName}: -RM {d.DiscountAmount.Value:N2}");
+                }
+            }
+
+            // Cap discount
+            if (totalDiscount > basePriceTotal) totalDiscount = basePriceTotal;
+
+            decimal finalAmount = basePriceTotal - totalDiscount;
+
+            return Json(new
+            {
+                success = true,
+                basePrice = basePriceTotal,
+                discountAmount = totalDiscount,
+                finalAmount = finalAmount,
+                breakdown = discountDetails
+            });
         }
 
         // =========================================================
@@ -349,7 +451,7 @@ namespace FlyEase.Controllers
         }
 
         // =========================================================
-        // NEW: BOOKING HISTORY & CANCELLATION
+        // BOOKING HISTORY & CANCELLATION
         // =========================================================
         [HttpGet]
         [Authorize]
@@ -366,11 +468,20 @@ namespace FlyEase.Controllers
 
             if (booking == null) return NotFound();
 
-            // Cancellation Rule: Must be > 14 days before start
-            ViewBag.CanCancel = (booking.Package.StartDate - DateTime.Now).TotalDays > 14
-                                && booking.BookingStatus != "Cancelled";
+            // --- AUTO-COMPLETE LOGIC ---
+            // If Confirmed AND Package End Date is in the past -> Mark Completed
+            if (booking.BookingStatus == "Confirmed" && booking.Package.EndDate < DateTime.Now)
+            {
+                booking.BookingStatus = "Completed";
+                _context.Bookings.Update(booking);
+                await _context.SaveChangesAsync();
+            }
+            // ---------------------------
 
-            // Calculate Balance
+            ViewBag.CanCancel = (booking.Package.StartDate - DateTime.Now).TotalDays > 14
+                                && booking.BookingStatus != "Cancelled"
+                                && booking.BookingStatus != "Completed";
+
             decimal totalPaid = booking.Payments
                 .Where(p => p.PaymentStatus == "Completed" || p.PaymentStatus == "Deposit")
                 .Sum(p => p.AmountPaid);
@@ -396,7 +507,6 @@ namespace FlyEase.Controllers
 
             if (booking == null) return NotFound();
 
-            // 1. POLICY CHECK (14 Days)
             var daysUntilTrip = (booking.Package.StartDate - DateTime.Now).TotalDays;
             if (daysUntilTrip <= 14)
             {
@@ -406,7 +516,6 @@ namespace FlyEase.Controllers
 
             try
             {
-                // 2. PROCESS REFUNDS
                 bool refundInitiated = false;
                 foreach (var payment in booking.Payments)
                 {
@@ -428,13 +537,11 @@ namespace FlyEase.Controllers
                         }
                         else
                         {
-                            // Manual payments
                             payment.PaymentStatus = "Refund Pending (Manual)";
                         }
                     }
                 }
 
-                // 3. CANCEL BOOKING & RETURN SLOTS
                 booking.BookingStatus = "Cancelled";
                 booking.Package.AvailableSlots += booking.NumberOfPeople;
 
@@ -455,7 +562,30 @@ namespace FlyEase.Controllers
         }
 
         // =========================================================
-        // CORE PROCESSING LOGIC
+        // API FOR MODAL DISCOUNTS
+        // =========================================================
+        [HttpGet]
+        public async Task<IActionResult> GetDiscounts()
+        {
+            var discounts = await _context.DiscountTypes
+                .Select(d => new
+                {
+                    name = d.DiscountName,
+                    rate = d.DiscountRate,
+                    amount = d.DiscountAmount
+                })
+                .ToListAsync();
+
+            // Add Hardcoded Text for Modal
+            discounts.Add(new { name = "Bulk Discount (>3 Pax)", rate = (decimal?)0.10, amount = (decimal?)null });
+            discounts.Add(new { name = "Senior Citizen (60+)", rate = (decimal?)0.20, amount = (decimal?)null });
+            discounts.Add(new { name = "Junior/Child (<12)", rate = (decimal?)0.15, amount = (decimal?)null });
+
+            return Json(discounts);
+        }
+
+        // =========================================================
+        // CORE PROCESSING LOGIC (UPDATED FOR CONFIRMED STATUS)
         // =========================================================
 
         private async Task<IActionResult> ProcessVerifiedManualPayment(string paymentMethod, string transactionId)
@@ -489,12 +619,15 @@ namespace FlyEase.Controllers
                 return RedirectToAction("Index", "Home");
             }
 
+            // --- STATUS LOGIC UPDATED ---
             string bookingStatus = "Pending";
             bool isPaymentSuccessful = isVerified || paymentMethod == "Credit Card" || paymentMethod == "Stripe Payment" || paymentMethod == "DevBypass";
 
             if (isPaymentSuccessful)
             {
-                bookingStatus = isDeposit ? "Deposit" : "Completed";
+                // CHANGE: Default successful payment to "Confirmed" (Ongoing), 
+                // "Completed" only happens when trip is done (handled in details page)
+                bookingStatus = isDeposit ? "Deposit" : "Confirmed";
             }
             else
             {
@@ -589,6 +722,13 @@ namespace FlyEase.Controllers
         [HttpGet("Payment/DevQuickBook")]
         public async Task<IActionResult> DevQuickBook(int packageId)
         {
+            // --- RESTRICT ADMIN & STAFF ---
+            if (User.IsInRole("Admin") || User.IsInRole("Staff"))
+            {
+                return Content("Error: Administrator and Staff accounts are not allowed to make bookings.");
+            }
+            // ------------------------------
+
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (userIdClaim == null) return Content("Error: Must be logged in");
             int userId = int.Parse(userIdClaim);
@@ -606,7 +746,7 @@ namespace FlyEase.Controllers
                 TotalBeforeDiscount = package.Price,
                 TotalDiscountAmount = 0,
                 FinalAmount = package.Price,
-                BookingStatus = "Completed"
+                BookingStatus = "Confirmed" // Changed from Completed to Confirmed
             };
 
             _context.Bookings.Add(booking);
@@ -649,11 +789,28 @@ namespace FlyEase.Controllers
 
         private void CalculateDiscounts(CustomerInfoViewModel model)
         {
-            decimal discount = 0;
-            if ((model.TravelDate - DateTime.Now).TotalDays >= 30) discount += model.BasePrice * 0.10m;
-            if (model.NumberOfPeople >= 5) discount += model.BasePrice * 0.15m;
-            model.DiscountAmount = discount;
-            model.FinalAmount = model.BasePrice - discount;
+            decimal totalDiscount = 0;
+
+            // 1. Bulk Discount (> 3 People)
+            if (model.NumberOfPeople > 3)
+            {
+                totalDiscount += model.BasePrice * 0.10m;
+            }
+
+            // Calculate Unit Price for Age Discounts
+            decimal unitPrice = model.BasePrice / (model.NumberOfPeople > 0 ? model.NumberOfPeople : 1);
+
+            // 2. Senior Discount
+            totalDiscount += (unitPrice * 0.20m) * model.NumberOfSeniors;
+
+            // 3. Junior Discount
+            totalDiscount += (unitPrice * 0.15m) * model.NumberOfJuniors;
+
+            // Cap discount at 100%
+            if (totalDiscount > model.BasePrice) totalDiscount = model.BasePrice;
+
+            model.DiscountAmount = totalDiscount;
+            model.FinalAmount = model.BasePrice - totalDiscount;
         }
 
         private string GetPaymentMethodName(string method)

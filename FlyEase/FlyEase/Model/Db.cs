@@ -4,7 +4,6 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Http;
 
 namespace FlyEase.Data
 {
@@ -179,6 +178,10 @@ namespace FlyEase.Data
         [NotMapped]
         public double AverageRating { get; set; }
 
+        // Added this back to fix the compilation error
+        [NotMapped]
+        public int ReviewCount { get; set; }
+
         [NotMapped]
         public List<IFormFile>? ImageFiles { get; set; }
 
@@ -246,12 +249,22 @@ namespace FlyEase.Data
         public Booking Booking { get; set; } = null!;
     }
 
+    // Find the DiscountType class and update it:
     public class DiscountType
     {
         public int DiscountTypeID { get; set; }
         public string DiscountName { get; set; } = null!;
         public decimal? DiscountRate { get; set; }
         public decimal? DiscountAmount { get; set; }
+
+        // === ADDED FIELDS ===
+        public int? MinPax { get; set; }
+        public decimal? MinSpend { get; set; }
+        public DateTime? StartDate { get; set; }
+        public DateTime? EndDate { get; set; }
+        public bool IsActive { get; set; } = true;
+        // ====================
+
         public ICollection<BookingDiscount> BookingDiscounts { get; set; } = new List<BookingDiscount>();
     }
 
@@ -271,14 +284,19 @@ namespace FlyEase.Data
         public int BookingID { get; set; }
         public int UserID { get; set; }
         public int Rating { get; set; }
+
+        [Required(ErrorMessage = "Please tell us about your experience.")] 
         public string? Comment { get; set; }
+      
         public DateTime CreatedDate { get; set; }
         public Booking Booking { get; set; } = null!;
-        public User User { get; set; } = null!;
+       public User User { get; set; } = null!;
+        
+        [Required(ErrorMessage = "Please select an emotion that best matches your feeling.")]
         public string Emotion { get; set; }
     }
 
-    // --- VIEW MODELS (DTOs) KEPT FOR COMPATIBILITY ---
+    // --- VIEW MODELS ---
     public class StaffBookingsViewModel
     {
         public string? SearchTerm { get; set; }
