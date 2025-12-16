@@ -6,16 +6,67 @@
 
 <div class="container-fluid py-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="fw-bold text-primary">Dashboard Overview</h2>
-        <span class="badge bg-primary p-2">@DateTime.Now.ToString("dd MMM yyyy")</span>
+        <div>
+            <h2 class="fw-bold mb-0 text-primary">Dashboard Overview</h2>
+            <p class="text-muted">Here's what's happening with FlyEase today.</p>
+        </div>
+        <div class="d-flex gap-2">
+            <span class="badge bg-primary p-2 align-self-center">
+                <i class="fas fa-calendar-alt me-1"></i> @DateTime.Now.ToString("dd MMM yyyy")
+            </span>
+        </div>
     </div>
 
     <div class="row mb-4 g-4">
         <div class="col-md-3">
-            <div class="card border-0 shadow-sm h-100 py-2" style="border-left: 5px solid #4e73df;">
+            <div class="card border-0 shadow-sm h-100 py-2" style="border-left: 5px solid #4e73df !important; background-color: var(--bg-card);">
                 <div class="card-body">
-                    <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Total Revenue</div>
-                    <div class="h5 mb-0 font-weight-bold">RM @Model.TotalRevenue.ToString("N0")</div>
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Total Revenue</div>
+                            <div class="h5 mb-0 font-weight-bold">RM @Model.TotalRevenue.ToString("N0")</div>
+                        </div>
+                        <div class="col-auto"><i class="fas fa-dollar-sign fa-2x text-muted opacity-50"></i></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100 py-2" style="border-left: 5px solid #1cc88a !important; background-color: var(--bg-card);">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Total Bookings</div>
+                            <div class="h5 mb-0 font-weight-bold">@Model.TotalBookings</div>
+                        </div>
+                        <div class="col-auto"><i class="fas fa-calendar-check fa-2x text-muted opacity-50"></i></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100 py-2" style="border-left: 5px solid #f6c23e !important; background-color: var(--bg-card);">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Pending Actions</div>
+                            <div class="h5 mb-0 font-weight-bold">@Model.PendingBookings</div>
+                        </div>
+                        <div class="col-auto"><i class="fas fa-clipboard-list fa-2x text-muted opacity-50"></i></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100 py-2" style="border-left: 5px solid #36b9cc !important; background-color: var(--bg-card);">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Registered Users</div>
+                            <div class="h5 mb-0 font-weight-bold">@Model.TotalUsers</div>
+                        </div>
+                        <div class="col-auto"><i class="fas fa-users fa-2x text-muted opacity-50"></i></div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -24,31 +75,90 @@
     <div class="row mb-4 g-4">
         <div class="col-lg-8">
             <div class="card shadow-sm h-100 dashboard-card">
-                <div class="card-header py-3 d-flex justify-content-between align-items-center bg-transparent border-bottom">
+                <div class="card-header py-3 bg-transparent border-bottom d-flex justify-content-between align-items-center">
                     <h6 class="m-0 fw-bold text-primary">Revenue Overview</h6>
-                    <div class="btn-group btn-group-sm">
+                    <div class="btn-group btn-group-sm" role="group">
                         <button type="button" class="btn btn-outline-primary active" onclick="updateRevenueChart('1year', this)">1 Year</button>
                         <button type="button" class="btn btn-outline-primary" onclick="updateRevenueChart('30days', this)">1 Month</button>
                         <button type="button" class="btn btn-outline-primary" onclick="updateRevenueChart('7days', this)">7 Days</button>
                     </div>
                 </div>
                 <div class="card-body">
-                    <div class="chart-scroll-wrapper" style="overflow-x: auto; width: 100%; padding-bottom: 10px;">
-                        <div class="chart-area-container" style="height: 300px; min-width: 100%;">
-                            <canvas id="revenueChart"></canvas>
-                        </div>
+                    <div class="chart-area" style="height: 300px;">
+                        <canvas id="revenueChart"></canvas>
                     </div>
                 </div>
             </div>
         </div>
+
         <div class="col-lg-4">
             <div class="card shadow-sm h-100 dashboard-card">
                 <div class="card-header py-3 bg-transparent border-bottom">
-                    <h6 class="m-0 fw-bold text-primary">Top Packages</h6>
+                    <h6 class="m-0 fw-bold text-primary">Top Packages by Revenue</h6>
                 </div>
                 <div class="card-body position-relative">
-                    <div style="height: 300px;">
+                    <div class="chart-pie pt-4 pb-2" style="height: 300px;">
                         <canvas id="packageRevenueChart"></canvas>
+                    </div>
+                    <div style="position: absolute; top: 55%; left: 50%; transform: translate(-50%, -50%); text-align: center; pointer-events: none;">
+                        <h6 class="text-muted small mb-0">Top Earner</h6>
+                        <span class="fw-bold text-dark">Revenue</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-12 mb-4">
+            <div class="card shadow-sm dashboard-card">
+                <div class="card-header bg-transparent py-3">
+                    <h6 class="m-0 fw-bold text-primary">Recent Bookings</h6>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="ps-4">Ref #</th>
+                                    <th>Customer</th>
+                                    <th>Package</th>
+                                    <th>Date</th>
+                                    <th>Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in Model.RecentBookings)
+                                {
+                                    string badgeClass = item.BookingStatus switch
+                                    {
+                                        "Completed" => "bg-success",
+                                        "Pending" => "bg-warning text-dark",
+                                        "Cancelled" => "bg-danger",
+                                        _ => "bg-secondary"
+                                    };
+                                    <tr>
+                                        <td class="ps-4"><strong>#@item.BookingID</strong></td>
+                                        <td>
+                                            <div class="d-flex flex-column">
+                                                <span class="fw-bold">@item.User.FullName</span>
+                                                <small class="text-muted" style="font-size: 0.75rem;">@item.User.Email</small>
+                                            </div>
+                                        </td>
+                                        <td>@item.Package.PackageName</td>
+                                        <td>@item.BookingDate.ToString("MMM dd, yyyy")</td>
+                                        <td><span class="badge @badgeClass">@item.BookingStatus</span></td>
+                                        <td>
+                                            <button class="btn btn-sm btn-outline-primary"
+                                                    onclick="openBookingModal(@item.BookingID, '@item.User.FullName', '@item.BookingStatus')">
+                                                Manage
+                                            </button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
@@ -56,84 +166,147 @@
     </div>
 </div>
 
+<div class="modal fade" id="bookingModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">Manage Booking</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form asp-action="UpdateBookingStatus" method="post">
+                <div class="modal-body">
+                    <input type="hidden" id="b_id" name="CurrentBooking.BookingID" />
+                    <div class="mb-3">
+                        <label class="form-label">Customer Name</label>
+                        <input type="text" class="form-control" id="displayCustomerName" readonly disabled />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Booking Status</label>
+                        <select id="b_status" name="CurrentBooking.BookingStatus" class="form-select">
+                            <option value="Pending">Pending</option>
+                            <option value="Completed">Completed</option>
+                            <option value="Cancelled">Cancelled</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+    function openBookingModal(id, customerName, currentStatus) {
+        document.getElementById('b_id').value = id;
+        document.getElementById('displayCustomerName').value = customerName;
+        if(currentStatus == 'Confirmed') currentStatus = 'Pending';
+        document.getElementById('b_status').value = currentStatus;
+        new bootstrap.Modal(document.getElementById('bookingModal')).show();
+    }
+
+    // Prepare Data for Revenue Chart
     const revenueData = {
-        '7days': { labels: @Html.Raw(Json.Serialize(Model.RevenueLabels7Days)), data: @Html.Raw(Json.Serialize(Model.RevenueValues7Days)), prev: @Html.Raw(Json.Serialize(Model.RevenueValues7DaysPrev)) },
-        '30days': { labels: @Html.Raw(Json.Serialize(Model.RevenueLabels30Days)), data: @Html.Raw(Json.Serialize(Model.RevenueValues30Days)), prev: @Html.Raw(Json.Serialize(Model.RevenueValues30DaysPrev)) },
-        '1year': { labels: @Html.Raw(Json.Serialize(Model.RevenueLabels1Year)), data: @Html.Raw(Json.Serialize(Model.RevenueValues1Year)), prev: @Html.Raw(Json.Serialize(Model.RevenueValues1YearPrev)) }
+        '7days': {
+            labels: @Html.Raw(Json.Serialize(Model.RevenueLabels7Days)),
+            data: @Html.Raw(Json.Serialize(Model.RevenueValues7Days))
+        },
+        '30days': {
+            labels: @Html.Raw(Json.Serialize(Model.RevenueLabels30Days)),
+            data: @Html.Raw(Json.Serialize(Model.RevenueValues30Days))
+        },
+        '1year': {
+            labels: @Html.Raw(Json.Serialize(Model.RevenueLabels1Year)),
+            data: @Html.Raw(Json.Serialize(Model.RevenueValues1Year))
+        }
     };
 
     let revenueChartInstance = null;
-    let currentRange = '1year';
 
     function updateRevenueChart(range, btn) {
-        if(btn) { document.querySelectorAll('.btn-group .btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); }
-        currentRange = range;
-        const newData = revenueData[range];
+        // Toggle Button Active State
+        if(btn) {
+            document.querySelectorAll('.btn-group .btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+        }
 
-        const container = document.querySelector('.chart-area-container');
-        container.style.width = newData.labels.length > 7 ? `${(newData.labels.length/7)*100}%` : '100%';
+        const newData = revenueData[range];
 
         if (revenueChartInstance) {
             revenueChartInstance.data.labels = newData.labels;
             revenueChartInstance.data.datasets[0].data = newData.data;
             revenueChartInstance.update();
-            revenueChartInstance.resize();
         }
     }
 
     document.addEventListener("DOMContentLoaded", function() {
+        // 1. REVENUE CHART (Line)
         var ctxRevenue = document.getElementById("revenueChart");
         if (ctxRevenue) {
-            const initial = revenueData['1year'];
-            document.querySelector('.chart-area-container').style.width = `${(initial.labels.length/7)*100}%`;
-
             revenueChartInstance = new Chart(ctxRevenue, {
                 type: 'line',
                 data: {
-                    labels: initial.labels,
+                    labels: revenueData['1year'].labels, // Default view
                     datasets: [{
-                        label: "Revenue", data: initial.data, fill: false,
-                        borderColor: 'rgb(75, 192, 192)', tension: 0.1, pointRadius: 5, borderWidth: 2
-                    }]
+                        label: "Revenue",
+                        data: revenueData['1year'].data, // Default view
+                        // STYLING FROM PROMPT
+                        fill: false,
+                        borderColor: 'rgb(75, 192, 192)',
+                        tension: 0.1,
+                        // Additional Admin Styling details for better visibility
+                        pointRadius: 4,
+                        pointBackgroundColor: 'rgb(75, 192, 192)',
+                        borderWidth: 2
+                    }],
                 },
                 options: {
                     maintainAspectRatio: false,
-                    interaction: { mode: 'nearest', axis: 'x', intersect: true },
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    const val = context.parsed.y;
-                                    const prev = revenueData[currentRange].prev[context.dataIndex];
-                                    let lines = [`Revenue: RM ${val}`];
-                                    if(prev > 0) {
-                                        const pct = ((val - prev) / prev) * 100;
-                                        lines.push(`${pct >= 0 ? '+' : ''}${pct.toFixed(1)}% vs prev`);
-                                    }
-                                    return lines;
-                                }
+                    layout: { padding: { left: 10, right: 25, top: 25, bottom: 0 } },
+                    scales: {
+                        x: { grid: { display: false, drawBorder: false } },
+                        y: {
+                            ticks: {
+                                maxTicksLimit: 5,
+                                padding: 10,
+                                callback: function(value) { return 'RM ' + value; }
+                            },
+                            grid: {
+                                color: "rgb(234, 236, 244)",
+                                borderDash: [2],
+                                drawBorder: false
                             }
-                        }
-                    }
+                        },
+                    },
+                    plugins: { legend: { display: false } }
                 }
             });
         }
 
-        var ctxPkg = document.getElementById("packageRevenueChart");
-        if (ctxPkg) {
-            new Chart(ctxPkg, {
+        // 2. TOP PACKAGES CHART (Doughnut)
+        var ctxPackage = document.getElementById("packageRevenueChart");
+        if (ctxPackage) {
+            new Chart(ctxPackage, {
                 type: 'doughnut',
                 data: {
                     labels: @Html.Raw(Json.Serialize(Model.PackageRevenueLabels)),
                     datasets: [{
                         data: @Html.Raw(Json.Serialize(Model.PackageRevenueValues)),
-                        backgroundColor: ['#fa938e', '#98bf45', '#51cbcf', '#d397ff', '#4e73df']
-                    }]
+                        backgroundColor: ['#fa938e', '#98bf45', '#51cbcf', '#d397ff', '#4e73df'],
+                        hoverBackgroundColor: ['#e8827d', '#87ae34', '#40babe', '#c286ee', '#2e59d9'],
+                        hoverBorderColor: "rgba(234, 236, 244, 1)",
+                    }],
                 },
-                options: { maintainAspectRatio: false, cutout: '70%', plugins: { legend: { position: 'bottom' } } }
+                options: {
+                    maintainAspectRatio: false,
+                    cutout: '70%',
+                    plugins: {
+                        legend: { display: true, position: 'bottom' }
+                    }
+                },
             });
         }
     });
