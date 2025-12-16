@@ -1,0 +1,45 @@
+﻿@{
+    ViewData["Title"] = "Verify Email";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@section Head {
+    <link rel="stylesheet" href="~/css/auth.css" />
+}
+
+<div class="login-container">
+    <div class="login-card" style="max-width: 500px;">
+        <div class="login-form-section p-5">
+            <div class="text-center mb-4">
+                <i class="fas fa-envelope-open-text fa-3x text-primary mb-3"></i>
+                <h3 class="fw-bold text-dark">Verify Email</h3>
+                <p class="text-muted">We sent a 6-digit code to <br /><strong>@ViewBag.Email</strong></p>
+            </div>
+
+            @if (!ViewData.ModelState.IsValid)
+            {
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <i class="fas fa-exclamation-triangle me-2"></i> @Html.ValidationSummary(true, "")
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            }
+
+            <form asp-action="VerifyEmail" method="post">
+                @Html.AntiForgeryToken()
+
+                <div class="form-floating mb-4">
+                    <input type="text" name="otp" class="form-control text-center fw-bold fs-4" placeholder="Enter OTP" maxlength="6" autocomplete="off" required autofocus style="letter-spacing: 5px;" />
+                    <label class="text-center w-100">Enter 6-Digit OTP</label>
+                </div>
+
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-primary btn-lg shadow-sm fw-bold">Verify & Create Account</button>
+                </div>
+            </form>
+
+            <div class="text-center mt-4">
+                <small class="text-muted">Didn't receive code? <a asp-action="Register" class="text-primary fw-bold text-decoration-none">Resend (Register Again)</a></small>
+            </div>
+        </div>
+    </div>
+</div>

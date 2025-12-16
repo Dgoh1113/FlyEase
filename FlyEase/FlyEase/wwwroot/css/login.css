@@ -1,0 +1,109 @@
+﻿/* Container for the whole page to center the card */
+.login-container {
+    min-height: 85vh; /* Occupy most of the screen height */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #f4f7f6; /* Light gray background */
+    padding: 2rem;
+}
+
+/* The main card box */
+.login-card {
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+    overflow: hidden; /* Ensures image respects border radius */
+    width: 100%;
+    max-width: 900px;
+    display: flex;
+    flex-direction: row; /* Split Layout: Left Image, Right Form */
+}
+
+/* Left side image */
+.login-image {
+    flex: 1; /* Takes up 50% width */
+    background: url('/img/wallhaven-45pxx5.jpg') no-repeat center center;
+    background-size: cover;
+    position: relative;
+    min-height: 550px;
+}
+
+/* Dark overlay on the image */
+.login-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.4);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    text-align: center;
+    padding: 2rem;
+}
+
+/* Right side form container */
+.login-form-section {
+    flex: 1; /* Takes up 50% width */
+    padding: 3.5rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+/* Form Styling Enhancements */
+.form-floating > .form-control:focus ~ label {
+    color: #0d6efd;
+}
+
+.form-floating > .form-control:focus {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.15);
+}
+
+/* Eye Icon Styling */
+.password-toggle-btn {
+    background: none;
+    border: none;
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 10;
+    color: #6c757d;
+    cursor: pointer;
+    padding: 0;
+}
+
+    .password-toggle-btn:hover {
+        color: #0d6efd;
+    }
+
+/* Checkbox alignment */
+.form-check-input {
+    cursor: pointer;
+}
+
+.form-check-label {
+    cursor: pointer;
+    user-select: none;
+}
+
+/* Mobile Responsive: Stack vertically on small screens */
+@media (max-width: 768px) {
+    .login-card {
+        flex-direction: column;
+    }
+
+    .login-image {
+        display: none; /* Hide image on mobile for cleaner look */
+    }
+
+    .login-form-section {
+        padding: 2rem;
+    }
+}

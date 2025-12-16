@@ -9,7 +9,6 @@
 
 <link rel="stylesheet" href="~/css/admindashboarduser.css" />
 
-
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h2 class="text-primary fw-bold"><i class="fas fa-users me-2"></i>User Management</h2>
     <button class="btn btn-primary" onclick="openUserModal()">
@@ -21,13 +20,16 @@
     <div class="card-body py-3">
         <form method="get" asp-action="Users" class="row g-3">
             <div class="col-md-7">
-                <input type="text" name="search" class="form-control" placeholder="Search by ID, Name or Email..." value="@Model.SearchTerm">
+                <input type="text" name="search" class="form-control" placeholder="Search by ID, Name or Email..."
+                       value="@Model.SearchTerm">
             </div>
             <div class="col-md-3">
                 <select name="role" class="form-select">
                     <option value="All">All Roles</option>
                     <option value="User" selected="@(Model.RoleFilter == "User")">User</option>
                     <option value="Staff" selected="@(Model.RoleFilter == "Staff")">Staff</option>
+                    @* --- ADDED BAN OPTION --- *@
+                    <option value="Ban" selected="@(Model.RoleFilter == "Ban")">Banned</option>
                 </select>
             </div>
             <div class="col-md-2">
@@ -63,16 +65,34 @@
                                 <td>@user.Email</td>
                                 <td>@(user.Phone ?? "-")</td>
                                 <td>
-                                    <span class="badge @(user.Role == "Staff" ? "bg-warning text-dark" : "bg-info text-dark")">
-                                        @user.Role
-                                    </span>
+                                    @* --- UPDATED ROLE BADGES --- *@
+                                    @if (user.Role == "Ban")
+                                    {
+                                        <span class="badge bg-danger">Banned</span>
+                                    }
+                                    else if (user.Role == "Staff")
+                                    {
+                                        <span class="badge bg-warning text-dark">Staff</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-info text-dark">User</span>
+                                    }
                                 </td>
                                 <td>@user.CreatedDate.ToString("MMM dd, yyyy")</td>
                                 <td class="text-end pe-4">
-                                    <button class="btn btn-sm btn-ban" title="Ban User"
-                                            onclick="confirmBan(@user.UserID, '@System.Web.HttpUtility.JavaScriptStringEncode(user.FullName)')">
-                                        <i class="fas fa-gavel"></i>
-                                    </button>
+                                    @* --- UPDATED ACTION BUTTON --- *@
+                                    @if (user.Role != "Ban")
+                                    {
+                                        <button class="btn btn-sm btn-outline-danger" title="Ban User"
+                                                onclick="confirmBan(@user.UserID, '@System.Web.HttpUtility.JavaScriptStringEncode(user.FullName)')">
+                                            <i class="fas fa-ban"></i> Ban
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted small">Banned</span>
+                                    }
                                 </td>
                             </tr>
                         }

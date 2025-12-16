@@ -66,10 +66,9 @@ namespace FlyEase.Controllers
             int pageSize = 5;
             int pageNumber = page ?? 1;
 
-            // Start query
             var query = _context.Users.AsQueryable();
 
-            // FILTER: Exclude Admins (Display only Staff and Users)
+            // Filter: Exclude Admins
             query = query.Where(u => u.Role != "Admin");
 
             if (!string.IsNullOrEmpty(search))
@@ -80,7 +79,7 @@ namespace FlyEase.Controllers
                     u.Email.Contains(search));
             }
 
-            // Optional: Filter by specific role (Staff/User) if selected in dropdown
+            // Filter by role
             if (!string.IsNullOrEmpty(role) && role != "All")
             {
                 query = query.Where(u => u.Role == role);
@@ -120,31 +119,24 @@ namespace FlyEase.Controllers
                     TempData["Success"] = "User updated successfully!";
                 }
             }
-            // Logic to add new user if needed can go here
-            else
-            {
-                // Basic creation logic if you want to allow adding users via admin panel
-                // _context.Users.Add(input); 
-                // await _context.SaveChangesAsync();
-            }
             return RedirectToAction(nameof(Users));
         }
 
-        [HttpPost("DeleteUser")]
-        public async Task<IActionResult> DeleteUser(int id)
+        // === FIXED: BAN USER (ROLE CHANGE) ===
+        [HttpPost("BanUser")]
+        public async Task<IActionResult> BanUser(int id)
         {
             var user = await _context.Users.FindAsync(id);
             if (user != null)
             {
-                // Prevent banning/deleting users who have bookings (integrity check)
-                if (await _context.Bookings.AnyAsync(b => b.UserID == id))
-                    TempData["Error"] = "Cannot ban user with active bookings.";
-                else
-                {
-                    _context.Users.Remove(user);
-                    await _context.SaveChangesAsync();
-                    TempData["Success"] = "User banned (removed) successfully.";
-                }
+                // CHANGE ROLE TO BAN
+                user.Role = "Ban";
+                await _context.SaveChangesAsync();
+                TempData["Success"] = $"User {user.FullName} has been banned.";
+            }
+            else
+            {
+                TempData["Error"] = "User not found.";
             }
             return RedirectToAction(nameof(Users));
         }
@@ -158,22 +150,13 @@ namespace FlyEase.Controllers
             int pageSize = 5;
             int pageNumber = page ?? 1;
 
-            var query = _context.Bookings
-                .Include(b => b.User)
-                .Include(b => b.Package)
-                .AsQueryable();
+            var query = _context.Bookings.Include(b => b.User).Include(b => b.Package).AsQueryable();
 
             if (status != "All" && !string.IsNullOrEmpty(status))
-            {
                 query = query.Where(b => b.BookingStatus == status);
-            }
 
             if (!string.IsNullOrEmpty(search))
-            {
-                query = query.Where(b =>
-                    b.BookingID.ToString().Contains(search) ||
-                    b.Package.PackageName.Contains(search));
-            }
+                query = query.Where(b => b.BookingID.ToString().Contains(search) || b.Package.PackageName.Contains(search));
 
             var totalItems = await query.CountAsync();
             var pagedData = await query
@@ -214,10 +197,7 @@ namespace FlyEase.Controllers
         public async Task<IActionResult> UpdateBookingStatus(BookingsPageVM model)
         {
             var input = model.CurrentBooking;
-            var booking = await _context.Bookings
-                .Include(b => b.User)
-                .Include(b => b.Package)
-                .FirstOrDefaultAsync(b => b.BookingID == input.BookingID);
+            var booking = await _context.Bookings.Include(b => b.User).Include(b => b.Package).FirstOrDefaultAsync(b => b.BookingID == input.BookingID);
 
             if (booking != null)
             {
@@ -229,13 +209,7 @@ namespace FlyEase.Controllers
                 {
                     try
                     {
-                        string packageImage = "";
-                        if (!string.IsNullOrEmpty(booking.Package.ImageURL))
-                        {
-                            var images = booking.Package.ImageURL.Split(';');
-                            if (images.Length > 0) packageImage = images[0];
-                        }
-
+                        string packageImage = booking.Package.ImageURL?.Split(';').FirstOrDefault() ?? "";
                         var emailService = new EmailService();
                         await emailService.SendReviewInvitation(
                             booking.User.Email,
@@ -244,7 +218,6 @@ namespace FlyEase.Controllers
                             booking.Package.PackageName,
                             packageImage
                         );
-
                         TempData["Success"] = "Booking marked Completed & Review Email Sent!";
                     }
                     catch (Exception ex)
@@ -257,7 +230,6 @@ namespace FlyEase.Controllers
                     TempData["Success"] = "Booking status updated successfully.";
                 }
             }
-
             return RedirectToAction("Bookings");
         }
 
@@ -288,17 +260,10 @@ namespace FlyEase.Controllers
                 .Include(p => p.Bookings).ThenInclude(b => b.Feedbacks)
                 .AsQueryable();
 
-            if (!string.IsNullOrEmpty(search))
-            {
-                query = query.Where(p => p.PackageName.Contains(search));
-            }
+            if (!string.IsNullOrEmpty(search)) query = query.Where(p => p.PackageName.Contains(search));
 
             var totalItems = await query.CountAsync();
-            var pagedData = await query
-                .OrderByDescending(p => p.PackageID)
-                .Skip((pageNumber - 1) * pageSize)
-                .Take(pageSize)
-                .ToListAsync();
+            var pagedData = await query.OrderByDescending(p => p.PackageID).Skip((pageNumber - 1) * pageSize).Take(pageSize).ToListAsync();
 
             foreach (var p in pagedData)
             {
@@ -327,9 +292,7 @@ namespace FlyEase.Controllers
             {
                 var existingPkg = await _context.Packages.AsNoTracking().FirstOrDefaultAsync(p => p.PackageID == input.PackageID);
                 if (existingPkg != null && !string.IsNullOrEmpty(existingPkg.ImageURL))
-                {
                     imagePaths.AddRange(existingPkg.ImageURL.Split(';'));
-                }
             }
 
             if (input.ImageFiles != null && input.ImageFiles.Count > 0)
@@ -370,12 +333,10 @@ namespace FlyEase.Controllers
                     existing.ImageURL = input.ImageURL;
                     existing.Latitude = input.Latitude;
                     existing.Longitude = input.Longitude;
-
                     _context.Packages.Update(existing);
                     TempData["Success"] = "Package updated successfully!";
                 }
             }
-
             await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Packages));
         }
@@ -387,9 +348,7 @@ namespace FlyEase.Controllers
             if (package != null)
             {
                 if (await _context.Bookings.AnyAsync(b => b.PackageID == id))
-                {
                     TempData["Error"] = "Cannot delete package: Active bookings exist.";
-                }
                 else
                 {
                     _context.Packages.Remove(package);
@@ -406,12 +365,7 @@ namespace FlyEase.Controllers
         [HttpGet("Analytics")]
         public async Task<IActionResult> Analytics()
         {
-            var allFeedback = await _context.Feedbacks
-                .Include(f => f.User)
-                .Include(f => f.Booking).ThenInclude(b => b.Package)
-                .OrderByDescending(f => f.CreatedDate)
-                .ToListAsync();
-
+            var allFeedback = await _context.Feedbacks.Include(f => f.User).Include(f => f.Booking).ThenInclude(b => b.Package).OrderByDescending(f => f.CreatedDate).ToListAsync();
             if (!allFeedback.Any()) return View(new FeedbackAnalyticsViewModel());
 
             var totalReviews = allFeedback.Count;
@@ -419,39 +373,15 @@ namespace FlyEase.Controllers
             var positiveCount = allFeedback.Count(f => f.Rating >= 4);
             var positivePercentage = totalReviews > 0 ? (double)positiveCount / totalReviews * 100 : 0;
 
-            var packageStats = allFeedback
-                .GroupBy(f => f.Booking.Package.PackageName)
-                .Select(g => new PopularPackageViewModel
-                {
-                    PackageName = g.Key,
-                    AverageRating = g.Average(f => f.Rating),
-                    ReviewCount = g.Count()
-                })
-                .ToList();
+            var packageStats = allFeedback.GroupBy(f => f.Booking.Package.PackageName)
+                .Select(g => new PopularPackageViewModel { PackageName = g.Key, AverageRating = g.Average(f => f.Rating), ReviewCount = g.Count() }).ToList();
 
             var mostPopular = packageStats.OrderByDescending(p => p.AverageRating).ThenByDescending(p => p.ReviewCount).FirstOrDefault();
             var leastPopular = packageStats.OrderBy(p => p.AverageRating).ThenByDescending(p => p.ReviewCount).FirstOrDefault();
 
-            var ratingCounts = new Dictionary<int, int>
-            {
-                { 5, allFeedback.Count(f => f.Rating == 5) },
-                { 4, allFeedback.Count(f => f.Rating == 4) },
-                { 3, allFeedback.Count(f => f.Rating == 3) },
-                { 2, allFeedback.Count(f => f.Rating == 2) },
-                { 1, allFeedback.Count(f => f.Rating == 1) }
-            };
+            var ratingCounts = new Dictionary<int, int> { { 5, allFeedback.Count(f => f.Rating == 5) }, { 4, allFeedback.Count(f => f.Rating == 4) }, { 3, allFeedback.Count(f => f.Rating == 3) }, { 2, allFeedback.Count(f => f.Rating == 2) }, { 1, allFeedback.Count(f => f.Rating == 1) } };
 
-            var viewModel = new FeedbackAnalyticsViewModel
-            {
-                AverageRating = averageRating,
-                TotalReviews = totalReviews,
-                PositivePercentage = positivePercentage,
-                RatingCounts = ratingCounts,
-                RecentReviews = allFeedback.Take(10).ToList(),
-                MostPopularPackage = mostPopular,
-                LeastPopularPackage = leastPopular
-            };
-
+            var viewModel = new FeedbackAnalyticsViewModel { AverageRating = averageRating, TotalReviews = totalReviews, PositivePercentage = positivePercentage, RatingCounts = ratingCounts, RecentReviews = allFeedback.Take(10).ToList(), MostPopularPackage = mostPopular, LeastPopularPackage = leastPopular };
             return View(viewModel);
         }
 
@@ -463,28 +393,11 @@ namespace FlyEase.Controllers
         {
             int pageSize = 5;
             int pageNumber = page ?? 1;
-
             var query = _context.DiscountTypes.AsQueryable();
-
-            if (!string.IsNullOrEmpty(search))
-            {
-                query = query.Where(d =>
-                    d.DiscountTypeID.ToString().Contains(search) ||
-                    d.DiscountName.Contains(search));
-            }
-
+            if (!string.IsNullOrEmpty(search)) query = query.Where(d => d.DiscountTypeID.ToString().Contains(search) || d.DiscountName.Contains(search));
             var totalItems = await query.CountAsync();
-            var pagedData = await query
-                .OrderBy(d => d.DiscountName)
-                .Skip((pageNumber - 1) * pageSize)
-                .Take(pageSize)
-                .ToListAsync();
-
-            var vm = new DiscountPageVM
-            {
-                Discounts = new StaticPagedList<DiscountType>(pagedData, pageNumber, pageSize, totalItems),
-                SearchTerm = search
-            };
+            var pagedData = await query.OrderBy(d => d.DiscountName).Skip((pageNumber - 1) * pageSize).Take(pageSize).ToListAsync();
+            var vm = new DiscountPageVM { Discounts = new StaticPagedList<DiscountType>(pagedData, pageNumber, pageSize, totalItems), SearchTerm = search };
             return View(vm);
         }
 
@@ -493,47 +406,21 @@ namespace FlyEase.Controllers
         public async Task<IActionResult> SaveDiscount(DiscountPageVM model)
         {
             var input = model.CurrentDiscount;
+            if (string.IsNullOrEmpty(input.DiscountName)) { TempData["Error"] = "Discount Name is required."; return RedirectToAction(nameof(Discounts)); }
+            if (input.DiscountRate == null && input.DiscountAmount == null) { TempData["Error"] = "Please specify either a Discount Rate or a Fixed Amount."; return RedirectToAction(nameof(Discounts)); }
 
-            if (string.IsNullOrEmpty(input.DiscountName))
-            {
-                TempData["Error"] = "Discount Name is required.";
-                return RedirectToAction(nameof(Discounts));
-            }
-
-            if (input.DiscountRate == null && input.DiscountAmount == null)
-            {
-                TempData["Error"] = "Please specify either a Discount Rate or a Fixed Amount.";
-                return RedirectToAction(nameof(Discounts));
-            }
-
-            if (input.DiscountTypeID == 0)
-            {
-                _context.DiscountTypes.Add(input);
-                TempData["Success"] = "Discount created successfully!";
-            }
+            if (input.DiscountTypeID == 0) { _context.DiscountTypes.Add(input); TempData["Success"] = "Discount created successfully!"; }
             else
             {
                 var existing = await _context.DiscountTypes.FindAsync(input.DiscountTypeID);
                 if (existing != null)
                 {
-                    existing.DiscountName = input.DiscountName;
-                    existing.DiscountRate = input.DiscountRate;
-                    existing.DiscountAmount = input.DiscountAmount;
-                    existing.MinPax = input.MinPax;
-                    existing.MinSpend = input.MinSpend;
-                    existing.StartDate = input.StartDate;
-                    existing.EndDate = input.EndDate;
-                    existing.IsActive = input.IsActive;
-
-                    _context.DiscountTypes.Update(existing);
-                    TempData["Success"] = "Discount updated successfully!";
+                    existing.DiscountName = input.DiscountName; existing.DiscountRate = input.DiscountRate; existing.DiscountAmount = input.DiscountAmount;
+                    existing.MinPax = input.MinPax; existing.MinSpend = input.MinSpend; existing.StartDate = input.StartDate; existing.EndDate = input.EndDate; existing.IsActive = input.IsActive;
+                    _context.DiscountTypes.Update(existing); TempData["Success"] = "Discount updated successfully!";
                 }
-                else
-                {
-                    TempData["Error"] = "Discount not found.";
-                }
+                else TempData["Error"] = "Discount not found.";
             }
-
             await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Discounts));
         }
@@ -545,16 +432,8 @@ namespace FlyEase.Controllers
             if (discount != null)
             {
                 bool isUsed = await _context.BookingDiscounts.AnyAsync(bd => bd.DiscountTypeID == id);
-                if (isUsed)
-                {
-                    TempData["Error"] = "Cannot delete this discount because it has been applied to existing bookings.";
-                }
-                else
-                {
-                    _context.DiscountTypes.Remove(discount);
-                    await _context.SaveChangesAsync();
-                    TempData["Success"] = "Discount deleted successfully.";
-                }
+                if (isUsed) TempData["Error"] = "Cannot delete this discount because it has been applied to existing bookings.";
+                else { _context.DiscountTypes.Remove(discount); await _context.SaveChangesAsync(); TempData["Success"] = "Discount deleted successfully."; }
             }
             return RedirectToAction(nameof(Discounts));
         }
