@@ -617,85 +617,641 @@
     }
 }
 
-/* Add to the bottom of auth.css */
+/* Login Lockout Styles */
 
-/* Fixed positioning for form inputs with errors */
-.form-floating.position-relative {
+/* Lockout Container */
+.lockout-card {
+    background: linear-gradient(135deg, #fff5f5 0%, #ffeaea 100%);
+    border-left: 4px solid #dc3545 !important;
+    animation: slideDown 0.5s ease-out;
+}
+
+/* Countdown Circle */
+.countdown-circle {
     position: relative;
-    min-height: 58px; /* Fixed height to prevent movement */
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #dc3545;
+    border-radius: 50%;
+    color: white;
+    font-weight: bold;
+    animation: pulse 2s infinite;
 }
 
-.form-floating .form-control {
-    height: calc(3.5rem + 2px);
-    line-height: 1.25;
-    padding: 1rem 0.75rem;
-    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+.countdown-number {
+    font-size: 1.5rem;
+    font-weight: 700;
+    font-family: 'Courier New', monospace;
 }
 
-/* Ensure eye icon stays in correct position */
-.password-toggle {
-    position: absolute;
-    top: 50%;
-    right: 10px;
-    transform: translateY(-50%);
-    z-index: 10;
-    background: transparent;
-    border: none;
-    padding: 0.5rem;
+/* Locked Form Elements */
+.form-control-locked {
+    background-color: #f8f9fa !important;
+    border-color: #dc3545 !important;
+    color: #6c757d !important;
+    cursor: not-allowed !important;
+    opacity: 0.7;
+}
+
+.btn-locked {
+    background-color: #6c757d !important;
+    border-color: #6c757d !important;
+    opacity: 0.7;
+    cursor: not-allowed !important;
+}
+
+/* Security Alert */
+.security-alert {
+    animation: fadeIn 0.3s ease-out;
+    border-left: 4px solid;
+}
+
+    .security-alert.alert-warning {
+        border-left-color: #ffc107;
+    }
+
+    .security-alert.alert-danger {
+        border-left-color: #dc3545;
+    }
+
+    .security-alert.alert-success {
+        border-left-color: #198754;
+    }
+
+/* Attempt Counter (Visual) */
+.attempt-counter {
+    display: inline-flex;
+    gap: 5px;
+    margin-left: 10px;
+}
+
+.attempt-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: #28a745;
+    transition: all 0.3s ease;
+}
+
+    .attempt-dot.used {
+        background-color: #dc3545;
+        transform: scale(0.8);
+    }
+
+/* Animations */
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7);
+    }
+
+    70% {
+        box-shadow: 0 0 0 10px rgba(220, 53, 69, 0);
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 rgba(220, 53, 69, 0);
+    }
+}
+
+@keyframes progressStripes {
+    from {
+        background-position: 1rem 0;
+    }
+
+    to {
+        background-position: 0 0;
+    }
+}
+
+.progress-bar-animated {
+    animation: progressStripes 1s linear infinite;
+}
+
+/* Dark Mode Support */
+[data-bs-theme="dark"] .lockout-card {
+    background: linear-gradient(135deg, #2c1818 0%, #3a1f1f 100%);
+}
+
+[data-bs-theme="dark"] .form-control-locked {
+    background-color: #343a40 !important;
+    color: #adb5bd !important;
+}
+
+/* Responsive Design */
+@media (max-width: 576px) {
+    .countdown-circle {
+        width: 50px;
+        height: 50px;
+    }
+
+    .countdown-number {
+        font-size: 1.25rem;
+    }
+
+    .lockout-card {
+        padding: 15px !important;
+    }
+}
+
+/* Remember Me & Terms Validation Styles - Updated with Outline Support */
+
+/* ==========================================
+   REMEMBER ME STYLES (NO HOVER, WITH OUTLINE)
+   ========================================== */
+
+/* Custom checkbox styling */
+.remember-me-container {
+    position: relative;
+    padding-left: 35px;
     cursor: pointer;
-    color: var(--text-muted);
+    user-select: none;
 }
 
-    .password-toggle:hover {
-        color: var(--accent-primary) !important;
-    }
-
-/* Error container that appears below input without affecting layout */
-.error-container {
-    min-height: 20px; /* Reserve space for error message */
-    margin-top: 0.25rem;
+.remember-me-checkbox {
+    position: absolute;
+    opacity: 0;
+    cursor: pointer;
+    height: 0;
+    width: 0;
 }
 
-/* Make sure validation spans don't affect layout */
-.text-danger.small {
+.remember-me-checkmark {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 22px;
+    width: 22px;
+    background-color: var(--bg-input);
+    border: 2px solid #000000; /* Black outline for light mode */
+    border-radius: 4px;
+    transition: all 0.3s ease;
+}
+
+/* REMOVED HOVER EFFECTS - User requested to remove hover */
+/* .remember-me-container:hover .remember-me-checkbox ~ .remember-me-checkmark {
+    border-color: var(--accent-primary);
+    background-color: rgba(var(--accent-primary-rgb), 0.1);
+} */
+
+.remember-me-checkbox:checked ~ .remember-me-checkmark {
+    background-color: var(--accent-primary);
+    border-color: var(--accent-primary); /* Keep same color when checked */
+}
+
+.remember-me-checkmark:after {
+    content: "";
+    position: absolute;
+    display: none;
+    left: 7px;
+    top: 3px;
+    width: 5px;
+    height: 10px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+
+.remember-me-checkbox:checked ~ .remember-me-checkmark:after {
     display: block;
-    font-size: 0.875em;
-    line-height: 1.3;
-    margin-top: 0.25rem;
 }
 
-/* Ensure form controls don't move when errors appear */
-.mb-3 {
-    margin-bottom: 1rem !important;
-}
-
-/* Adjust for dark mode */
-[data-bs-theme="dark"] .password-toggle {
+.remember-me-label {
+    font-size: 0.9rem;
     color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
-    [data-bs-theme="dark"] .password-toggle:hover {
-        color: var(--accent-primary);
+.remember-me-icon {
+    color: var(--accent-primary);
+    font-size: 0.8rem;
+}
+
+/* ==========================================
+   TERMS CHECKBOX STYLES (WITH OUTLINE)
+   ========================================== */
+
+.terms-check {
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+    .terms-check.highlight-terms {
+        background-color: rgba(var(--accent-primary-rgb), 0.05);
+        border-color: var(--accent-primary) !important;
+        box-shadow: 0 0 0 3px rgba(var(--accent-primary-rgb), 0.1);
     }
 
-/* Fix for when input has error state */
-.form-control.is-invalid {
-    padding-right: calc(1.5em + 0.75rem);
-    background-image: none;
-    border-color: #dc3545;
+/* Custom terms checkbox */
+.terms-checkbox-container {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
 }
 
-.form-control.is-valid {
-    border-color: #198754;
+.terms-checkbox-custom {
+    position: relative;
+    flex-shrink: 0;
+    margin-top: 2px;
 }
 
-/* Remove Bootstrap's default invalid background image to prevent overlap */
-.form-control.is-invalid {
-    background-image: none;
+.terms-checkbox-input {
+    position: absolute;
+    opacity: 0;
+    cursor: pointer;
+    height: 0;
+    width: 0;
 }
 
-/* Ensure eye icon is above everything */
-.password-toggle i {
-    pointer-events: none;
+.terms-checkbox-checkmark {
+    display: block;
+    width: 20px;
+    height: 20px;
+    background-color: var(--bg-input);
+    border: 2px solid #000000; /* Black outline for light mode */
+    border-radius: 4px;
+    transition: all 0.3s ease;
+    position: relative;
 }
 
+/* REMOVED HOVER EFFECTS for terms checkbox as well for consistency */
+/* .terms-checkbox-input:hover ~ .terms-checkbox-checkmark {
+    border-color: var(--accent-primary);
+} */
+
+.terms-checkbox-input:checked ~ .terms-checkbox-checkmark {
+    background-color: var(--accent-primary);
+    border-color: var(--accent-primary); /* Keep same color when checked */
+}
+
+.terms-checkbox-checkmark:after {
+    content: "";
+    position: absolute;
+    display: none;
+    left: 6px;
+    top: 2px;
+    width: 5px;
+    height: 10px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+
+.terms-checkbox-input:checked ~ .terms-checkbox-checkmark:after {
+    display: block;
+}
+
+.terms-checkbox-label {
+    flex-grow: 1;
+    font-size: 0.85rem;
+    line-height: 1.4;
+}
+
+.terms-link {
+    color: var(--accent-primary) !important;
+    font-weight: 600;
+    text-decoration: underline !important;
+    transition: all 0.3s ease;
+}
+
+    .terms-link:hover {
+        color: var(--accent-hover) !important;
+        text-decoration: none !important;
+    }
+
+/* Terms error message */
+.terms-error {
+    border-left: 4px solid #dc3545;
+    animation: slideDown 0.3s ease-out;
+}
+
+/* ==========================================
+   DISABLED BUTTON STYLES
+   ========================================== */
+
+.btn-disabled {
+    opacity: 0.6;
+    cursor: not-allowed !important;
+    position: relative;
+}
+
+    .btn-disabled:hover {
+        transform: none !important;
+        box-shadow: none !important;
+    }
+
+    .btn-disabled:before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: inherit;
+    }
+
+/* ==========================================
+   DARK MODE SUPPORT (WHITE OUTLINE)
+   ========================================== */
+
+[data-bs-theme="dark"] .remember-me-checkmark {
+    background-color: var(--bg-input-dark);
+    border-color: #ffffff; /* White outline for dark mode */
+}
+
+[data-bs-theme="dark"] .terms-checkbox-checkmark {
+    background-color: var(--bg-input-dark);
+    border-color: #ffffff; /* White outline for dark mode */
+}
+
+[data-bs-theme="dark"] .remember-me-checkbox:checked ~ .remember-me-checkmark {
+    background-color: var(--accent-primary);
+    border-color: var(--accent-primary); /* Keep same color when checked in dark mode */
+}
+
+[data-bs-theme="dark"] .terms-checkbox-input:checked ~ .terms-checkbox-checkmark {
+    background-color: var(--accent-primary);
+    border-color: var(--accent-primary); /* Keep same color when checked in dark mode */
+}
+
+[data-bs-theme="dark"] .terms-check.highlight-terms {
+    background-color: rgba(var(--accent-primary-rgb), 0.1);
+}
+
+/* ==========================================
+   CHECKBOX FOCUS STATES (For Accessibility)
+   ========================================== */
+
+.remember-me-checkbox:focus ~ .remember-me-checkmark,
+.terms-checkbox-input:focus ~ .terms-checkbox-checkmark {
+    outline: 2px solid var(--accent-primary);
+    outline-offset: 2px;
+}
+
+/* Focus styles for keyboard navigation */
+.remember-me-container:focus-within,
+.terms-checkbox-container:focus-within {
+    outline: 2px solid var(--accent-primary);
+    outline-offset: 4px;
+    border-radius: 4px;
+}
+
+/* ==========================================
+   ANIMATIONS
+   ========================================== */
+
+@keyframes shake-animation {
+    0%, 100% {
+        transform: translateX(0);
+    }
+
+    10%, 30%, 50%, 70%, 90% {
+        transform: translateX(-5px);
+    }
+
+    20%, 40%, 60%, 80% {
+        transform: translateX(5px);
+    }
+}
+
+.shake-animation {
+    animation: shake-animation 0.5s ease-in-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+        max-height: 0;
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+        max-height: 200px;
+    }
+}
+
+.fade-in {
+    animation: fadeIn 0.3s ease-out;
+}
+
+.fade-out {
+    animation: fadeOut 0.3s ease-out;
+    opacity: 0;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes fadeOut {
+    from {
+        opacity: 1;
+    }
+
+    to {
+        opacity: 0;
+    }
+}
+
+@keyframes pulse-border {
+    0% {
+        box-shadow: 0 0 0 0 rgba(var(--accent-primary-rgb), 0.7);
+    }
+
+    70% {
+        box-shadow: 0 0 0 10px rgba(var(--accent-primary-rgb), 0);
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 rgba(var(--accent-primary-rgb), 0);
+    }
+}
+
+.highlight-terms {
+    animation: pulse-border 2s infinite;
+}
+
+/* ==========================================
+   RESPONSIVE DESIGN
+   ========================================== */
+
+@media (max-width: 576px) {
+    .remember-me-label {
+        font-size: 0.85rem;
+    }
+
+    .terms-checkbox-label {
+        font-size: 0.8rem;
+    }
+
+    .terms-error {
+        padding: 12px !important;
+    }
+
+    .remember-me-checkmark,
+    .terms-checkbox-checkmark {
+        width: 20px;
+        height: 20px;
+    }
+
+        .remember-me-checkmark:after {
+            left: 6px;
+            top: 2px;
+        }
+}
+
+/* ==========================================
+   CHECKBOX SIZE CONSISTENCY
+   ========================================== */
+
+/* Ensure both checkboxes have same visual size */
+.remember-me-checkmark,
+.terms-checkbox-checkmark {
+    min-width: 22px;
+    min-height: 22px;
+}
+
+    /* Checkmark positioning */
+    .remember-me-checkmark:after {
+        left: 7px;
+        top: 3px;
+        width: 5px;
+        height: 10px;
+    }
+
+    .terms-checkbox-checkmark:after {
+        left: 6px;
+        top: 2px;
+        width: 5px;
+        height: 10px;
+    }
+
+/* ==========================================
+   DISABLED STATE FOR CHECKBOXES
+   ========================================== */
+
+.remember-me-checkbox:disabled ~ .remember-me-checkmark,
+.terms-checkbox-input:disabled ~ .terms-checkbox-checkmark {
+    opacity: 0.5;
+    cursor: not-allowed;
+    border-color: #6c757d; /* Gray border when disabled */
+}
+
+[data-bs-theme="dark"] .remember-me-checkbox:disabled ~ .remember-me-checkmark,
+[data-bs-theme="dark"] .terms-checkbox-input:disabled ~ .terms-checkbox-checkmark {
+    border-color: #adb5bd; /* Lighter gray for dark mode */
+}
+
+/* ==========================================
+   CHECKED STATE ANIMATION (Subtle)
+   ========================================== */
+
+.remember-me-checkbox:checked ~ .remember-me-checkmark,
+.terms-checkbox-input:checked ~ .terms-checkbox-checkmark {
+    animation: checkPulse 0.3s ease;
+}
+
+@keyframes checkPulse {
+    0% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.1);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+/* ==========================================
+   PRINT STYLES
+   ========================================== */
+
+@media print {
+    .remember-me-checkmark,
+    .terms-checkbox-checkmark {
+        border-color: #000000 !important; /* Always black for printing */
+    }
+
+    [data-bs-theme="dark"] .remember-me-checkmark,
+    [data-bs-theme="dark"] .terms-checkbox-checkmark {
+        border-color: #000000 !important; /* Force black for printing */
+    }
+}
+
+/* ==========================================
+   HIGH CONTRAST MODE SUPPORT
+   ========================================== */
+
+@media (prefers-contrast: high) {
+    .remember-me-checkmark,
+    .terms-checkbox-checkmark {
+        border-width: 3px; /* Thicker border for high contrast */
+    }
+
+    .remember-me-checkbox:checked ~ .remember-me-checkmark,
+    .terms-checkbox-input:checked ~ .terms-checkbox-checkmark {
+        background-color: #000000; /* Black for high contrast */
+        border-color: #000000;
+    }
+
+    [data-bs-theme="dark"] .remember-me-checkmark,
+    [data-bs-theme="dark"] .terms-checkbox-checkmark {
+        border-color: #ffffff;
+    }
+
+    [data-bs-theme="dark"] .remember-me-checkbox:checked ~ .remember-me-checkmark,
+    [data-bs-theme="dark"] .terms-checkbox-input:checked ~ .terms-checkbox-checkmark {
+        background-color: #ffffff; /* White for high contrast dark mode */
+        border-color: #ffffff;
+    }
+}
+
+/* ==========================================
+   COLOR BLIND MODE SUPPORT
+   ========================================== */
+
+@media (prefers-color-scheme: light) and (prefers-contrast: more) {
+    /* Use different border styles for color blind users */
+    .remember-me-checkmark,
+    .terms-checkbox-checkmark {
+        border-style: double; /* Double border for better visibility */
+    }
+}

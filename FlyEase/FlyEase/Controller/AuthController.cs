@@ -133,21 +133,10 @@ namespace FlyEase.Controllers
             {
                 try
                 {
-                    // First, check if the email exists
                     var user = _context.Users.FirstOrDefault(u => u.Email == model.Email);
-
-                    if (user == null)
+                    if (user == null || !VerifyPassword(model.Password, user.PasswordHash))
                     {
-                        // Account doesn't exist
-                        ModelState.AddModelError("Email", "Account doesn't exist. Please check your email or register.");
-                        return View(model);
-                    }
-
-                    // Account exists, now check password
-                    if (!VerifyPassword(model.Password, user.PasswordHash))
-                    {
-                        // Password doesn't match
-                        ModelState.AddModelError("Password", "Password is incorrect. Please try again.");
+                        ModelState.AddModelError("", "Invalid email or password.");
                         return View(model);
                     }
 
@@ -169,7 +158,11 @@ namespace FlyEase.Controllers
                         ExpiresUtc = model.RememberMe ? DateTime.UtcNow.AddDays(30) : null
                     };
 
-                    await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal, authProperties);
+                    await HttpContext.SignInAsync(
+                        CookieAuthenticationDefaults.AuthenticationScheme,
+                        principal,
+                        authProperties
+                    );
 
                     if (user.Role == "Admin" || user.Role == "Staff")
                         return RedirectToAction("AdminDashboard", "AdminDashboard");
@@ -179,7 +172,7 @@ namespace FlyEase.Controllers
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "Login error");
-                    ModelState.AddModelError("", "An error occurred during login.");
+                    ModelState.AddModelError("", "An error occurred.");
                     return View(model);
                 }
             }

@@ -43,43 +43,73 @@
                             </div>
                         }
 
+                        <!-- Lockout Countdown Container (Hidden by default) -->
+                        <div id="lockoutContainer" class="d-none mb-4">
+                            <div class="lockout-card p-3 border border-danger rounded">
+                                <div class="d-flex align-items-center mb-3">
+                                    <div class="lockout-icon me-3">
+                                        <i class="fas fa-lock fa-2x text-danger"></i>
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <h5 class="text-danger mb-1">Account Locked</h5>
+                                        <p class="text-muted small mb-0">Too many failed login attempts</p>
+                                    </div>
+                                    <div class="countdown-display">
+                                        <div class="countdown-circle">
+                                            <span id="countdownTimer" class="countdown-number">30</span>
+                                            <small>s</small>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="progress mb-2" style="height: 6px;">
+                                    <div id="countdownProgress"
+                                         class="progress-bar bg-danger progress-bar-striped progress-bar-animated"
+                                         role="progressbar"
+                                         style="width: 100%"
+                                         aria-valuenow="100"
+                                         aria-valuemin="0"
+                                         aria-valuemax="100"></div>
+                                </div>
+
+                                <div class="text-center small text-muted">
+                                    <i class="fas fa-clock me-1"></i>
+                                    Unlocks in <span id="remainingTime">30 seconds</span>
+                                </div>
+                            </div>
+                        </div>
+
                         <form asp-action="Login" method="post" id="loginForm" novalidate>
                             @Html.AntiForgeryToken()
 
-                            <!-- Email Field with fixed positioning -->
-                            <div class="mb-3">
-                                <div class="form-floating position-relative">
-                                    <input asp-for="Email" class="form-control" placeholder="name@example.com" />
-                                    <label asp-for="Email">Email Address</label>
-                                </div>
-                                <div class="error-container mt-1">
-                                    <span asp-validation-for="Email" class="text-danger small"></span>
-                                </div>
+                            <div class="form-floating mb-3">
+                                <input asp-for="Email" class="form-control" placeholder="name@example.com" id="Email" />
+                                <label asp-for="Email">Email Address</label>
+                                <span asp-validation-for="Email" class="text-danger small"></span>
                             </div>
 
-                            <!-- Password Field with fixed positioning -->
-                            <div class="mb-3">
-                                <div class="form-floating position-relative">
-                                    <input asp-for="Password" class="form-control" type="password" placeholder="Password" id="password" />
-                                    <label asp-for="Password">Password</label>
-                                    <button type="button" class="btn btn-link position-absolute top-50 end-0 translate-middle-y text-decoration-none password-toggle" tabindex="-1" style="z-index: 5; color: var(--text-muted);">
-                                        <i class="fas fa-eye"></i>
-                                    </button>
-                                </div>
-                                <div class="error-container mt-1">
-                                    <span asp-validation-for="Password" class="text-danger small"></span>
-                                </div>
+                            <div class="form-floating mb-3 position-relative">
+                                <input asp-for="Password" class="form-control" type="password" placeholder="Password" id="Password" />
+                                <label asp-for="Password">Password</label>
+                                <button type="button" class="btn btn-link position-absolute top-50 end-0 translate-middle-y text-decoration-none me-2 password-toggle" tabindex="-1" style="z-index: 5; color: var(--text-muted);">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <span asp-validation-for="Password" class="text-danger small"></span>
                             </div>
 
                             <div class="form-check mb-3">
-                                <input class="form-check-input" asp-for="RememberMe" id="rememberMe" />
-                                <label class="form-check-label text-muted" for="rememberMe">
-                                    <i class="fas fa-clock me-1"></i> Remember me for 30 days
+                                <label class="remember-me-container">
+                                    <input type="checkbox" class="remember-me-checkbox" name="remember" id="remember">
+                                    <span class="remember-me-checkmark"></span>
+                                    <span class="remember-me-label">
+                                        <i class="fas fa-user-check remember-me-icon"></i>
+                                        Remember me
+                                    </span>
                                 </label>
                             </div>
 
                             <div class="d-grid gap-2 mt-4 mb-0">
-                                <button type="submit" class="btn btn-primary btn-lg fw-bold">
+                                <button type="submit" class="btn btn-primary btn-lg fw-bold" id="loginSubmit">
                                     <i class="fas fa-sign-in-alt me-2"></i>Sign In
                                 </button>
                             </div>
@@ -103,6 +133,44 @@
     </div>
 </div>
 
+<!-- Security Data (Hidden) -->
+<div id="securityConfig"
+     data-max-attempts="3"
+     data-lockout-seconds="30"
+     class="d-none"></div>
+
 @section Scripts {
     <script src="~/js/auth.js"></script>
+    <script>
+        // Server-side integration for failed login attempts
+        @if (!ViewData.ModelState.IsValid && ViewData.ModelState.ContainsKey(""))
+        {
+                var errorMessage = ViewData.ModelState[""].Errors.FirstOrDefault()?.ErrorMessage;
+                if (errorMessage != null && errorMessage.Contains("Invalid email or password"))
+                {
+                        <text>
+                        document.addEventListener('DOMContentLoaded', function() {
+                            if (window.loginLockout) {
+                                // Add a small delay to ensure the lockout system is initialized
+                                setTimeout(function() {
+                                    window.loginLockout.recordFailedAttempt();
+                                }, 100);
+                            }
+                        });
+                        </text>
+                }
+        }
+
+        // Reset on successful login
+        @if (ViewBag.SuccessMessage != null)
+        {
+                <text>
+                document.addEventListener('DOMContentLoaded', function() {
+                    if (window.loginLockout) {
+                        window.loginLockout.resetLockout();
+                    }
+                });
+                </text>
+        }
+    </script>
 }
