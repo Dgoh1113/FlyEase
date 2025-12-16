@@ -21,9 +21,9 @@ StripeConfiguration.ApiKey = builder.Configuration["Stripe:SecretKey"];
 
 // 1. REGISTER SERVICES
 // ====================================================================
-builder.Services.AddScoped<StripeService>(); // Existing Stripe Service
-builder.Services.AddTransient<EmailService>(); // <--- ADD THIS LINE (Fixes the error)
-builder.Services.AddScoped<IEmailService, ForgetEmailService>(); // Existing Forget Password Service
+builder.Services.AddScoped<StripeService>();
+builder.Services.AddTransient<EmailService>();
+builder.Services.AddScoped<IEmailService, ForgetEmailService>();
 // ====================================================================
 
 string path = builder.Environment.ContentRootPath;
@@ -31,11 +31,11 @@ AppDomain.CurrentDomain.SetData("DataDirectory", path);
 
 builder.Services.AddSingleton<IConfiguration>(builder.Configuration);
 
-// Add Localization Service
+// === 1. ADD LOCALIZATION SERVICES (Updated) ===
 builder.Services.AddLocalization(options => options.ResourcesPath = "Resources");
 
 builder.Services.AddControllersWithViews()
-    .AddViewLocalization(Microsoft.AspNetCore.Mvc.Razor.LanguageViewLocationExpanderFormat.Suffix)
+    .AddViewLocalization()
     .AddDataAnnotationsLocalization();
 
 // Configure DbContext
@@ -82,13 +82,22 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-// Localization Middleware
-var supportedCultures = new[] { "en", "ms", "zh-CN" };
-var localizationOptions = new RequestLocalizationOptions()
-    .SetDefaultCulture("en")
-    .AddSupportedCultures(supportedCultures)
-    .AddSupportedUICultures(supportedCultures);
+// === 2. CONFIGURE AUTOMATIC LOCALIZATION MIDDLEWARE (Updated) ===
+var supportedCultures = new[]
+{
+    new CultureInfo("en"),
+    new CultureInfo("ms"),
+    new CultureInfo("zh-CN")
+};
 
+var localizationOptions = new RequestLocalizationOptions
+{
+    DefaultRequestCulture = new RequestCulture("en"), // Default if no other match found
+    SupportedCultures = supportedCultures,
+    SupportedUICultures = supportedCultures
+};
+
+// This enables Automatic switching via QueryString, Cookie, and Browser Header
 app.UseRequestLocalization(localizationOptions);
 
 app.UseStaticFiles();
