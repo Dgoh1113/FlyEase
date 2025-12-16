@@ -28,21 +28,18 @@ namespace FlyEase.Controllers
         }
 
         // ==========================================
-        // 1. MAIN DASHBOARD SUMMARY (6 Buttons View)
+        // 1. MAIN DASHBOARD SUMMARY
         // ==========================================
         [HttpGet("AdminDashboard")]
         public async Task<IActionResult> AdminDashboard()
         {
-            // 1. Basic Stats for Buttons
             var totalUsers = await _context.Users.CountAsync();
             var totalBookings = await _context.Bookings.CountAsync();
             var pendingBookings = await _context.Bookings.CountAsync(b => b.BookingStatus == "Pending");
             var totalRevenue = await _context.Payments.Where(p => p.PaymentStatus == "Completed").SumAsync(p => p.AmountPaid);
 
-            // 2. Fetch Low Stock for Packages Button
             var lowStock = await _context.Packages.Where(p => p.AvailableSlots < 10).OrderBy(p => p.AvailableSlots).Take(5).ToListAsync();
 
-            // 3. Recent Bookings (Optional: Kept if you want to display a list below the buttons)
             var recentBookings = await _context.Bookings
                 .Include(b => b.User).Include(b => b.Package)
                 .OrderByDescending(b => b.BookingDate).Take(5).ToListAsync();
@@ -55,7 +52,6 @@ namespace FlyEase.Controllers
                 TotalRevenue = totalRevenue,
                 RecentBookings = recentBookings,
                 LowStockPackages = lowStock
-                // Note: Charts data removed as they are moved to SalesReport
             };
 
             return View(vm);
@@ -70,7 +66,11 @@ namespace FlyEase.Controllers
             int pageSize = 5;
             int pageNumber = page ?? 1;
 
+            // Start query
             var query = _context.Users.AsQueryable();
+
+            // FILTER: Exclude Admins (Display only Staff and Users)
+            query = query.Where(u => u.Role != "Admin");
 
             if (!string.IsNullOrEmpty(search))
             {
@@ -80,6 +80,7 @@ namespace FlyEase.Controllers
                     u.Email.Contains(search));
             }
 
+            // Optional: Filter by specific role (Staff/User) if selected in dropdown
             if (!string.IsNullOrEmpty(role) && role != "All")
             {
                 query = query.Where(u => u.Role == role);
@@ -119,6 +120,13 @@ namespace FlyEase.Controllers
                     TempData["Success"] = "User updated successfully!";
                 }
             }
+            // Logic to add new user if needed can go here
+            else
+            {
+                // Basic creation logic if you want to allow adding users via admin panel
+                // _context.Users.Add(input); 
+                // await _context.SaveChangesAsync();
+            }
             return RedirectToAction(nameof(Users));
         }
 
@@ -128,13 +136,14 @@ namespace FlyEase.Controllers
             var user = await _context.Users.FindAsync(id);
             if (user != null)
             {
+                // Prevent banning/deleting users who have bookings (integrity check)
                 if (await _context.Bookings.AnyAsync(b => b.UserID == id))
-                    TempData["Error"] = "Cannot delete user with bookings.";
+                    TempData["Error"] = "Cannot ban user with active bookings.";
                 else
                 {
                     _context.Users.Remove(user);
                     await _context.SaveChangesAsync();
-                    TempData["Success"] = "User deleted.";
+                    TempData["Success"] = "User banned (removed) successfully.";
                 }
             }
             return RedirectToAction(nameof(Users));
@@ -392,12 +401,7 @@ namespace FlyEase.Controllers
         }
 
         // ==========================================
-        // 5. SALES REPORT (REMOVED - Handled by ReportController)
-        // ==========================================
-        // The Report logic has been moved to ReportController.SalesReport to support the new chart features.
-
-        // ==========================================
-        // 6. ANALYTICS (Feedback)
+        // 5. ANALYTICS
         // ==========================================
         [HttpGet("Analytics")]
         public async Task<IActionResult> Analytics()
@@ -452,7 +456,7 @@ namespace FlyEase.Controllers
         }
 
         // ==========================================
-        // 7. DISCOUNTS
+        // 6. DISCOUNTS
         // ==========================================
         [HttpGet("Discounts")]
         public async Task<IActionResult> Discounts(string? search = null, int? page = 1)

@@ -1,19 +1,19 @@
 ﻿/* =========================================
-   GLOBAL VARIABLES (Ensure these exist)
+   GLOBAL VARIABLES
    ========================================= */
 :root {
-    --accent-primary: #4e73df; /* Main Brand Color */
+    --accent-primary: #4e73df;
     --accent-primary-rgb: 78, 115, 223;
-    --accent-hover: #2e59d9; /* Darker Hover Color */
-    --bg-input: #ffffff; /* Light Mode Input BG */
-    --bg-input-dark: #2c2c2c; /* Dark Mode Input BG */
+    --accent-hover: #2e59d9;
+    --bg-input: #ffffff;
+    --bg-input-dark: #2c2c2c;
     --text-muted: #858796;
     --text-main: #5a5c69;
-    --border-color: #d1d3e2;
+    --border-color: #d1d3e2; /* Light gray border */
 }
 
 /* =========================================
-   AUTH PAGE STYLES (Cleaned for Dark Mode)
+   AUTH PAGE STYLES
    ========================================= */
 
 /* 1. Footer Styling */
@@ -22,7 +22,7 @@
     border-top: 1px solid var(--border-color);
 }
 
-/* 2. Floating Label Fixes for Dark Mode */
+/* 2. Floating Label Fixes */
 [data-bs-theme="dark"] .form-floating label {
     color: var(--text-muted);
 }
@@ -47,7 +47,50 @@
         color: var(--accent-primary) !important;
     }
 
-/* 4. Password Strength Meter */
+/* 4. Input Fields (Fixed Disappearing Box) */
+.form-control {
+    border: 1px solid var(--border-color); /* Thin visible border */
+    border-radius: 8px;
+    padding: 0.75rem;
+    font-size: 16px;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+    .form-control:focus {
+        box-shadow: 0 0 0 0.2rem rgba(78, 115, 223, 0.25);
+        border-color: var(--accent-primary);
+    }
+
+/* 5. Input Groups (Phone Number Wrapper) */
+.input-group {
+    border-radius: 8px;
+    overflow: hidden;
+    /* Remove wrapper border, let children handle it for cleaner look */
+    border: none;
+}
+
+/* Fix for Input Group Text (+60) */
+.input-group-text {
+    background: #f8f9fa;
+    border: 1px solid var(--border-color);
+    border-right: none; /* Merge with input */
+    padding: 0.75rem 1rem;
+    color: var(--accent-primary);
+}
+
+/* Fix for Input inside Group */
+.input-group .form-control {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+}
+
+[data-bs-theme="dark"] .input-group-text {
+    background-color: var(--bg-input-dark);
+    border-color: #444;
+    color: var(--text-muted);
+}
+
+/* 6. Strength Meter */
 .strength-bar {
     height: 4px;
     background-color: var(--border-color);
@@ -74,7 +117,7 @@
     background-color: #198754;
 }
 
-/* 5. Requirement List Styling */
+/* 7. Requirements List */
 .requirement-list {
     list-style: none;
     padding: 0;
@@ -89,7 +132,6 @@
         color: var(--text-muted);
         display: flex;
         align-items: center;
-        transition: color 0.3s ease;
     }
 
         .requirement-list li i {
@@ -106,14 +148,7 @@
         color: #198754;
     }
 
-/* 6. Phone Number Input Group Fix */
-[data-bs-theme="dark"] .input-group-text {
-    background-color: var(--bg-input-dark);
-    border-color: #444;
-    color: var(--text-muted);
-}
-
-/* Validation states */
+/* Validation States */
 .is-valid {
     border-color: #198754 !important;
 }
@@ -127,123 +162,21 @@
     font-size: 0.875rem;
 }
 
-/* Login Lockout Styles */
-.lockout-card {
-    background: linear-gradient(135deg, #fff5f5 0%, #ffeaea 100%);
-    border-left: 4px solid #dc3545 !important;
-    animation: slideDown 0.5s ease-out;
-}
-
-.countdown-circle {
-    position: relative;
-    width: 60px;
-    height: 60px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: #dc3545;
-    border-radius: 50%;
-    color: white;
-    font-weight: bold;
-    animation: pulse 2s infinite;
-}
-
-.countdown-number {
-    font-size: 1.5rem;
-    font-weight: 700;
-    font-family: 'Courier New', monospace;
-}
-
 /* ==========================================
-   REMEMBER ME STYLES (FIXED)
+   REMEMBER ME & TERMS CHECKBOXES
    ========================================== */
 
-/* Custom checkbox styling */
-.remember-me-container {
+.remember-me-container,
+.terms-checkbox-container {
     position: relative;
     padding-left: 35px;
     cursor: pointer;
     user-select: none;
-    display: block; /* Ensure it takes width */
-}
-
-.remember-me-checkbox {
-    position: absolute;
-    opacity: 0;
-    cursor: pointer;
-    height: 0;
-    width: 0;
-}
-
-.remember-me-checkmark {
-    position: absolute;
-    top: 0;
-    left: 0;
-    height: 22px;
-    width: 22px;
-    background-color: var(--bg-input);
-    border: 2px solid #d1d3e2; /* Visible gray border by default */
-    border-radius: 4px;
-    transition: all 0.2s ease;
-}
-
-.remember-me-checkbox:checked ~ .remember-me-checkmark {
-    background-color: var(--accent-primary);
-    border-color: var(--accent-primary);
-}
-
-.remember-me-checkmark:after {
-    content: "";
-    position: absolute;
-    display: none;
-    left: 7px;
-    top: 3px;
-    width: 5px;
-    height: 10px;
-    border: solid white;
-    border-width: 0 2px 2px 0;
-    transform: rotate(45deg);
-}
-
-.remember-me-checkbox:checked ~ .remember-me-checkmark:after {
-    display: block;
-}
-
-.remember-me-label {
-    font-size: 0.9rem;
-    color: var(--text-muted);
     display: flex;
     align-items: center;
-    gap: 8px;
-    line-height: 22px; /* Align with box height */
 }
 
-.remember-me-icon {
-    color: var(--accent-primary);
-    font-size: 0.8rem;
-}
-
-/* ==========================================
-   TERMS CHECKBOX STYLES (FIXED)
-   ========================================== */
-
-.terms-check {
-    position: relative;
-    transition: all 0.3s ease;
-}
-
-.terms-checkbox-container {
-    display: flex;
-    align-items: flex-start;
-    gap: 12px;
-}
-
-.terms-checkbox-custom {
-    position: relative;
-    flex-shrink: 0;
-    margin-top: 2px;
-}
-
+.remember-me-checkbox,
 .terms-checkbox-input {
     position: absolute;
     opacity: 0;
@@ -252,62 +185,79 @@
     width: 0;
 }
 
+/* The visible box */
+.remember-me-checkmark,
 .terms-checkbox-checkmark {
-    display: block;
-    width: 20px;
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
     height: 20px;
+    width: 20px;
     background-color: var(--bg-input);
-    border: 2px solid #d1d3e2; /* Visible gray border */
+    border: 1px solid var(--border-color); /* Thin border */
     border-radius: 4px;
     transition: all 0.2s ease;
-    position: relative;
 }
 
+/* Checked State */
+.remember-me-checkbox:checked ~ .remember-me-checkmark,
 .terms-checkbox-input:checked ~ .terms-checkbox-checkmark {
     background-color: var(--accent-primary);
     border-color: var(--accent-primary);
 }
 
+/* Tick Icon */
+.remember-me-checkmark:after,
 .terms-checkbox-checkmark:after {
     content: "";
     position: absolute;
     display: none;
     left: 6px;
     top: 2px;
-    width: 5px;
-    height: 10px;
+    width: 6px;
+    height: 12px;
     border: solid white;
     border-width: 0 2px 2px 0;
     transform: rotate(45deg);
 }
 
+.remember-me-checkbox:checked ~ .remember-me-checkmark:after,
 .terms-checkbox-input:checked ~ .terms-checkbox-checkmark:after {
     display: block;
 }
 
+/* Label Text */
+.remember-me-label,
 .terms-checkbox-label {
-    flex-grow: 1;
-    font-size: 0.85rem;
-    line-height: 1.4;
+    font-size: 0.9rem;
+    color: var(--text-muted);
 }
 
-.terms-link {
+.remember-me-icon {
+    color: var(--accent-primary);
+    margin-right: 5px;
+}
+
+/* Links */
+.terms-link, .highlight-link {
     color: var(--accent-primary) !important;
     font-weight: 600;
     text-decoration: underline !important;
-    transition: all 0.3s ease;
 }
 
-    .terms-link:hover {
+    .terms-link:hover, .highlight-link:hover {
         color: var(--accent-hover) !important;
         text-decoration: none !important;
     }
 
 /* Dark Mode Overrides */
+[data-bs-theme="dark"] .form-control,
 [data-bs-theme="dark"] .remember-me-checkmark,
 [data-bs-theme="dark"] .terms-checkbox-checkmark {
     background-color: var(--bg-input-dark);
     border-color: #555;
+    color: #eee;
 }
 
 [data-bs-theme="dark"] .remember-me-checkbox:checked ~ .remember-me-checkmark,

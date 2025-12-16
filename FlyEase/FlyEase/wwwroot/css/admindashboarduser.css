@@ -1,0 +1,36 @@
+﻿/* Gavel Strike Animation */
+@keyframes gavel-strike {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    30% {
+        transform: rotate(-60deg);
+    }
+    /* Wind up */
+    50% {
+        transform: rotate(10deg);
+    }
+    /* Smash down */
+    100% {
+        transform: rotate(0deg);
+    }
+    /* Freeze at hit position (conceptually 0 is base) */
+}
+
+/* Target the icon on hover */
+.btn-ban:hover .fa-gavel {
+    animation: gavel-strike 0.5s ease-in-out forwards; /* Forwards keeps it at end state */
+    transform-origin: bottom left; /* Pivot point for handle */
+}
+
+.btn-ban {
+    border-color: #dc3545;
+    color: #dc3545;
+    transition: all 0.3s ease;
+}
+
+    .btn-ban:hover {
+        background-color: #dc3545;
+        color: white;
+    }
