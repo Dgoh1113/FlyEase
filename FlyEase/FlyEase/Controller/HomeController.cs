@@ -1,12 +1,12 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using FlyEase.Data;
-using FlyEase.ViewModels; // Ensure you have the updated HomeViewModel
+using FlyEase.ViewModels;
 using System.Linq;
 using System.Threading.Tasks;
 using System;
 using System.Collections.Generic;
-using X.PagedList; // Ensure X.PagedList.Mvc.Core is installed
+using X.PagedList;
 
 namespace FlyEase.Controllers
 {
@@ -20,11 +20,10 @@ namespace FlyEase.Controllers
         }
 
         // ==========================================
-        // 1. LANDING PAGE (Sidebar + Slider + Cards)
+        // 1. LANDING PAGE
         // ==========================================
         public async Task<IActionResult> Index()
         {
-            // A. Fetch Distinct Destinations for the Left Sidebar
             var destinations = await _context.Packages
                                              .AsNoTracking()
                                              .Where(p => !string.IsNullOrEmpty(p.Destination))
@@ -33,27 +32,21 @@ namespace FlyEase.Controllers
                                              .OrderBy(d => d)
                                              .ToListAsync();
 
-            // B. Fetch Recent/Featured Packages for the Top Slider
-            // logic: Available slots > 0 AND ImageURL is not empty
             var sliderPackages = await _context.Packages
                                                .AsNoTracking()
                                                .Include(p => p.Category)
-                                               // ImageURL is a string column, so we don't .Include() it, just check it
                                                .Where(p => p.AvailableSlots > 0 && !string.IsNullOrEmpty(p.ImageURL))
                                                .OrderByDescending(p => p.PackageID)
                                                .Take(5)
                                                .ToListAsync();
 
-            // C. Fetch All Packages for the Bottom Categorized Rows
-            // We fetch them all and then group them in memory or logic
             var allPackages = await _context.Packages
                                             .AsNoTracking()
                                             .Include(p => p.Category)
-                                            .Include(p => p.Bookings).ThenInclude(b => b.Feedbacks) // For Rating calculation
+                                            .Include(p => p.Bookings).ThenInclude(b => b.Feedbacks)
                                             .Where(p => p.AvailableSlots > 0)
                                             .ToListAsync();
 
-            // Calculate Ratings for the cards
             foreach (var p in allPackages)
             {
                 var ratings = p.Bookings.SelectMany(b => b.Feedbacks).Select(f => f.Rating);
@@ -61,11 +54,9 @@ namespace FlyEase.Controllers
                 p.ReviewCount = ratings.Count();
             }
 
-            // Group by Category Name
             var categorizedPackages = allPackages.GroupBy(p => p.Category?.CategoryName ?? "General")
                                                  .OrderBy(g => g.Key);
 
-            // D. Populate ViewModel
             var viewModel = new HomeViewModel
             {
                 Destinations = destinations,
@@ -77,7 +68,7 @@ namespace FlyEase.Controllers
         }
 
         // ==========================================
-        // 2. PACKAGES LISTING (View All / Search)
+        // 2. PACKAGES LISTING (UPDATED)
         // ==========================================
         public async Task<IActionResult> Packages(string searchTerm, string destination, int? categoryId, decimal? maxPrice, DateTime? startDate, DateTime? endDate, int? page)
         {
@@ -89,6 +80,7 @@ namespace FlyEase.Controllers
                 .AsNoTracking()
                 .Include(p => p.Category)
                 .Include(p => p.PackageInclusions)
+                .Include(p => p.Itinerary) // <--- FIX: Added this line to load Itinerary data
                 .Include(p => p.Bookings)
                 .ThenInclude(b => b.Feedbacks)
                 .Where(p => p.AvailableSlots > 0);
@@ -122,7 +114,6 @@ namespace FlyEase.Controllers
                 .OrderBy(d => d)
                 .ToListAsync();
 
-            // Pass filters back to View to keep inputs filled
             ViewBag.SearchTerm = searchTerm;
             ViewBag.Destination = destination;
             ViewBag.CategoryId = categoryId;
@@ -159,6 +150,7 @@ namespace FlyEase.Controllers
             var package = await _context.Packages
                 .Include(p => p.Category)
                 .Include(p => p.PackageInclusions)
+                .Include(p => p.Itinerary) // <--- Added here too just in case you use this action
                 .Include(p => p.Bookings)
                     .ThenInclude(b => b.Feedbacks)
                 .ThenInclude(f => f.User)

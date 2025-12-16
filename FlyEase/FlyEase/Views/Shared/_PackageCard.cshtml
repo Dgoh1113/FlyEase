@@ -3,46 +3,53 @@
 
 @{
     var firstImg = Model.ImageURL?.Split(';').FirstOrDefault() ?? "/img/default-package.jpg";
-    // Calculate Duration
     var duration = (Model.EndDate - Model.StartDate).Days + 1;
 }
 
-<a asp-controller="PackageDetails" asp-action="PackageDetails" asp-route-id="@Model.PackageID" class="text-decoration-none h-100">
-    <div class="package-card h-100 d-flex flex-column">
+<div class="package-card h-100 d-flex flex-column card shadow-sm">
 
-        <div class="card-img-wrapper position-relative">
-            <img src="@firstImg" class="card-img-top" alt="@Model.PackageName">
+    <div class="card-img-wrapper position-relative">
+        @* --- FIXED: Clickable Image --- *@
+        <a asp-controller="PackageDetails" asp-action="PackageDetails" asp-route-id="@Model.PackageID">
+            <img src="@firstImg" class="card-img-top" alt="@Model.PackageName" style="height: 200px; object-fit: cover;">
+        </a>
 
-            <div class="price-badge">
-                RM @Model.Price.ToString("N0")
-            </div>
-
-            <div class="position-absolute top-0 end-0 m-2">
-                <span class="badge bg-warning text-dark shadow-sm">
-                    <i class="fas fa-star me-1"></i>@(Model.AverageRating > 0 ? Model.AverageRating.ToString("0.0") : "New")
-                </span>
-            </div>
+        <div class="price-badge" style="position: absolute; bottom: 10px; left: 10px; background: rgba(0,0,0,0.7); color: #fff; padding: 5px 10px; border-radius: 5px; font-weight: bold;">
+            RM @Model.Price.ToString("N0")
         </div>
 
-        <div class="card-body d-flex flex-column flex-grow-1">
+        <div class="position-absolute top-0 end-0 m-2">
+            <span class="badge bg-warning text-dark shadow-sm">
+                <i class="fas fa-star me-1"></i>@(Model.AverageRating > 0 ? Model.AverageRating.ToString("0.0") : "New")
+            </span>
+        </div>
+    </div>
+
+    <div class="card-body d-flex flex-column flex-grow-1">
+        @* --- FIXED: Clickable Title --- *@
+        <a asp-controller="PackageDetails" asp-action="PackageDetails" asp-route-id="@Model.PackageID" class="text-decoration-none">
             <h5 class="card-title text-truncate text-dark" title="@Model.PackageName">@Model.PackageName</h5>
+        </a>
 
-            <div class="card-meta mb-2">
-                <small class="text-muted d-block text-truncate">
-                    <i class="fas fa-map-marker-alt text-danger me-1"></i> @Model.Destination
-                </small>
+        <div class="card-meta mb-2">
+            <small class="text-muted d-block text-truncate">
+                <i class="fas fa-map-marker-alt text-danger me-1"></i> @Model.Destination
+            </small>
 
-                <small class="text-secondary d-block mt-1">
-                    <i class="far fa-clock text-primary me-1"></i>
-                    @duration Days (@Model.StartDate.ToString("dd MMM") - @Model.EndDate.ToString("dd MMM"))
-                </small>
-            </div>
+            <small class="text-secondary d-block mt-1">
+                <i class="far fa-clock text-primary me-1"></i>
+                @duration Days (@Model.StartDate.ToString("dd MMM") - @Model.EndDate.ToString("dd MMM"))
+            </small>
+        </div>
 
-            <div class="mt-auto d-flex justify-content-between align-items-center pt-3 border-top">
+        <div class="mt-auto pt-3 border-top">
+            <div class="d-flex justify-content-between align-items-center mb-2">
                 <small class="text-primary fw-bold">
                     <i class="fas fa-users me-1"></i> @Model.AvailableSlots slots left
                 </small>
             </div>
+
+            <a asp-controller="PackageDetails" asp-action="PackageDetails" asp-route-id="@Model.PackageID" class="btn btn-primary w-100 btn-sm">Book Now</a>
         </div>
     </div>
-</a>
+</div>
