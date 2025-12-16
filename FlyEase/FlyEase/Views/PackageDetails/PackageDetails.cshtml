@@ -13,39 +13,33 @@
 
 <div class="container mt-4 mb-5">
 
+    <!-- REVAMPED GALLERY SECTION -->
     <div class="row mb-4">
-        <div class="@(Model.GalleryImages.Any() ? "col-lg-7" : "col-12") h-100 mb-2">
-            <div class="gallery-item h-100 position-relative">
-                <img src="@Model.MainImage" class="w-100 rounded-start object-fit-cover main-img-height"
-                     onclick="openGalleryModal(0)" alt="Main Image" style="cursor: pointer; min-height: 400px; object-fit: cover;">
-            </div>
-        </div>
+        <div class="col-12">
+            <div class="gallery-section-revamped">
+                <div class="gallery-display-container">
+                    <ul class="gallery-images-list">
+                        @for (int i = 0; i < Model.AllImages.Count; i++)
+                        {
+                            <li class="gallery-main-image @(i == 0 ? "active" : "")" 
+                                style="background-image: url('@Model.AllImages[i]');">
+                            </li>
+                        }
+                    </ul>
+                </div>
 
-        @if (Model.GalleryImages.Any())
-        {
-            <div class="col-lg-5 h-100">
-                <div class="row g-2 h-100">
-                    @for (int i = 0; i < Model.GalleryImages.Count; i++)
+                <div class="gallery-thumbnails">
+                    @for (int i = 0; i < Model.AllImages.Count; i++)
                     {
-                        <div class="col-6 position-relative">
-                            <div class="gallery-item h-100 w-100">
-                                <img src="@Model.GalleryImages[i]" class="w-100 rounded object-fit-cover side-img-height"
-                                     onclick="openGalleryModal(@(i + 1))" alt="Gallery Image" style="cursor: pointer; height: 195px; object-fit: cover;">
-
-                                @if (i == 3 && Model.AllImages.Count > 5)
-                                {
-                                    <div class="gallery-overlay" onclick="openGalleryModal(0)">
-                                        <button class="btn btn-sm fw-bold gallery-btn">
-                                            <i class="bi bi-grid-3x3-gap-fill me-2"></i>View Gallery
-                                        </button>
-                                    </div>
-                                }
-                            </div>
-                        </div>
+                        <input class="gallery-radio" type="radio" id="gallery-@i" name="gallery" @(i == 0 ? "checked" : "") />
+                        <label class="gallery-thumbnail @(i == 0 ? "active" : "")" for="gallery-@i"
+                               style="background-image: url('@Model.AllImages[i]');"
+                               data-image-index="@i">
+                        </label>
                     }
                 </div>
             </div>
-        }
+        </div>
     </div>
 
     <div class="row">
@@ -153,40 +147,6 @@
 
                 <div class="text-center mt-3">
                     <small class="text-muted"><i class="bi bi-shield-check"></i> Best Price Guarantee</small>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="modal fade" id="galleryModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-xl modal-dialog-centered">
-        <div class="modal-content bg-transparent border-0 shadow-none">
-            <div class="modal-body p-0 position-relative">
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                <div id="carouselGallery" class="carousel slide" data-bs-ride="false">
-                    <div class="carousel-inner">
-                        @for (int i = 0; i < Model.AllImages.Count; i++)
-                        {
-                            <div class="carousel-item @(i == 0 ? "active" : "")">
-                                <img src="@Model.AllImages[i]" class="d-block w-100 rounded" style="max-height: 85vh; object-fit: contain;" alt="Image @(i + 1)">
-                            </div>
-                        }
-                    </div>
-                    @if (Model.AllImages.Count > 1)
-                    {
-                        <button class="carousel-control-prev" type="button" data-bs-target="#carouselGallery" data-bs-slide="prev">
-                            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                        </button>
-                        <button class="carousel-control-next" type="button" data-bs-target="#carouselGallery" data-bs-slide="next">
-                            <span class="carousel-control-next-icon" aria-hidden="true"></span>
-                        </button>
-                    }
-                    <div class="text-center mt-3">
-                        <span id="carousel-counter" class="text-white fw-bold fs-5 bg-dark px-3 py-1 rounded-pill bg-opacity-75">
-                            1 / @Model.AllImages.Count
-                        </span>
-                    </div>
                 </div>
             </div>
         </div>
