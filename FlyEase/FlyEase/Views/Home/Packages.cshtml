@@ -208,9 +208,9 @@
                                 </div>
 
                                 <div class="d-grid gap-2">
-                                    <button type="button" class="btn btn-outline-info btn-sm" onclick='showItineraryModal(@Html.Raw(itineraryJson), @Html.Raw(packageNameJson))'>
-                                        <i class="fas fa-list-ul"></i> Itinerary
-                                    </button>
+                                    <button type="button" class="btn btn-primary w-100 py-3 fw-bold" data-bs-toggle="modal" data-bs-target="#itineraryModal">
+                    <i class="fas fa-list-ol me-2"></i>See Trip Process (Itinerary)
+                </button>
 
                                     <div class="d-flex gap-2">
                                         <a asp-route-id="@pkg.PackageID" asp-action="PackageDetails" asp-controller="PackageDetails" class="btn btn-primary btn-sm flex-grow-1">Book Now</a>
@@ -259,30 +259,30 @@
 </div>
 
 <script>
-    function showItineraryModal(data, packageName) {
-        document.getElementById('itineraryModalTitle').innerText = "Itinerary for " + packageName;
-        const container = document.getElementById('itineraryModalBody');
-        container.innerHTML = "";
+    // function showItineraryModal(data, packageName) {
+    //     document.getElementById('itineraryModalTitle').innerText = "Itinerary for " + packageName;
+    //     const container = document.getElementById('itineraryModalBody');
+    //     container.innerHTML = "";
 
-        if (!data || data.length === 0) {
-            container.innerHTML = '<p class="text-center text-muted p-3">No detailed itinerary available.</p>';
-        } else {
-            let html = '<div class="timeline p-2">';
-            data.forEach(day => {
-                html += `
-                <div class="card mb-3 border-0 shadow-sm">
-                    <div class="card-body">
-                        <div class="d-flex align-items-center mb-2">
-                            <span class="badge bg-primary rounded-pill me-2">Day ${day.DayNumber}</span>
-                            <h5 class="card-title mb-0 text-dark">${day.Title}</h5>
-                        </div>
-                        <p class="card-text text-muted ms-1">${day.ActivityDescription}</p>
-                    </div>
-                </div>`;
-            });
-            html += '</div>';
-            container.innerHTML = html;
-        }
-        new bootstrap.Modal(document.getElementById('itineraryModal')).show();
-    }
+    //     if (!data || data.length === 0) {
+    //         container.innerHTML = '<p class="text-center text-muted p-3">No detailed itinerary available.</p>';
+    //     } else {
+    //         let html = '<div class="timeline p-2">';
+    //         data.forEach(day => {
+    //             html += `
+    //             <div class="card mb-3 border-0 shadow-sm">
+    //                 <div class="card-body">
+    //                     <div class="d-flex align-items-center mb-2">
+    //                         <span class="badge bg-primary rounded-pill me-2">Day ${day.DayNumber}</span>
+    //                         <h5 class="card-title mb-0 text-dark">${day.Title}</h5>
+    //                     </div>
+    //                     <p class="card-text text-muted ms-1">${day.ActivityDescription}</p>
+    //                 </div>
+    //             </div>`;
+    //         });
+    //         html += '</div>';
+    //         container.innerHTML = html;
+    //     }
+    //     new bootstrap.Modal(document.getElementById('itineraryModal')).show();
+    // }
 </script>
