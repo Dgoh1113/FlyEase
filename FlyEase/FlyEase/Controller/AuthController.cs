@@ -109,64 +109,66 @@ namespace FlyEase.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Login(LoginViewModel model, string? returnUrl = null)
+        public async Task<IActionResult> Login(LoginViewModel model)
         {
-            if (ModelState.IsValid)
+            // 1. Check if the model inputs are valid
+            if (!ModelState.IsValid)
             {
-                try
-                {
-                    var user = _context.Users.FirstOrDefault(u => u.Email == model.Email);
-
-                    // 1. Check credentials
-                    if (user == null || !VerifyPassword(model.Password, user.PasswordHash))
-                    {
-                        ModelState.AddModelError("", "Invalid email or password.");
-                        return View(model);
-                    }
-
-                    // 2. CHECK IF BANNED
-                    if (user.Role == "Banned")
-                    {
-                        ModelState.AddModelError("", "Your account has been banned. Please contact support.");
-                        return View(model);
-                    }
-
-                    // 3. Proceed with Login
-                    var claims = new List<Claim>
-                    {
-                        new Claim(ClaimTypes.NameIdentifier, user.UserID.ToString()),
-                        new Claim(ClaimTypes.Name, user.FullName),
-                        new Claim(ClaimTypes.Email, user.Email),
-                        new Claim(ClaimTypes.Role, user.Role ?? "User")
-                    };
-
-                    var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-                    var principal = new ClaimsPrincipal(identity);
-
-                    var authProperties = new AuthenticationProperties
-                    {
-                        IsPersistent = model.RememberMe,
-                        ExpiresUtc = model.RememberMe ? DateTime.UtcNow.AddDays(30) : null
-                    };
-
-                    await HttpContext.SignInAsync(
-                        CookieAuthenticationDefaults.AuthenticationScheme,
-                        principal,
-                        authProperties
-                    );
-
-                    if (user.Role == "Admin" || user.Role == "Staff")
-                        return RedirectToAction("AdminDashboard", "AdminDashboard");
-
-                    return RedirectToAction("Profile", "Auth");
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Login error");
-                    ModelState.AddModelError("", "An error occurred.");
-                    return View(model);
-                }
+                return View(model);
             }
+
+            // --- YOUR CODE STARTS HERE ---
+
+            // 2. Find the user in the database
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == model.Email);
+
+            // 3. Verify user exists and password is correct
+            if (user != null && VerifyPassword(model.Password, user.PasswordHash))
+            {
+                // 4. Set up the User Claims (ID, Name, Email, Role)
+                var claims = new List<Claim>
+        {
+            new Claim(ClaimTypes.NameIdentifier, user.UserID.ToString()),
+            new Claim(ClaimTypes.Name, user.FullName ?? user.Email), // Safety check in case Name is null
+            new Claim(ClaimTypes.Email, user.Email),
+            new Claim(ClaimTypes.Role, user.Role ?? "User")
+        };
+
+                var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+
+                // 5. Set up Authentication Properties (The "Remember Me" Logic)
+                var authProperties = new AuthenticationProperties
+                {
+                    // IsPersistent = true tells the browser to save the cookie to disk
+                    // allowing it to survive a browser restart.
+                    IsPersistent = model.RememberMe,
+
+                    // Set expiration to 30 days if remembered, otherwise default session
+                    ExpiresUtc = model.RememberMe ? DateTime.UtcNow.AddDays(30) : null,
+
+                    AllowRefresh = true
+                };
+
+                // 6. SIGN THE USER IN
+                // This creates the encrypted cookie using the properties defined above
+                await HttpContext.SignInAsync(
+                    CookieAuthenticationDefaults.AuthenticationScheme,
+                    new ClaimsPrincipal(claimsIdentity),
+                    authProperties);
+
+                // 7. Redirect based on Role or to Home
+                if (user.Role == "Admin" || user.Role == "Staff")
+                {
+                    return RedirectToAction("Index", "Dashboard"); // Or wherever your admin goes
+                }
+
+                return RedirectToAction("Index", "Home");
+            }
+
+            // --- YOUR CODE ENDS HERE ---
+
+            // If login failed (User null or Password wrong)
+            ModelState.AddModelError(string.Empty, "Invalid login attempt.");
             return View(model);
         }
 
