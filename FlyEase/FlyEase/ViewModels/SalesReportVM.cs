@@ -6,7 +6,7 @@ namespace FlyEase.ViewModels
 {
     public class SalesReportVM
     {
-        // ========== FILTER PARAMETERS ==========
+        // ========== FILTER PARAMETERS (For the Table) ==========
         [Display(Name = "Start Date")]
         [DataType(DataType.Date)]
         public DateTime StartDate { get; set; }
@@ -16,7 +16,7 @@ namespace FlyEase.ViewModels
         public DateTime EndDate { get; set; }
 
         [Display(Name = "Filter By")]
-        public string DateFilterType { get; set; } = "booking"; // booking, payment, travel
+        public string DateFilterType { get; set; } = "booking";
 
         [Display(Name = "Payment Method")]
         public string PaymentMethodFilter { get; set; } = "All";
@@ -29,7 +29,7 @@ namespace FlyEase.ViewModels
         public int TotalPayments { get; set; }
         public decimal TotalRevenue { get; set; }
         public decimal AverageBookingValue { get; set; }
-        public decimal PaymentSuccessRate { get; set; } // Percentage
+        public decimal PaymentSuccessRate { get; set; }
 
         public int CompletedBookings { get; set; }
         public int PendingBookings { get; set; }
@@ -39,26 +39,65 @@ namespace FlyEase.ViewModels
         public decimal PendingPayments { get; set; }
         public decimal FailedPayments { get; set; }
 
-        // ========== CHART DATA ==========
-        public List<string> RevenueChartDates { get; set; } = new List<string>();
-        public List<decimal> RevenueChartValues { get; set; } = new List<decimal>();
+        // =========================================================
+        //  CHART DATA (7 Days / 30 Days / 1 Year)
+        // =========================================================
 
-        public List<string> PaymentMethodLabels { get; set; } = new List<string>();
-        public List<decimal> PaymentMethodValues { get; set; } = new List<decimal>();
-        public List<string> PaymentMethodColors { get; set; } = new List<string>();
+        // --- 1. REVENUE (Line) ---
+        public List<string> RevenueLabels7Days { get; set; } = new List<string>();
+        public List<decimal> RevenueValues7Days { get; set; } = new List<decimal>();
+        public List<string> RevenueLabels30Days { get; set; } = new List<string>();
+        public List<decimal> RevenueValues30Days { get; set; } = new List<decimal>();
+        public List<string> RevenueLabels1Year { get; set; } = new List<string>();
+        public List<decimal> RevenueValues1Year { get; set; } = new List<decimal>();
 
-        public List<string> BookingStatusLabels { get; set; } = new List<string>();
-        public List<int> BookingStatusValues { get; set; } = new List<int>();
+        // Revenue Donut (Top Packages by Revenue - Last Year)
+        public List<string> RevenueDonutLabels { get; set; } = new List<string>();
+        public List<decimal> RevenueDonutValues { get; set; } = new List<decimal>();
+
+        // --- 2. BOOKINGS (Line) ---
+        public List<string> BookingLabels7Days { get; set; } = new List<string>();
+        public List<int> BookingValues7Days { get; set; } = new List<int>();
+        public List<string> BookingLabels30Days { get; set; } = new List<string>();
+        public List<int> BookingValues30Days { get; set; } = new List<int>();
+        public List<string> BookingLabels1Year { get; set; } = new List<string>();
+        public List<int> BookingValues1Year { get; set; } = new List<int>();
+
+        // Booking Donut (Booking Status)
+        public List<string> BookingDonutLabels { get; set; } = new List<string>();
+        public List<int> BookingDonutValues { get; set; } = new List<int>();
+
+        // --- 3. USERS (Line) ---
+        public List<string> UserLabels7Days { get; set; } = new List<string>();
+        public List<int> UserValues7Days { get; set; } = new List<int>();
+        public List<string> UserLabels30Days { get; set; } = new List<string>();
+        public List<int> UserValues30Days { get; set; } = new List<int>();
+        public List<string> UserLabels1Year { get; set; } = new List<string>();
+        public List<int> UserValues1Year { get; set; } = new List<int>();
+
+        // --- 4. PACKAGES (Bar - Ratings) ---
+        public List<string> PackageRatingLabels7Days { get; set; } = new List<string>();
+        public List<double> PackageRatingValues7Days { get; set; } = new List<double>();
+
+        public List<string> PackageRatingLabels30Days { get; set; } = new List<string>();
+        public List<double> PackageRatingValues30Days { get; set; } = new List<double>();
+
+        public List<string> PackageRatingLabels1Year { get; set; } = new List<string>();
+        public List<double> PackageRatingValues1Year { get; set; } = new List<double>();
+
 
         // ========== DETAILED TABLE DATA ==========
         public List<SalesReportDetailVM> Details { get; set; } = new List<SalesReportDetailVM>();
 
-        // ========== AVAILABLE OPTIONS (FOR DROPDOWNS) ==========
+        // ========== OPTIONS FOR DROPDOWNS ==========
         public List<string> AvailablePaymentMethods { get; set; } = new List<string>();
         public List<string> AvailableBookingStatuses { get; set; } = new List<string>();
+
+        // Legacy props for compatibility (if needed)
+        public List<string> RevenueChartDates { get; set; } = new List<string>();
+        public List<decimal> RevenueChartValues { get; set; } = new List<decimal>();
     }
 
-    // Detail row for the table
     public class SalesReportDetailVM
     {
         public int BookingID { get; set; }

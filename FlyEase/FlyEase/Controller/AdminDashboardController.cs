@@ -28,31 +28,24 @@ namespace FlyEase.Controllers
         }
 
         // ==========================================
-        // 1. MAIN DASHBOARD SUMMARY
+        // 1. MAIN DASHBOARD SUMMARY (6 Buttons View)
         // ==========================================
         [HttpGet("AdminDashboard")]
         public async Task<IActionResult> AdminDashboard()
         {
-            // 1. Basic Stats
+            // 1. Basic Stats for Buttons
             var totalUsers = await _context.Users.CountAsync();
             var totalBookings = await _context.Bookings.CountAsync();
             var pendingBookings = await _context.Bookings.CountAsync(b => b.BookingStatus == "Pending");
             var totalRevenue = await _context.Payments.Where(p => p.PaymentStatus == "Completed").SumAsync(p => p.AmountPaid);
 
-            // 2. Recent & Low Stock
+            // 2. Fetch Low Stock for Packages Button
+            var lowStock = await _context.Packages.Where(p => p.AvailableSlots < 10).OrderBy(p => p.AvailableSlots).Take(5).ToListAsync();
+
+            // 3. Recent Bookings (Optional: Kept if you want to display a list below the buttons)
             var recentBookings = await _context.Bookings
                 .Include(b => b.User).Include(b => b.Package)
                 .OrderByDescending(b => b.BookingDate).Take(5).ToListAsync();
-
-            var lowStock = await _context.Packages.Where(p => p.AvailableSlots < 10).OrderBy(p => p.AvailableSlots).Take(5).ToListAsync();
-
-            // 3. REVENUE CHART DATA PREPARATION
-            // Fetch all completed payments from the last year once to reduce DB calls
-            var oneYearAgo = DateTime.Now.AddYears(-1).AddDays(-1);
-            var allPayments = await _context.Payments
-                .Where(p => p.PaymentStatus == "Completed" && p.PaymentDate >= oneYearAgo)
-                .Select(p => new { p.PaymentDate, p.AmountPaid })
-                .ToListAsync();
 
             var vm = new AdminDashboardVM
             {
@@ -62,63 +55,8 @@ namespace FlyEase.Controllers
                 TotalRevenue = totalRevenue,
                 RecentBookings = recentBookings,
                 LowStockPackages = lowStock
+                // Note: Charts data removed as they are moved to SalesReport
             };
-
-            // --- A. 7 Days Data ---
-            vm.RevenueLabels7Days = new List<string>();
-            vm.RevenueValues7Days = new List<decimal>();
-            for (int i = 6; i >= 0; i--)
-            {
-                var date = DateTime.Now.AddDays(-i).Date;
-                vm.RevenueLabels7Days.Add(date.ToString("dd MMM"));
-                vm.RevenueValues7Days.Add(allPayments.Where(p => p.PaymentDate.Date == date).Sum(p => p.AmountPaid));
-            }
-
-            // --- B. 30 Days (1 Month) Data ---
-            vm.RevenueLabels30Days = new List<string>();
-            vm.RevenueValues30Days = new List<decimal>();
-            for (int i = 29; i >= 0; i--)
-            {
-                var date = DateTime.Now.AddDays(-i).Date;
-                vm.RevenueLabels30Days.Add(date.ToString("dd MMM"));
-                vm.RevenueValues30Days.Add(allPayments.Where(p => p.PaymentDate.Date == date).Sum(p => p.AmountPaid));
-            }
-
-            // --- C. 1 Year Data (Group by Month) ---
-            vm.RevenueLabels1Year = new List<string>();
-            vm.RevenueValues1Year = new List<decimal>();
-            for (int i = 11; i >= 0; i--)
-            {
-                var d = DateTime.Now.AddMonths(-i);
-                var monthStart = new DateTime(d.Year, d.Month, 1);
-                var monthEnd = monthStart.AddMonths(1).AddTicks(-1);
-
-                vm.RevenueLabels1Year.Add(monthStart.ToString("MMM yyyy"));
-                vm.RevenueValues1Year.Add(allPayments
-                    .Where(p => p.PaymentDate >= monthStart && p.PaymentDate <= monthEnd)
-                    .Sum(p => p.AmountPaid));
-            }
-
-            // Assign 1 Year as default legacy properties to prevent errors if view uses them
-            vm.RevenueMonths = vm.RevenueLabels1Year;
-            vm.RevenueValues = vm.RevenueValues1Year;
-
-            // 4. TOP PACKAGES REVENUE (Doughnut Chart)
-            var packageRevenue = await _context.Payments
-                .Include(p => p.Booking).ThenInclude(b => b.Package)
-                .Where(p => p.PaymentStatus == "Completed")
-                .GroupBy(p => p.Booking.Package.PackageName)
-                .Select(g => new
-                {
-                    Name = g.Key,
-                    Revenue = g.Sum(p => p.AmountPaid)
-                })
-                .OrderByDescending(x => x.Revenue)
-                .Take(5)
-                .ToListAsync();
-
-            vm.PackageRevenueLabels = packageRevenue.Select(x => x.Name).ToList();
-            vm.PackageRevenueValues = packageRevenue.Select(x => x.Revenue).ToList();
 
             return View(vm);
         }
@@ -454,159 +392,12 @@ namespace FlyEase.Controllers
         }
 
         // ==========================================
-        // 5. SALES REPORT
+        // 5. SALES REPORT (REMOVED - Handled by ReportController)
         // ==========================================
-        [HttpGet("Report")]
-        public async Task<IActionResult> Report(
-            [FromQuery] DateTime? startDate = null,
-            [FromQuery] DateTime? endDate = null,
-            [FromQuery] string dateFilterType = "booking",
-            [FromQuery] string paymentMethodFilter = "All",
-            [FromQuery] string bookingStatusFilter = "All")
-        {
-            var end = endDate ?? DateTime.Now;
-            var start = startDate ?? DateTime.Now.AddDays(-30);
-
-            var vm = new SalesReportVM
-            {
-                StartDate = start,
-                EndDate = end,
-                DateFilterType = dateFilterType,
-                PaymentMethodFilter = paymentMethodFilter,
-                BookingStatusFilter = bookingStatusFilter
-            };
-
-            var bookingsQuery = _context.Bookings
-                .Include(b => b.User)
-                .Include(b => b.Package)
-                .Include(b => b.Payments)
-                .AsQueryable();
-
-            var paymentsQuery = _context.Payments
-                .Include(p => p.Booking)
-                .ThenInclude(b => b.User)
-                .Include(p => p.Booking)
-                .ThenInclude(b => b.Package)
-                .AsQueryable();
-
-            switch (dateFilterType.ToLower())
-            {
-                case "payment":
-                    paymentsQuery = paymentsQuery.Where(p => p.PaymentDate >= start && p.PaymentDate <= end);
-                    break;
-                case "travel":
-                    bookingsQuery = bookingsQuery.Where(b => b.TravelDate >= start && b.TravelDate <= end);
-                    break;
-                case "booking":
-                default:
-                    bookingsQuery = bookingsQuery.Where(b => b.BookingDate >= start && b.BookingDate <= end);
-                    break;
-            }
-
-            if (bookingStatusFilter != "All" && !string.IsNullOrEmpty(bookingStatusFilter))
-            {
-                bookingsQuery = bookingsQuery.Where(b => b.BookingStatus == bookingStatusFilter);
-            }
-
-            var bookings = await bookingsQuery.ToListAsync();
-            var payments = await paymentsQuery.ToListAsync();
-
-            vm.TotalBookings = bookings.Count;
-            vm.TotalPayments = payments.Count;
-            vm.TotalRevenue = payments.Where(p => p.PaymentStatus == "Completed").Sum(p => p.AmountPaid);
-
-            vm.CompletedBookings = bookings.Count(b => b.BookingStatus == "Completed");
-            vm.PendingBookings = bookings.Count(b => b.BookingStatus == "Pending");
-            vm.CancelledBookings = bookings.Count(b => b.BookingStatus == "Cancelled");
-
-            vm.CompletedPayments = payments.Where(p => p.PaymentStatus == "Completed").Sum(p => p.AmountPaid);
-            vm.PendingPayments = payments.Where(p => p.PaymentStatus == "Pending").Sum(p => p.AmountPaid);
-            vm.FailedPayments = payments.Where(p => p.PaymentStatus == "Failed").Sum(p => p.AmountPaid);
-
-            vm.AverageBookingValue = bookings.Count > 0 ? bookings.Average(b => b.FinalAmount) : 0;
-            vm.PaymentSuccessRate = payments.Count > 0 ? (decimal)(payments.Count(p => p.PaymentStatus == "Completed") * 100.0 / payments.Count) : 0;
-
-            var revenuByDay = bookings
-                .GroupBy(b => dateFilterType.ToLower() == "payment" ? b.Payments.FirstOrDefault()?.PaymentDate.Date ?? b.BookingDate.Date : dateFilterType.ToLower() == "travel" ? b.TravelDate.Date : b.BookingDate.Date)
-                .OrderBy(g => g.Key)
-                .Select(g => new { Date = g.Key, Revenue = g.Sum(b => b.FinalAmount) })
-                .ToList();
-
-            vm.RevenueChartDates = revenuByDay.Select(r => r.Date.ToString("dd MMM")).ToList();
-            vm.RevenueChartValues = revenuByDay.Select(r => r.Revenue).ToList();
-
-            var paymentByMethod = payments
-                .Where(p => paymentMethodFilter == "All" || p.PaymentMethod.Contains(paymentMethodFilter))
-                .GroupBy(p => ExtractPaymentMethod(p.PaymentMethod))
-                .Select(g => new { Method = g.Key, Amount = g.Sum(p => p.AmountPaid), Count = g.Count() })
-                .OrderByDescending(x => x.Amount).ToList();
-
-            vm.PaymentMethodLabels = paymentByMethod.Select(p => $"{p.Method} ({p.Count})").ToList();
-            vm.PaymentMethodValues = paymentByMethod.Select(p => p.Amount).ToList();
-            vm.PaymentMethodColors = GenerateColors(paymentByMethod.Count);
-
-            vm.BookingStatusLabels = new List<string> { "Completed", "Pending", "Cancelled" };
-            vm.BookingStatusValues = new List<int> { vm.CompletedBookings, vm.PendingBookings, vm.CancelledBookings };
-
-            foreach (var booking in bookings.OrderByDescending(b => b.BookingDate))
-            {
-                var totalPaid = booking.Payments.Where(p => p.PaymentStatus == "Completed").Sum(p => p.AmountPaid);
-                var lastPayment = booking.Payments.OrderByDescending(p => p.PaymentDate).FirstOrDefault();
-
-                var detail = new SalesReportDetailVM
-                {
-                    BookingID = booking.BookingID,
-                    CustomerName = booking.User.FullName,
-                    CustomerEmail = booking.User.Email,
-                    PackageName = booking.Package.PackageName,
-                    BookingDate = booking.BookingDate,
-                    TravelDate = booking.TravelDate,
-                    NumberOfPeople = booking.NumberOfPeople,
-                    BookingAmount = booking.FinalAmount,
-                    TotalPaid = totalPaid,
-                    BalanceDue = booking.FinalAmount - totalPaid,
-                    BookingStatus = booking.BookingStatus,
-                    PaymentStatus = DeterminePaymentStatus(booking.FinalAmount, totalPaid),
-                    PaymentMethod = booking.Payments.FirstOrDefault()?.PaymentMethod ?? "N/A",
-                    LastPaymentDate = lastPayment?.PaymentDate
-                };
-
-                if (paymentMethodFilter != "All")
-                {
-                    if (!detail.PaymentMethod.Contains(paymentMethodFilter)) continue;
-                }
-                vm.Details.Add(detail);
-            }
-
-            vm.AvailablePaymentMethods = new List<string> { "All", "Credit Card", "Bank Transfer", "Touch 'n Go", "Cash Payment" };
-            vm.AvailableBookingStatuses = new List<string> { "All", "Completed", "Pending", "Cancelled" };
-
-            return View(vm);
-        }
-
-        private string ExtractPaymentMethod(string paymentMethodText)
-        {
-            if (paymentMethodText.Contains("(")) return paymentMethodText.Substring(0, paymentMethodText.IndexOf("(")).Trim();
-            return paymentMethodText;
-        }
-
-        private string DeterminePaymentStatus(decimal bookingAmount, decimal totalPaid)
-        {
-            if (bookingAmount <= 0) return "Free";
-            if (totalPaid >= bookingAmount) return "Fully Paid";
-            if (totalPaid > 0) return "Partial";
-            return "Unpaid";
-        }
-
-        private List<string> GenerateColors(int count)
-        {
-            var colors = new List<string> { "#4E73DF", "#1CC88A", "#36B9CC", "#F6C23E", "#E74A3B", "#858796", "#FF6B6B", "#4ECDC4" };
-            while (colors.Count < count) colors.AddRange(colors);
-            return colors.Take(count).ToList();
-        }
+        // The Report logic has been moved to ReportController.SalesReport to support the new chart features.
 
         // ==========================================
-        // 6. ANALYTICS
+        // 6. ANALYTICS (Feedback)
         // ==========================================
         [HttpGet("Analytics")]
         public async Task<IActionResult> Analytics()

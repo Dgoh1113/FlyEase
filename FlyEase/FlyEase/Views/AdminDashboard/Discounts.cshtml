@@ -9,7 +9,7 @@
 
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h2 class="text-primary fw-bold"><i class="fas fa-tags me-2"></i>Discount Management</h2>
-    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#discountModal" onclick="clearDiscountModal()">
+    <button class="btn btn-primary" onclick="openDiscountModal()">
         <i class="fas fa-plus me-2"></i>Add Discount
     </button>
 </div>
@@ -81,7 +81,6 @@
                                     }
                                     else
                                     {
-
                                         <span class="badge bg-secondary">Inactive</span>
                                     }
                                 </td>
@@ -93,20 +92,10 @@
                                 </td>
                                 <td class="text-end pe-4">
                                     <button class="btn btn-sm btn-outline-primary me-1"
-                                            onclick="editDiscount(
-                                                        @d.DiscountTypeID,
-                                                        '@Html.Raw(d.DiscountName?.Replace("'", "\\'"))',
-                                                        '@d.DiscountRate?.ToString(System.Globalization.CultureInfo.InvariantCulture)',
-                                                        '@d.DiscountAmount?.ToString(System.Globalization.CultureInfo.InvariantCulture)',
-                                                        '@d.MinPax',
-                                                        '@d.MinSpend?.ToString(System.Globalization.CultureInfo.InvariantCulture)',
-                                                        '@(d.StartDate?.ToString("yyyy-MM-dd"))',
-                                                        '@(d.EndDate?.ToString("yyyy-MM-dd"))',
-                                                        '@d.IsActive.ToString().ToLower()'
-                                                    )">
+                                            onclick="editDiscount(@d.DiscountTypeID, '@System.Web.HttpUtility.JavaScriptStringEncode(d.DiscountName)', @(d.DiscountRate ?? 0), @(d.DiscountAmount ?? 0), @(d.MinPax ?? 0), @(d.MinSpend ?? 0), '@(d.StartDate?.ToString("yyyy-MM-dd"))', '@(d.EndDate?.ToString("yyyy-MM-dd"))', '@d.IsActive.ToString().ToLower()')">
                                         <i class="fas fa-edit"></i>
                                     </button>
-                                    <form asp-action="DeleteDiscount" method="post" class="d-inline" onsubmit="return confirm('Delete?');">
+                                    <form asp-action="DeleteDiscount" method="post" class="d-inline" onsubmit="return confirm('Delete this discount?');">
                                         <input type="hidden" name="id" value="@d.DiscountTypeID" />
                                         <button type="submit" class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></button>
                                     </form>
@@ -128,7 +117,6 @@
             <small class="text-muted">
                 Page @(Model.Discounts.PageCount < Model.Discounts.PageNumber ? 0 : Model.Discounts.PageNumber) of @Model.Discounts.PageCount
             </small>
-
             @Html.PagedListPager(Model.Discounts, page => Url.Action("Discounts", new { page, search = Model.SearchTerm }),
             new PagedListRenderOptions
             {
@@ -139,3 +127,100 @@
         </div>
     </div>
 </div>
+
+<div class="modal fade" id="discountModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form asp-action="SaveDiscount" method="post">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="discModalLabel">Add Discount</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="discId" name="CurrentDiscount.DiscountTypeID" value="0" />
+
+                    <div class="mb-3">
+                        <label class="form-label">Discount Name</label>
+                        <input type="text" class="form-control" id="discName" name="CurrentDiscount.DiscountName" required />
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Rate (0.1 = 10%)</label>
+                            <input type="number" step="0.01" class="form-control" id="discRate" name="CurrentDiscount.DiscountRate" />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Fixed Amount (RM)</label>
+                            <input type="number" step="0.01" class="form-control" id="discAmt" name="CurrentDiscount.DiscountAmount" />
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Min Spend</label>
+                            <input type="number" class="form-control" id="discMinSpend" name="CurrentDiscount.MinSpend" />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Min Pax</label>
+                            <input type="number" class="form-control" id="discMinPax" name="CurrentDiscount.MinPax" />
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Start Date</label>
+                            <input type="date" class="form-control" id="discStart" name="CurrentDiscount.StartDate" />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">End Date</label>
+                            <input type="date" class="form-control" id="discEnd" name="CurrentDiscount.EndDate" />
+                        </div>
+                    </div>
+
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="discActive" name="CurrentDiscount.IsActive" value="true" checked>
+                        <label class="form-check-label" for="discActive">Active Status</label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Save Discount</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    function openDiscountModal() {
+        document.getElementById('discId').value = 0;
+        document.getElementById('discName').value = '';
+        document.getElementById('discRate').value = '';
+        document.getElementById('discAmt').value = '';
+        document.getElementById('discMinSpend').value = '';
+        document.getElementById('discMinPax').value = '';
+        document.getElementById('discStart').value = '';
+        document.getElementById('discEnd').value = '';
+        document.getElementById('discActive').checked = true;
+        document.getElementById('discModalLabel').innerText = 'Add Discount';
+
+        var modal = new bootstrap.Modal(document.getElementById('discountModal'));
+        modal.show();
+    }
+
+    function editDiscount(id, name, rate, amt, minPax, minSpend, start, end, isActive) {
+        document.getElementById('discId').value = id;
+        document.getElementById('discName').value = name;
+        document.getElementById('discRate').value = rate || '';
+        document.getElementById('discAmt').value = amt || '';
+        document.getElementById('discMinPax').value = minPax || '';
+        document.getElementById('discMinSpend').value = minSpend || '';
+        document.getElementById('discStart').value = start;
+        document.getElementById('discEnd').value = end;
+        document.getElementById('discActive').checked = (isActive === 'true');
+        document.getElementById('discModalLabel').innerText = 'Edit Discount';
+
+        var modal = new bootstrap.Modal(document.getElementById('discountModal'));
+        modal.show();
+    }
+</script>

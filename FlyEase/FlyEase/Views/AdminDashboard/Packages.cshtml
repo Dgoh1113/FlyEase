@@ -9,9 +9,9 @@
 
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h2 class="text-primary fw-bold"><i class="fas fa-box-open me-2"></i>Package Management</h2>
-    <a href="@Url.Action("PackageManagement", "PackageManagement")" class="btn btn-primary">
+    <button class="btn btn-primary" onclick="openPackageModal()">
         <i class="fas fa-plus me-2"></i>Create New Package
-    </a>
+    </button>
 </div>
 
 <div class="card shadow-sm mb-4">
@@ -64,7 +64,6 @@
                                     }
                                     else
                                     {
-
                                         <span>@p.AvailableSlots</span>
                                     }
                                 </td>
@@ -72,11 +71,11 @@
                                     <span class="text-warning"><i class="fas fa-star"></i></span> @p.AverageRating.ToString("0.0")
                                 </td>
                                 <td class="text-end pe-4">
-                                    <form asp-controller="PackageManagement" asp-action="Edit" method="post" class="d-inline">
-                                        <input type="hidden" name="id" value="@p.PackageID" />
-                                        <button type="submit" class="btn btn-sm btn-outline-primary me-1"><i class="fas fa-edit"></i></button>
-                                    </form>
-                                    <form asp-action="DeletePackage" method="post" class="d-inline" onsubmit="return confirm('Delete package?');">
+                                    <button class="btn btn-sm btn-outline-primary me-1"
+                                            onclick="editPackage(@p.PackageID, '@System.Web.HttpUtility.JavaScriptStringEncode(p.PackageName)', @p.CategoryID, @p.Price, @p.AvailableSlots, '@System.Web.HttpUtility.JavaScriptStringEncode(p.Destination)', '@System.Web.HttpUtility.JavaScriptStringEncode(p.Description)', '@p.StartDate.ToString("yyyy-MM-dd")', '@p.EndDate.ToString("yyyy-MM-dd")', @p.Latitude, @p.Longitude)">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <form asp-action="DeletePackage" method="post" class="d-inline" onsubmit="return confirm('Delete package? This cannot be undone.');">
                                         <input type="hidden" name="id" value="@p.PackageID" />
                                         <button type="submit" class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></button>
                                     </form>
@@ -98,7 +97,6 @@
             <small class="text-muted">
                 Page @(Model.Packages.PageCount < Model.Packages.PageNumber ? 0 : Model.Packages.PageNumber) of @Model.Packages.PageCount
             </small>
-
             @Html.PagedListPager(Model.Packages, page => Url.Action("Packages", new { page, search = Model.SearchTerm }),
             new PagedListRenderOptions
             {
@@ -109,3 +107,122 @@
         </div>
     </div>
 </div>
+
+<div class="modal fade" id="packageModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form asp-action="SavePackage" method="post" enctype="multipart/form-data">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="pkgModalLabel">Add Package</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="pkgId" name="CurrentPackage.PackageID" value="0" />
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Package Name</label>
+                            <input type="text" class="form-control" id="pkgName" name="CurrentPackage.PackageName" required />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Category</label>
+                            <select class="form-select" id="pkgCat" name="CurrentPackage.CategoryID" required>
+                                @foreach (var cat in Model.Categories)
+                                {
+                                    <option value="@cat.CategoryID">@cat.CategoryName</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Destination</label>
+                            <input type="text" class="form-control" id="pkgDest" name="CurrentPackage.Destination" required />
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Price</label>
+                            <input type="number" step="0.01" class="form-control" id="pkgPrice" name="CurrentPackage.Price" required />
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Slots</label>
+                            <input type="number" class="form-control" id="pkgSlots" name="CurrentPackage.AvailableSlots" required />
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Start Date</label>
+                            <input type="date" class="form-control" id="pkgStart" name="CurrentPackage.StartDate" required />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">End Date</label>
+                            <input type="date" class="form-control" id="pkgEnd" name="CurrentPackage.EndDate" required />
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Latitude</label>
+                            <input type="text" class="form-control" id="pkgLat" name="CurrentPackage.Latitude" value="3.1390" />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Longitude</label>
+                            <input type="text" class="form-control" id="pkgLong" name="CurrentPackage.Longitude" value="101.6869" />
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <textarea class="form-control" id="pkgDesc" name="CurrentPackage.Description" rows="3"></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Images (Select multiple)</label>
+                        <input type="file" class="form-control" name="CurrentPackage.ImageFiles" multiple accept="image/*" />
+                        <small class="text-muted">Uploading new images will append them.</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Save Package</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    function openPackageModal() {
+        document.getElementById('pkgId').value = 0;
+        document.getElementById('pkgName').value = '';
+        document.getElementById('pkgDest').value = '';
+        document.getElementById('pkgPrice').value = '';
+        document.getElementById('pkgSlots').value = '';
+        document.getElementById('pkgDesc').value = '';
+        document.getElementById('pkgStart').value = '';
+        document.getElementById('pkgEnd').value = '';
+        document.getElementById('pkgModalLabel').innerText = 'Create New Package';
+
+        var modal = new bootstrap.Modal(document.getElementById('packageModal'));
+        modal.show();
+    }
+
+    function editPackage(id, name, catId, price, slots, dest, desc, start, end, lat, long) {
+        document.getElementById('pkgId').value = id;
+        document.getElementById('pkgName').value = name;
+        document.getElementById('pkgCat').value = catId;
+        document.getElementById('pkgPrice').value = price;
+        document.getElementById('pkgSlots').value = slots;
+        document.getElementById('pkgDest').value = dest;
+        document.getElementById('pkgDesc').value = desc;
+        document.getElementById('pkgStart').value = start;
+        document.getElementById('pkgEnd').value = end;
+        document.getElementById('pkgLat').value = lat;
+        document.getElementById('pkgLong').value = long;
+        document.getElementById('pkgModalLabel').innerText = 'Edit Package';
+
+        var modal = new bootstrap.Modal(document.getElementById('packageModal'));
+        modal.show();
+    }
+</script>
