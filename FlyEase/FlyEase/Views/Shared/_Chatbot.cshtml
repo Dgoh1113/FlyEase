@@ -8,7 +8,9 @@
 <div id="flybot-window" class="shadow-lg">
     <div class="flybot-header" id="flybot-header">
         <div class="d-flex align-items-center">
-            <i class="fas fa-robot me-2"></i>
+            <div class="bg-white text-primary rounded-circle d-flex justify-content-center align-items-center me-2" style="width: 30px; height: 30px;">
+                <i class="fas fa-robot small"></i>
+            </div>
             <span class="fw-bold">FlyEase Assistant</span>
         </div>
         <div class="window-controls">
@@ -19,9 +21,10 @@
     </div>
 
     <div id="flybot-content-wrapper">
-        <div id="flybot-messages"></div>
+        <div id="flybot-messages">
+        </div>
 
-        <div id="flybot-typing" class="bot-msg typing-indicator" style="display: none; margin: 0 15px 10px 15px;">
+        <div id="flybot-typing" class="bot-msg typing-indicator" style="display: none; margin: 0 15px 10px 15px; width: fit-content;">
             <span></span><span></span><span></span>
         </div>
 
@@ -68,9 +71,9 @@
         position: fixed;
         z-index: 9999;
         background: white;
-        border-radius: 8px;
+        border-radius: 12px;
         border: 1px solid #ccc;
-        overflow: hidden;
+        overflow: hidden; /* Hide resize handles overflowing */
         flex-direction: column;
         box-shadow: 0 10px 30px rgba(0,0,0,0.2);
         /* Default Position & Size */
@@ -78,7 +81,7 @@
         right: 30px;
         width: 380px;
         height: 500px;
-        /* Resizable */
+        /* Resizable Properties */
         min-width: 300px;
         min-height: 400px;
         resize: both;
@@ -104,6 +107,7 @@
         justify-content: space-between;
         align-items: center;
         user-select: none;
+        flex-shrink: 0;
     }
 
     .window-controls button {
@@ -123,7 +127,7 @@
         color: #ff6b6b !important;
     }
 
-    /* Content Wrapper to fill remaining height */
+    /* Content Wrapper */
     #flybot-content-wrapper {
         display: flex;
         flex-direction: column;
@@ -139,16 +143,18 @@
         display: flex;
         flex-direction: column;
         gap: 10px;
+        scrollbar-width: thin;
     }
 
     /* === MESSAGES === */
     .bot-msg, .user-msg {
-        max-width: 80%;
-        padding: 8px 12px;
-        border-radius: 12px;
+        max-width: 85%;
+        padding: 10px 14px;
+        border-radius: 15px;
         font-size: 0.9rem;
         line-height: 1.4;
         word-wrap: break-word;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.05);
     }
 
     .bot-msg {
@@ -156,6 +162,7 @@
         border: 1px solid #e0e0e0;
         align-self: flex-start;
         border-bottom-left-radius: 2px;
+        color: #333;
     }
 
     .user-msg {
@@ -165,16 +172,18 @@
         border-bottom-right-radius: 2px;
     }
 
-    /* === CHIPS & INPUT === */
+    /* === CHIPS (Scrollable) === */
     .flybot-chips-area {
-        padding: 10px;
+        padding: 10px 15px;
         display: flex;
-        gap: 5px;
+        gap: 8px;
         overflow-x: auto;
         background: white;
         border-top: 1px solid #eee;
+        white-space: nowrap;
+        scrollbar-width: thin;
     }
-
+        /* Custom Scrollbar for Chips */
         .flybot-chips-area::-webkit-scrollbar {
             height: 4px;
         }
@@ -188,24 +197,28 @@
         background: #e7f1ff;
         color: #0066a1;
         border: 1px solid #cce5ff;
-        padding: 4px 10px;
-        border-radius: 15px;
+        padding: 6px 12px;
+        border-radius: 20px;
         font-size: 0.8rem;
         cursor: pointer;
         white-space: nowrap;
+        transition: all 0.2s;
     }
 
         .chip:hover {
             background: #0066a1;
             color: white;
+            transform: translateY(-1px);
         }
 
+    /* === INPUT AREA === */
     .flybot-input-area {
-        padding: 10px;
+        padding: 10px 15px;
         background: white;
         border-top: 1px solid #eee;
         display: flex;
         align-items: center;
+        flex-shrink: 0;
     }
 
     #flybot-input {
@@ -214,9 +227,37 @@
         border-radius: 20px;
         padding: 8px 15px;
         outline: none;
+        margin-right: 10px;
     }
 
-    /* Typing Dots Animation */
+        #flybot-input:focus {
+            border-color: #0066a1;
+        }
+
+    .send-btn {
+        border: none;
+        background: none;
+        color: #0066a1;
+        font-size: 1.2rem;
+        cursor: pointer;
+        transition: transform 0.2s;
+    }
+
+        .send-btn:hover {
+            transform: scale(1.2);
+        }
+
+    /* Custom Resize Handle */
+    .resize-handle {
+        position: absolute;
+        bottom: 0;
+        right: 0;
+        width: 15px;
+        height: 15px;
+        cursor: nwse-resize;
+    }
+
+    /* Typing Dots Animation (Razor Compatible @@) */
     .typing-indicator span {
         display: inline-block;
         width: 5px;
@@ -244,67 +285,65 @@
             transform: translateY(-5px);
         }
     }
-
-    /* Custom Resize Handle visual */
-    .resize-handle {
-        position: absolute;
-        bottom: 0;
-        right: 0;
-        width: 10px;
-        height: 10px;
-        cursor: nwse-resize;
-    }
 </style>
 
 <script>
     const WIN_ID = 'flybot-window';
     const HEADER_ID = 'flybot-header';
+    const STORAGE_KEY_MSG = 'flyease_chat_history_v3';
+    const STORAGE_KEY_STATE = 'flyease_chat_open';
+
+    // === 1. EXTENDED OPTIONS LIST ===
+    const CHIP_OPTIONS = [
+        "How to Book?",
+        "Refund Policy",
+        "Check Booking Status",
+        "Payment Options",
+        "My Discounts",
+        "Cancel Trip",
+        "Forgot Password",
+        "Contact Support",
+        "Office Location",
+        "Speak to Human"
+    ];
 
     document.addEventListener("DOMContentLoaded", function() {
         loadChatState();
         dragElement(document.getElementById(WIN_ID));
     });
 
-    // === 1. WINDOW CONTROLS ===
+    // === 2. WINDOW CONTROLS ===
     function openChat() {
         const win = document.getElementById(WIN_ID);
         win.style.display = 'flex';
-        document.getElementById('flybot-trigger-container').style.display = 'none'; // Hide trigger
-        localStorage.setItem('flyease_chat_open', 'true');
+        document.getElementById('flybot-trigger-container').style.display = 'none';
+        localStorage.setItem(STORAGE_KEY_STATE, 'true');
         scrollToBottom();
     }
 
     function minimizeChat() {
-        // Hides window, shows trigger
         document.getElementById(WIN_ID).style.display = 'none';
         document.getElementById('flybot-trigger-container').style.display = 'block';
-        localStorage.setItem('flyease_chat_open', 'false');
+        localStorage.setItem(STORAGE_KEY_STATE, 'false');
     }
 
-    function closeChat() {
-        // Same as minimize, but could clear chat if desired. For now, just hide.
-        minimizeChat();
-    }
+    function closeChat() { minimizeChat(); }
 
     function toggleMaximize() {
-        const win = document.getElementById(WIN_ID);
-        win.classList.toggle('maximized');
+        document.getElementById(WIN_ID).classList.toggle('maximized');
     }
 
-    // === 2. DRAGGABLE LOGIC ===
+    // === 3. DRAGGABLE LOGIC ===
     function dragElement(elmnt) {
         var pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
         const header = document.getElementById(HEADER_ID);
 
-        header.onmousedown = dragMouseDown;
+        if(header) header.onmousedown = dragMouseDown;
 
         function dragMouseDown(e) {
             e = e || window.event;
-            // Allow clicking buttons inside header without dragging
-            if(e.target.tagName === 'BUTTON' || e.target.closest('button')) return;
-
+            if(e.target.closest('button')) return; // Ignore buttons
             e.preventDefault();
-            // Get mouse position at startup
             pos3 = e.clientX;
             pos4 = e.clientY;
             document.onmouseup = closeDragElement;
@@ -314,21 +353,14 @@
         function elementDrag(e) {
             e = e || window.event;
             e.preventDefault();
-            // Calculate new cursor position
             pos1 = pos3 - e.clientX;
             pos2 = pos4 - e.clientY;
             pos3 = e.clientX;
             pos4 = e.clientY;
-
-            // Set new position
             elmnt.style.top = (elmnt.offsetTop - pos2) + "px";
             elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
-
-            // Unset bottom/right so it moves freely
             elmnt.style.bottom = "auto";
             elmnt.style.right = "auto";
-
-            // Remove maximized class if dragging
             elmnt.classList.remove('maximized');
         }
 
@@ -338,63 +370,67 @@
         }
     }
 
-    // === 3. CHAT LOGIC (Same as before) ===
+    // === 4. CHAT LOGIC ===
     function loadChatState() {
-        if(localStorage.getItem('flyease_chat_open') === 'true') {
+        if(localStorage.getItem(STORAGE_KEY_STATE) === 'true') {
             openChat();
         }
 
-        const history = localStorage.getItem('flyease_chat_history_v2');
+        const history = localStorage.getItem(STORAGE_KEY_MSG);
+        const messagesDiv = document.getElementById('flybot-messages');
+        messagesDiv.innerHTML = '';
+
         if (history) {
-            JSON.parse(history).forEach(msg => appendMsg(msg.text, msg.className));
+            JSON.parse(history).forEach(msg => appendMsgToDOM(msg.text, msg.className));
         } else {
-            addMsg("Hi! I'm FlyBot. How can I help?", 'bot-msg');
+            const welcome = "Hi there! 👋 I'm FlyBot. I can help with bookings, refunds, or general questions.";
+            saveMsg(welcome, 'bot-msg');
+            appendMsgToDOM(welcome, 'bot-msg');
         }
-        showChips(["Refunds", "Bookings", "Contact", "Discounts"]);
+
+        showChips(CHIP_OPTIONS);
     }
 
-    function sendMessage(text) {
+    function sendMessage(text = null) {
         const input = document.getElementById('flybot-input');
         const txt = text || input.value.trim();
         if(!txt) return;
 
-        addMsg(txt, 'user-msg');
+        appendMsgToDOM(txt, 'user-msg');
+        saveMsg(txt, 'user-msg');
         input.value = '';
+        scrollToBottom();
 
-        document.getElementById('flybot-typing').style.display = 'block';
+        const typing = document.getElementById('flybot-typing');
+        typing.style.display = 'block';
         scrollToBottom();
 
         setTimeout(() => {
-            document.getElementById('flybot-typing').style.display = 'none';
+            typing.style.display = 'none';
             const response = getBotResponse(txt);
-            addMsg(response, 'bot-msg');
+            appendMsgToDOM(response, 'bot-msg');
+            saveMsg(response, 'bot-msg');
+            scrollToBottom();
         }, 800);
     }
 
-    function addMsg(text, className) {
-        appendMsg(text, className);
-        saveMsg(text, className);
+    function saveMsg(text, className) {
+        let history = localStorage.getItem(STORAGE_KEY_MSG);
+        let msgs = history ? JSON.parse(history) : [];
+        msgs.push({text, className});
+        localStorage.setItem(STORAGE_KEY_MSG, JSON.stringify(msgs));
     }
 
-    function appendMsg(text, className) {
+    function appendMsgToDOM(text, className) {
         const div = document.createElement('div');
         div.className = className;
         div.innerHTML = text;
         document.getElementById('flybot-messages').appendChild(div);
-        scrollToBottom();
-    }
-
-    function saveMsg(text, className) {
-        let history = localStorage.getItem('flyease_chat_history_v2');
-        let msgs = history ? JSON.parse(history) : [];
-        msgs.push({text, className});
-        localStorage.setItem('flyease_chat_history_v2', JSON.stringify(msgs));
     }
 
     function clearChat() {
-        localStorage.removeItem('flyease_chat_history_v2');
-        document.getElementById('flybot-messages').innerHTML = '';
-        addMsg("Hi! I'm FlyBot. How can I help?", 'bot-msg');
+        localStorage.removeItem(STORAGE_KEY_MSG);
+        loadChatState();
     }
 
     function scrollToBottom() {
@@ -416,11 +452,44 @@
 
     function handleEnter(e) { if(e.key==='Enter') sendMessage(); }
 
+    // === 5. BOT BRAIN (Updated for 10 options) ===
     function getBotResponse(input) {
         input = input.toLowerCase();
-        if(input.includes("refund")) return "Cancellation >7 days = Full Refund. <3 days = No Refund.";
-        if(input.includes("book")) return "Go to Packages and click 'Book Now'.";
-        if(input.includes("contact")) return "Call us at +60 11-1685 8138.";
-        return "I can help with Refunds, Booking, or Contact info.";
+
+        // Greetings
+        if(input.match(/(hello|hi|hey)/)) return "Hello! 👋 Select an option below or type your question.";
+
+        // Booking Status
+        if(input.includes("status") || input.includes("check booking"))
+            return "You can check your current booking status in your <a href='/Auth/Profile'>Profile Dashboard</a>.";
+
+        // Refunds / Cancel
+        if(input.includes("refund") || input.includes("cancel"))
+            return "<b>Cancellation Policy:</b><br>✅ > 7 days: Full Refund<br>⚠️ < 3 days: No Refund<br>Go to <a href='/Auth/Profile'>Profile</a> to manage bookings.";
+
+        // How to Book
+        if(input.includes("book") || input.includes("package"))
+            return "Check out our <a href='/Home/Packages'>Packages Page</a> to find your dream destination! 🌍 Click 'Book Now' on any package.";
+
+        // Payment
+        if(input.includes("pay") || input.includes("card") || input.includes("method"))
+            return "We accept: <br>💳 Visa / Mastercard<br>🏦 Online Banking (FPX)<br>📱 Touch 'n Go eWallet.";
+
+        // Forgot Password
+        if(input.includes("password") || input.includes("reset"))
+            return "No worries! Go to the <a href='/Auth/Login'>Login Page</a> and click 'Forgot Password' to reset it.";
+
+        // Contact / Human / Office
+        if(input.includes("contact") || input.includes("call") || input.includes("human") || input.includes("speak"))
+            return "Our support team is available 9AM - 6PM.<br>📞 <b>+60 11-1685 8138</b><br>📧 support@flyease.com";
+
+        if(input.includes("location") || input.includes("office") || input.includes("address"))
+            return "<b>FlyEase HQ:</b><br>Level 5, Menara FlyEase,<br>Jalan Tun Razak, 50400 Kuala Lumpur.";
+
+        // Discounts
+        if(input.includes("discount") || input.includes("code") || input.includes("promo"))
+            return "Visit the <a href='/Discount/Discounts'>Discounts Page</a> for the latest promo codes! 🎁";
+
+        return "I'm mostly trained on Bookings & Refunds. Try selecting a topic from the list above! 😅";
     }
 </script>

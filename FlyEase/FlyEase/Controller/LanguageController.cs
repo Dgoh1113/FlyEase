@@ -1,46 +1,30 @@
-﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Localization;
+﻿using Microsoft.AspNetCore.Localization;
 using Microsoft.AspNetCore.Mvc;
-using System.Globalization;
+using Microsoft.AspNetCore.Http; // Added for CookieOptions
+using System; // Added for DateTimeOffset
 
 namespace FlyEase.Controllers
 {
     public class LanguageController : Controller
     {
-        // Allow both GET (for links) and POST (for forms)
-        [AllowAnonymous]
-        [HttpGet, HttpPost]
+        [HttpPost]
         public IActionResult SetLanguage(string culture, string returnUrl)
         {
-            // 1. VALIDATION: Check if the requested culture is actually supported
-            // This prevents errors if someone types ?culture=invalid
-            var supportedCultures = new[] { "en", "ms", "zh-CN" };
-            if (!supportedCultures.Contains(culture))
-            {
-                culture = "en"; // Default fallback
-            }
-
-            // 2. SET COOKIE
+            // This creates the standard cookie: ".AspNetCore.Culture"
+            // The middleware in Program.cs reads this cookie automatically.
             Response.Cookies.Append(
                 CookieRequestCultureProvider.DefaultCookieName,
                 CookieRequestCultureProvider.MakeCookieValue(new RequestCulture(culture)),
-                new CookieOptions
-                {
-                    Expires = DateTimeOffset.UtcNow.AddYears(1),
-                    IsEssential = true,  // Required for GDPR compliance usually
-                    SameSite = SameSiteMode.Strict // Security improvement
-                }
+                new CookieOptions { Expires = DateTimeOffset.UtcNow.AddYears(1) }
             );
 
-            // 3. SAFE REDIRECT
-            // Check if returnUrl is valid and belongs to THIS website
-            if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+            // Safety check: If returnUrl is empty, go to Home
+            if (string.IsNullOrEmpty(returnUrl))
             {
-                return LocalRedirect(returnUrl);
+                return RedirectToAction("Index", "Home");
             }
 
-            // Fallback: If no return URL, go to Home Page
-            return RedirectToAction("Index", "Home");
+            return LocalRedirect(returnUrl);
         }
     }
 }
