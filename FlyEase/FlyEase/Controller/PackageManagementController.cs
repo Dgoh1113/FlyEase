@@ -7,82 +7,97 @@ using FlyEase.Services;
 
 namespace FlyEase.Controllers
 {
-    // Allow both Admin and Staff to manage packages
     [Authorize(Roles = "Admin, Staff")]
     public class PackageManagementController : Controller
     {
         private readonly FlyEaseDbContext _context;
         private readonly IWebHostEnvironment _environment;
-        private readonly StripeService _stripeService;
-        private readonly EmailService _emailService;
 
-        public PackageManagementController(FlyEaseDbContext context, IWebHostEnvironment environment, StripeService stripeService, EmailService emailService)
+        public PackageManagementController(FlyEaseDbContext context, IWebHostEnvironment environment)
         {
             _context = context;
             _environment = environment;
-            _stripeService = stripeService;
-            _emailService = emailService;
         }
 
-        public async Task<IActionResult> PackageManagement()
+        // 1. Main Page Load
+        public async Task<IActionResult> PackageManagement(int page = 1)
         {
-            return View(await LoadViewModelAsync());
+            return View(await LoadViewModelAsync(page));
         }
 
+        // 2. AJAX: Get Single Package for Editing
+        [HttpGet]
+        public async Task<IActionResult> GetPackage(int id)
+        {
+            var p = await _context.Packages
+                .Include(x => x.PackageInclusions)
+                .Include(x => x.Itinerary)
+                .FirstOrDefaultAsync(x => x.PackageID == id);
+
+            if (p == null) return NotFound();
+
+            return Json(new
+            {
+                p.PackageID,
+                p.PackageName,
+                p.CategoryID,
+                p.Description,
+                p.Destination,
+                p.Price,
+                StartDate = p.StartDate.ToString("yyyy-MM-dd"),
+                EndDate = p.EndDate.ToString("yyyy-MM-dd"),
+                p.AvailableSlots,
+                p.Latitude,
+                p.Longitude,
+                Inclusions = p.PackageInclusions.Select(i => i.InclusionItem).ToList(),
+                Itinerary = p.Itinerary.OrderBy(i => i.DayNumber).Select(i => new { i.DayNumber, i.Title, i.ActivityDescription }).ToList(),
+                Images = !string.IsNullOrEmpty(p.ImageURL) ? p.ImageURL.Split(';', StringSplitOptions.RemoveEmptyEntries) : new string[0]
+            });
+        }
+
+        // 3. AJAX: Refresh List (With Pagination)
+        [HttpGet]
+        public async Task<IActionResult> GetPackageList(int page = 1)
+        {
+            int pageSize = 4;
+            var query = _context.Packages
+                .Include(p => p.Category)
+                .Include(p => p.Bookings)
+                .OrderByDescending(p => p.PackageID);
+
+            int totalItems = await query.CountAsync();
+            var items = await query.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
+
+            var vm = new PackageManagementViewModel
+            {
+                Packages = items,
+                CurrentPage = page,
+                TotalPages = (int)Math.Ceiling(totalItems / (double)pageSize),
+                PageSize = pageSize
+            };
+
+            // Pass the whole VM so partial has access to CurrentPage/TotalPages
+            return PartialView("_PackageListPartial", vm);
+        }
+
+        // 4. Create Action
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [DisableRequestSizeLimit]
-        [RequestFormLimits(MultipartBodyLengthLimit = long.MaxValue)]
         public async Task<IActionResult> Create(CreatePackageRequest request)
         {
             if (!ModelState.IsValid)
             {
-                var vm = await LoadViewModelAsync();
-                vm.Message = "Please fix validation errors";
-                vm.IsSuccess = false;
-
-                // === DATA RESTORATION LOGIC ===
-                vm.Package = new Package
-                {
-                    PackageName = request.PackageName,
-                    Description = request.Description,
-                    Destination = request.Destination,
-                    Price = request.Price,
-                    StartDate = request.StartDate,
-                    EndDate = request.EndDate,
-                    AvailableSlots = request.AvailableSlots,
-                    Latitude = request.Latitude,
-                    Longitude = request.Longitude,
-                    CategoryID = request.CategoryID ?? 0
-                };
-
-                vm.SelectedCategoryId = request.CategoryID;
-                vm.NewCategoryName = request.NewCategoryName;
-                vm.Inclusions = request.Inclusions ?? new List<string>();
-
-                if (request.Itinerary != null)
-                {
-                    vm.Itinerary = request.Itinerary.Select(i => new PackageItinerary
-                    {
-                        DayNumber = i.DayNumber,
-                        Title = i.Title,
-                        ActivityDescription = i.ActivityDescription
-                    }).ToList();
-                }
-
-                return View("PackageManagement", vm);
+                if (IsAjaxRequest()) return Json(new { success = false, message = "Validation failed." });
+                return View("PackageManagement", await LoadViewModelAsync());
             }
 
             try
             {
-                // 1. Process Images First (Validation happens here)
+                // Image Handling
                 var imagePaths = new List<string>();
                 if (request.ImageFiles != null && request.ImageFiles.Count > 0)
                 {
-                    foreach (var file in request.ImageFiles)
-                    {
-                        imagePaths.Add(await HandleImageUpload(file));
-                    }
+                    foreach (var file in request.ImageFiles) imagePaths.Add(await HandleImageUpload(file));
                 }
                 else
                 {
@@ -109,158 +124,72 @@ namespace FlyEase.Controllers
                 _context.Packages.Add(package);
                 await _context.SaveChangesAsync();
 
+                // Add Inclusions
                 if (request.Inclusions != null)
                 {
                     foreach (var inc in request.Inclusions.Where(i => !string.IsNullOrWhiteSpace(i)))
-                    {
                         _context.PackageInclusions.Add(new PackageInclusion { PackageID = package.PackageID, InclusionItem = inc.Trim() });
-                    }
                 }
 
-                if (request.Itinerary != null && request.Itinerary.Any())
+                // Add Itinerary
+                if (request.Itinerary != null)
                 {
                     foreach (var item in request.Itinerary)
                     {
                         if (!string.IsNullOrWhiteSpace(item.Title))
-                        {
-                            _context.PackageItineraries.Add(new PackageItinerary
-                            {
-                                PackageID = package.PackageID,
-                                DayNumber = item.DayNumber,
-                                Title = item.Title,
-                                ActivityDescription = item.ActivityDescription
-                            });
-                        }
+                            _context.PackageItineraries.Add(new PackageItinerary { PackageID = package.PackageID, DayNumber = item.DayNumber, Title = item.Title, ActivityDescription = item.ActivityDescription });
                     }
                 }
 
                 await _context.SaveChangesAsync();
 
-                var viewModel = await LoadViewModelAsync();
-                viewModel.Message = "Package created successfully!";
-                viewModel.IsSuccess = true;
-                return View("PackageManagement", viewModel);
+                if (IsAjaxRequest()) return Json(new { success = true, message = "Package created successfully!" });
+                return RedirectToAction("PackageManagement");
             }
             catch (Exception ex)
             {
-                var vm = await LoadViewModelAsync();
-                vm.Message = $"Error: {ex.Message}";
-                vm.IsSuccess = false;
-                return View("PackageManagement", vm);
+                if (IsAjaxRequest()) return Json(new { success = false, message = "Error: " + ex.Message });
+                return View("PackageManagement", await LoadViewModelAsync());
             }
         }
 
+        // 5. Update Action
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id)
-        {
-            var viewModel = await LoadViewModelAsync();
-            var package = await _context.Packages
-                .Include(p => p.PackageInclusions)
-                .Include(p => p.Category)
-                .Include(p => p.Itinerary)
-                .FirstOrDefaultAsync(p => p.PackageID == id);
-
-            if (package != null)
-            {
-                viewModel.Package = package;
-                viewModel.EditingPackageId = id;
-                viewModel.SelectedCategoryId = package.CategoryID;
-                viewModel.Inclusions = package.PackageInclusions.Select(pi => pi.InclusionItem).ToList();
-                viewModel.Itinerary = package.Itinerary.OrderBy(i => i.DayNumber).ToList();
-            }
-            return View("PackageManagement", viewModel);
-        }
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        [DisableRequestSizeLimit]
-        [RequestFormLimits(MultipartBodyLengthLimit = long.MaxValue)]
         public async Task<IActionResult> Update(UpdatePackageRequest request)
         {
             if (!ModelState.IsValid)
             {
-                var vm = await LoadViewModelAsync();
-                vm.Message = "Validation Failed";
-                vm.IsSuccess = false;
-                vm.EditingPackageId = request.PackageID;
-
-                var originalPkg = await _context.Packages.AsNoTracking().FirstOrDefaultAsync(p => p.PackageID == request.PackageID);
-                string currentImages = originalPkg?.ImageURL ?? "";
-
-                vm.Package = new Package
-                {
-                    PackageID = request.PackageID,
-                    PackageName = request.PackageName,
-                    Description = request.Description,
-                    Destination = request.Destination,
-                    Price = request.Price,
-                    StartDate = request.StartDate,
-                    EndDate = request.EndDate,
-                    AvailableSlots = request.AvailableSlots,
-                    Latitude = request.Latitude,
-                    Longitude = request.Longitude,
-                    CategoryID = request.CategoryID ?? 0,
-                    ImageURL = currentImages
-                };
-
-                vm.SelectedCategoryId = request.CategoryID;
-                vm.NewCategoryName = request.NewCategoryName;
-                vm.Inclusions = request.Inclusions ?? new List<string>();
-
-                if (request.Itinerary != null)
-                {
-                    vm.Itinerary = request.Itinerary.Select(i => new PackageItinerary
-                    {
-                        DayNumber = i.DayNumber,
-                        Title = i.Title,
-                        ActivityDescription = i.ActivityDescription
-                    }).ToList();
-                }
-
-                return View("PackageManagement", vm);
+                if (IsAjaxRequest()) return Json(new { success = false, message = "Validation failed." });
+                return RedirectToAction("PackageManagement");
             }
 
             try
             {
-                var existingPackage = await _context.Packages
-                    .Include(p => p.PackageInclusions)
-                    .Include(p => p.Itinerary)
-                    .FirstOrDefaultAsync(p => p.PackageID == request.PackageID);
-
+                var existingPackage = await _context.Packages.Include(p => p.PackageInclusions).Include(p => p.Itinerary).FirstOrDefaultAsync(p => p.PackageID == request.PackageID);
                 if (existingPackage == null) return NotFound();
 
-                // 1. Handle Images (Validation happens here)
-                var currentImages = string.IsNullOrEmpty(existingPackage.ImageURL)
-                    ? new List<string>()
-                    : existingPackage.ImageURL.Split(';', StringSplitOptions.RemoveEmptyEntries).ToList();
+                var currentImages = string.IsNullOrEmpty(existingPackage.ImageURL) ? new List<string>() : existingPackage.ImageURL.Split(';', StringSplitOptions.RemoveEmptyEntries).ToList();
 
+                // Handle Deletions
                 if (request.DeleteImagePaths != null)
                 {
                     foreach (var path in request.DeleteImagePaths)
                     {
-                        if (currentImages.Contains(path))
-                        {
-                            currentImages.Remove(path);
-                            DeleteImageFile(path);
-                        }
+                        if (currentImages.Contains(path)) { currentImages.Remove(path); DeleteImageFile(path); }
                     }
                 }
-
+                // Handle Additions
                 if (request.ImageFiles != null && request.ImageFiles.Count > 0)
                 {
                     if (currentImages.Count == 1 && currentImages[0].Contains("default-package.jpg")) currentImages.Clear();
-                    foreach (var file in request.ImageFiles)
-                    {
-                        currentImages.Add(await HandleImageUpload(file));
-                    }
+                    foreach (var file in request.ImageFiles) currentImages.Add(await HandleImageUpload(file));
                 }
-
                 if (currentImages.Count == 0) currentImages.Add("/img/default-package.jpg");
 
                 int categoryId = await GetOrCreateCategoryId(request.CategoryID, request.NewCategoryName);
 
-                // Update Properties
+                // Update Fields
                 existingPackage.ImageURL = string.Join(";", currentImages.Distinct());
                 existingPackage.PackageName = request.PackageName;
                 existingPackage.CategoryID = categoryId;
@@ -273,111 +202,83 @@ namespace FlyEase.Controllers
                 existingPackage.Latitude = request.Latitude;
                 existingPackage.Longitude = request.Longitude;
 
+                // Update Children
                 _context.PackageInclusions.RemoveRange(existingPackage.PackageInclusions);
                 if (request.Inclusions != null)
                 {
                     foreach (var inc in request.Inclusions.Where(i => !string.IsNullOrWhiteSpace(i)))
-                    {
                         _context.PackageInclusions.Add(new PackageInclusion { PackageID = existingPackage.PackageID, InclusionItem = inc.Trim() });
-                    }
                 }
 
-                if (existingPackage.Itinerary.Any()) _context.PackageItineraries.RemoveRange(existingPackage.Itinerary);
-
-                if (request.Itinerary != null && request.Itinerary.Any())
+                _context.PackageItineraries.RemoveRange(existingPackage.Itinerary);
+                if (request.Itinerary != null)
                 {
                     foreach (var item in request.Itinerary)
-                    {
                         if (!string.IsNullOrWhiteSpace(item.Title))
-                        {
-                            _context.PackageItineraries.Add(new PackageItinerary
-                            {
-                                PackageID = existingPackage.PackageID,
-                                DayNumber = item.DayNumber,
-                                Title = item.Title,
-                                ActivityDescription = item.ActivityDescription
-                            });
-                        }
-                    }
+                            _context.PackageItineraries.Add(new PackageItinerary { PackageID = existingPackage.PackageID, DayNumber = item.DayNumber, Title = item.Title, ActivityDescription = item.ActivityDescription });
                 }
 
                 await _context.SaveChangesAsync();
 
-                var viewModel = await LoadViewModelAsync();
-                viewModel.Message = "Package updated successfully!";
-                viewModel.IsSuccess = true;
-                return View("PackageManagement", viewModel);
+                if (IsAjaxRequest()) return Json(new { success = true, message = "Package updated successfully!" });
+                return RedirectToAction("PackageManagement");
             }
             catch (Exception ex)
             {
-                var vm = await LoadViewModelAsync();
-                vm.Message = $"Error: {ex.Message}";
-                vm.IsSuccess = false;
-                return View("PackageManagement", vm);
+                if (IsAjaxRequest()) return Json(new { success = false, message = "Error: " + ex.Message });
+                return RedirectToAction("PackageManagement");
             }
         }
 
+        // 6. Delete Action
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Delete(int id)
         {
-            var package = await _context.Packages
-                .Include(p => p.Bookings)
-                    .ThenInclude(b => b.Payments)
-                .Include(p => p.Bookings)
-                    .ThenInclude(b => b.User)
-                .FirstOrDefaultAsync(p => p.PackageID == id);
-
-            if (package != null)
+            try
             {
-                if (package.Bookings.Any())
+                var package = await _context.Packages.FindAsync(id);
+                if (package != null)
                 {
-                    var bookingsToDelete = package.Bookings.ToList();
-                    foreach (var booking in bookingsToDelete)
+                    if (!string.IsNullOrEmpty(package.ImageURL))
                     {
-                        decimal refundedAmount = 0;
-                        foreach (var payment in booking.Payments)
-                        {
-                            if ((payment.PaymentStatus == "Completed" || payment.PaymentStatus == "Deposit")
-                                && !string.IsNullOrEmpty(payment.TransactionID))
-                            {
-                                if (payment.PaymentMethod.Contains("Credit Card") || payment.PaymentMethod.Contains("Stripe"))
-                                {
-                                    try
-                                    {
-                                        await _stripeService.RefundPaymentAsync(payment.TransactionID);
-                                        refundedAmount += payment.AmountPaid;
-                                    }
-                                    catch { }
-                                }
-                            }
-                        }
-
-                        if (booking.User != null)
-                        {
-                            await _emailService.SendRefundNotification(
-                                booking.User.Email,
-                                booking.User.FullName,
-                                package.PackageName,
-                                refundedAmount
-                            );
-                        }
-                        _context.Bookings.Remove(booking);
+                        foreach (var img in package.ImageURL.Split(';', StringSplitOptions.RemoveEmptyEntries)) DeleteImageFile(img);
                     }
+                    _context.Packages.Remove(package);
+                    await _context.SaveChangesAsync();
                 }
 
-                var images = package.ImageURL?.Split(';', StringSplitOptions.RemoveEmptyEntries);
-                if (images != null) foreach (var img in images) DeleteImageFile(img);
-
-                _context.Packages.Remove(package);
-                await _context.SaveChangesAsync();
-
-                var successVm = await LoadViewModelAsync();
-                successVm.Message = "Package force deleted. Refunds processed and bookings removed.";
-                successVm.IsSuccess = true;
-                return View("PackageManagement", successVm);
+                if (IsAjaxRequest()) return Json(new { success = true, message = "Deleted successfully" });
+                return RedirectToAction("PackageManagement");
             }
-            return RedirectToAction("PackageManagement");
+            catch
+            {
+                if (IsAjaxRequest()) return Json(new { success = false, message = "Error deleting" });
+                return RedirectToAction("PackageManagement");
+            }
+        }
+
+        // --- Helpers ---
+        private async Task<PackageManagementViewModel> LoadViewModelAsync(int page = 1)
+        {
+            int pageSize = 4;
+            var query = _context.Packages
+                .Include(p => p.Category)
+                .Include(p => p.PackageInclusions)
+                .Include(p => p.Bookings)
+                .OrderByDescending(p => p.PackageID);
+
+            int totalItems = await query.CountAsync();
+            var items = await query.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
+
+            return new PackageManagementViewModel
+            {
+                Packages = items,
+                Categories = await _context.PackageCategories.OrderBy(c => c.CategoryName).ToListAsync(),
+                CurrentPage = page,
+                TotalPages = (int)Math.Ceiling(totalItems / (double)pageSize),
+                PageSize = pageSize
+            };
         }
 
         private async Task<int> GetOrCreateCategoryId(int? categoryId, string? newCategoryName)
@@ -392,7 +293,23 @@ namespace FlyEase.Controllers
                 await _context.SaveChangesAsync();
                 return newCat.CategoryID;
             }
-            return 0;
+            return 0; // Or handle default category
+        }
+
+        private async Task<string> HandleImageUpload(IFormFile? imageFile)
+        {
+            if (imageFile == null || imageFile.Length == 0) return "/img/default-package.jpg";
+            var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp", ".avif" };
+            var ext = Path.GetExtension(imageFile.FileName).ToLowerInvariant();
+            if (!allowedExtensions.Contains(ext)) throw new InvalidOperationException($"File type '{ext}' is not allowed.");
+            var fileName = Guid.NewGuid().ToString() + ext;
+            var uploadsFolder = Path.Combine(_environment.WebRootPath, "img");
+            if (!Directory.Exists(uploadsFolder)) Directory.CreateDirectory(uploadsFolder);
+            using (var stream = new FileStream(Path.Combine(uploadsFolder, fileName), FileMode.Create))
+            {
+                await imageFile.CopyToAsync(stream);
+            }
+            return $"/img/{fileName}";
         }
 
         private void DeleteImageFile(string? imageUrl)
@@ -408,43 +325,9 @@ namespace FlyEase.Controllers
             }
         }
 
-        private async Task<string> HandleImageUpload(IFormFile? imageFile)
+        private bool IsAjaxRequest()
         {
-            if (imageFile == null || imageFile.Length == 0) return "/img/default-package.jpg";
-
-            // === NEW VALIDATION LOGIC ===
-            // Allowed extensions including .avif and .webp
-            var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp", ".avif" };
-            var ext = Path.GetExtension(imageFile.FileName).ToLowerInvariant();
-
-            if (!allowedExtensions.Contains(ext))
-            {
-                throw new InvalidOperationException($"File type '{ext}' is not allowed. Only JPG, JPEG, PNG, GIF, WEBP, and AVIF are accepted.");
-            }
-            // ============================
-
-            var fileName = Guid.NewGuid().ToString() + ext;
-            var uploadsFolder = Path.Combine(_environment.WebRootPath, "img");
-            if (!Directory.Exists(uploadsFolder)) Directory.CreateDirectory(uploadsFolder);
-            using (var stream = new FileStream(Path.Combine(uploadsFolder, fileName), FileMode.Create))
-            {
-                await imageFile.CopyToAsync(stream);
-            }
-            return $"/img/{fileName}";
-        }
-
-        private async Task<PackageManagementViewModel> LoadViewModelAsync()
-        {
-            return new PackageManagementViewModel
-            {
-                Packages = await _context.Packages
-                    .Include(p => p.Category)
-                    .Include(p => p.PackageInclusions)
-                    .Include(p => p.Bookings)
-                    .OrderByDescending(p => p.PackageID)
-                    .ToListAsync(),
-                Categories = await _context.PackageCategories.OrderBy(c => c.CategoryName).ToListAsync()
-            };
+            return Request.Headers["X-Requested-With"] == "XMLHttpRequest";
         }
     }
 }

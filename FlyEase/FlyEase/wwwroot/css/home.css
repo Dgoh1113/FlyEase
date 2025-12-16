@@ -480,3 +480,8 @@ body {
         font-size: 40px;
     }
 }
+.word {
+    color: white !important;
+    font-size:24px !important;
+    text-decoration: none;
+}

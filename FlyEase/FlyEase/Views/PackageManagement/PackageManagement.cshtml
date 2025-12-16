@@ -8,91 +8,15 @@
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <link rel="stylesheet" href="~/css/packagemanagement.css" />
+<link href='https://fonts.googleapis.com/css?family=Lato' rel='stylesheet' type='text/css'>
 
 <style>
-    /* Gallery Styling */
-    .image-gallery {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 15px;
-        margin-top: 10px;
-    }
-
-    .gallery-item {
-        position: relative;
-        width: 120px;
-        height: 120px;
-        border: 2px solid #ddd;
-        border-radius: 8px;
-        overflow: hidden;
-        background: #f9f9f9;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    }
-
-        .gallery-item img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
-        .gallery-item .remove-btn {
-            position: absolute;
-            top: 5px;
-            right: 5px;
-            background: rgba(255, 68, 68, 0.9);
-            color: white;
-            border-radius: 50%;
-            width: 24px;
-            height: 24px;
-            text-align: center;
-            line-height: 22px;
-            cursor: pointer;
-            font-weight: bold;
-            font-size: 14px;
-            border: 2px solid white;
-            z-index: 10;
-            transition: all 0.2s;
-        }
-
-            .gallery-item .remove-btn:hover {
-                background: #cc0000;
-                transform: scale(1.1);
-            }
-
-        .gallery-item.deleted {
-            opacity: 0.5;
-            border: 2px dashed red;
-            filter: grayscale(100%);
-        }
-
-            .gallery-item.deleted::after {
-                content: "REMOVED";
-                position: absolute;
-                top: 50%;
-                left: 50%;
-                transform: translate(-50%, -50%);
-                color: red;
-                font-weight: 900;
-                font-size: 14px;
-                background: rgba(255,255,255,0.8);
-                padding: 4px 8px;
-                border-radius: 4px;
-                pointer-events: none;
-            }
-
-    /* Map Container */
     #adminMap {
         height: 300px;
         width: 100%;
         border-radius: 8px;
         border: 1px solid #ccc;
         margin-top: 10px;
-    }
-
-    /* Error Text Styling */
-    .text-danger {
-        font-size: 0.875em;
-        margin-top: 0.25rem;
     }
 </style>
 
@@ -104,158 +28,123 @@
 </div>
 
 <div class="management-container">
-    @if (!string.IsNullOrEmpty(Model.Message))
-    {
-        <div class="alert @(Model.IsSuccess ? "alert-success" : "alert-danger")">
-            @Model.Message
-        </div>
-    }
+    <div id="alertArea">
+        @if (!string.IsNullOrEmpty(Model.Message))
+        {
+            <div class="alert @(Model.IsSuccess ? "alert-success" : "alert-danger")">
+                @Model.Message
+            </div>
+        }
+    </div>
 
     <div class="management-grid">
         <div class="form-card">
             <div class="form-header">
-                <h3>@(Model.EditingPackageId == null ? "Create New Package" : "Edit Package")</h3>
+                <h3 id="formTitle">Create New Package</h3>
             </div>
             <div class="form-body">
-                <form method="post"
-                      action="@(Model.EditingPackageId == null ? Url.Action("Create") : Url.Action("Update"))"
-                      enctype="multipart/form-data" id="packageForm" onsubmit="return validateForm()">
+                <form id="packageForm" enctype="multipart/form-data" onsubmit="return false;">
                     @Html.AntiForgeryToken()
-                    @if (Model.EditingPackageId.HasValue)
-                    {
-                        <input type="hidden" name="PackageID" value="@Model.EditingPackageId.Value" />
-                    }
+                    <input type="hidden" name="PackageID" id="packageIdInput" value="0" />
 
                     <div class="form-row">
                         <div class="form-group">
                             <label class="form-label">Package Name</label>
-                            <input class="form-control @(ViewData.ModelState["PackageName"]?.Errors.Any() == true ? "is-invalid" : "")"
-                                   name="PackageName" value="@Model.Package.PackageName" required />
-                            <div class="invalid-feedback d-block">@Html.ValidationMessage("PackageName")</div>
+                            <input class="form-control" name="PackageName" required />
+                            <div class="invalid-feedback d-block"></div>
                         </div>
                         <div class="form-group">
                             <label class="form-label">Category</label>
-                            <select class="form-control @(ViewData.ModelState["CategoryID"]?.Errors.Any() == true ? "is-invalid" : "")"
-                                    name="CategoryID" id="categorySelect">
+                            <select class="form-control" name="CategoryID" id="categorySelect">
                                 <option value="">Select Category or Type New One</option>
                                 @foreach (var category in Model.Categories)
                                 {
-                                    <option value="@category.CategoryID" selected="@(category.CategoryID == Model.SelectedCategoryId)">
-                                        @category.CategoryName
-                                    </option>
+                                    <option value="@category.CategoryID">@category.CategoryName</option>
                                 }
                             </select>
-                            <div class="invalid-feedback d-block">@Html.ValidationMessage("CategoryID")</div>
-
-                            <div class="mt-2" id="newCategoryGroup" style="@(string.IsNullOrWhiteSpace(Model.NewCategoryName) && Model.SelectedCategoryId.HasValue ? "display: none;" : "")">
+                            <div class="mt-2" id="newCategoryGroup">
                                 <small class="text-muted">Or enter new category:</small>
-                                <input type="text" class="form-control mt-1" name="NewCategoryName" id="newCategoryInput" placeholder="Type new category name" value="@Model.NewCategoryName" />
+                                <input type="text" class="form-control mt-1" name="NewCategoryName" id="newCategoryInput" placeholder="Type new category name" />
                             </div>
                         </div>
                     </div>
 
                     <div class="form-group">
                         <label class="form-label">Description</label>
-                        <textarea class="form-control @(ViewData.ModelState["Description"]?.Errors.Any() == true ? "is-invalid" : "")"
-                                  name="Description" rows="3">@Model.Package.Description</textarea>
-                        <div class="invalid-feedback d-block">@Html.ValidationMessage("Description")</div>
+                        <textarea class="form-control" name="Description" rows="3"></textarea>
                     </div>
 
                     <div class="form-row">
                         <div class="form-group">
                             <label class="form-label">Country</label>
-                            <input class="form-control @(ViewData.ModelState["Destination"]?.Errors.Any() == true ? "is-invalid" : "")"
-                                   name="Destination" value="@Model.Package.Destination" required />
-                            <div class="invalid-feedback d-block">@Html.ValidationMessage("Destination")</div>
+                            <input class="form-control" name="Destination" required />
                         </div>
                         <div class="form-group">
                             <label class="form-label">Price</label>
-                            <input class="form-control @(ViewData.ModelState["Price"]?.Errors.Any() == true ? "is-invalid" : "")"
-                                   name="Price" type="number" step="0.01" value="@Model.Package.Price" required />
-                            <div class="invalid-feedback d-block">@Html.ValidationMessage("Price")</div>
+                            <input class="form-control" name="Price" type="number" step="0.01" required />
                         </div>
                     </div>
 
                     <div class="form-group border p-3 bg-light rounded">
                         <label class="form-label fw-bold">Location (Search & Pin)</label>
                         <div class="input-group mb-2">
-                            <input type="text" id="locSearch" class="form-control" placeholder="Search place (e.g. Tokyo, KLCC)...">
+                            <input type="text" id="locSearch" class="form-control" placeholder="Search place...">
                             <button type="button" class="btn btn-secondary" onclick="searchLocation()">Search</button>
                         </div>
                         <div id="adminMap"></div>
                         <small class="text-muted">Drag the marker to pinpoint the exact location.</small>
-                        <input type="hidden" id="p_lat" name="Latitude" value="@Model.Package.Latitude" />
-                        <input type="hidden" id="p_long" name="Longitude" value="@Model.Package.Longitude" />
+                        <input type="hidden" id="p_lat" name="Latitude" value="3.1390" />
+                        <input type="hidden" id="p_long" name="Longitude" value="101.6869" />
                     </div>
 
                     <div class="form-row">
                         <div class="form-group">
                             <label class="form-label">Start Date</label>
-                            <input class="form-control @(ViewData.ModelState["StartDate"]?.Errors.Any() == true ? "is-invalid" : "")"
-                                   name="StartDate" id="startDate" type="date"
-                                   value="@(Model.Package.StartDate == default ? "" : Model.Package.StartDate.ToString("yyyy-MM-dd"))"
-                                   required onchange="syncItineraryDays()" />
-                            <div class="invalid-feedback d-block">@Html.ValidationMessage("StartDate")</div>
+                            <div class="calendar-wrapper">
+                                <input class="form-control" name="StartDate" id="startDate" type="text" readonly placeholder="Select Date" required onclick="toggleCalendar('start')" onchange="syncItineraryDays()" />
+                                <div id="calendar_start" class="flyease-calendar">
+                                    <div class="calendar-header"><i class="fas fa-chevron-left prev-btn"></i><h1></h1><i class="fas fa-chevron-right next-btn"></i></div>
+                                    <div class="calendar-weekdays"></div><div class="calendar-content"></div>
+                                </div>
+                            </div>
                         </div>
                         <div class="form-group">
                             <label class="form-label">End Date</label>
-                            <input class="form-control @(ViewData.ModelState["EndDate"]?.Errors.Any() == true ? "is-invalid" : "")"
-                                   name="EndDate" id="endDate" type="date"
-                                   value="@(Model.Package.EndDate == default ? "" : Model.Package.EndDate.ToString("yyyy-MM-dd"))"
-                                   required onchange="syncItineraryDays()" />
-                            <div class="invalid-feedback d-block">@Html.ValidationMessage("EndDate")</div>
+                            <div class="calendar-wrapper">
+                                <input class="form-control" name="EndDate" id="endDate" type="text" readonly placeholder="Select Date" required onclick="toggleCalendar('end')" onchange="syncItineraryDays()" />
+                                <div id="calendar_end" class="flyease-calendar">
+                                    <div class="calendar-header"><i class="fas fa-chevron-left prev-btn"></i><h1></h1><i class="fas fa-chevron-right next-btn"></i></div>
+                                    <div class="calendar-weekdays"></div><div class="calendar-content"></div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
                     <div class="form-group">
                         <label class="form-label">Available Slots</label>
-                        <input class="form-control @(ViewData.ModelState["AvailableSlots"]?.Errors.Any() == true ? "is-invalid" : "")"
-                               name="AvailableSlots" type="number" value="@(Model.Package.AvailableSlots == 0 ? "" : Model.Package.AvailableSlots.ToString())" required />
-                        <div class="invalid-feedback d-block">@Html.ValidationMessage("AvailableSlots")</div>
+                        <input class="form-control" name="AvailableSlots" type="number" required />
                     </div>
 
                     <div class="form-group">
                         <label class="form-label">Package Images</label>
                         <div class="input-group">
                             <input class="form-control" name="ImageFiles" id="imageInput" type="file" accept="image/*" multiple onchange="handleFileSelect(this)" />
-                            <button type="button" class="btn btn-outline-danger" id="clearNewBtn" style="display:none;" onclick="clearNewUploads()">Clear All New</button>
+                            <button type="button" class="btn btn-outline-danger" id="clearNewBtn" style="display:none;" onclick="clearNewUploads()">Clear All</button>
                         </div>
                         <div class="mt-3" id="previewContainer" style="display:none; border: 1px dashed #28a745; padding: 10px; border-radius: 8px;">
-                            <label class="small fw-bold text-success">New Images (To be uploaded):</label>
+                            <label class="small fw-bold text-success">New Images:</label>
                             <div class="image-gallery" id="newImagesGallery"></div>
                         </div>
+                        <div id="existingImagesWrapper" style="display:none;" class="mt-3">
+                            <label class="small fw-bold text-primary">Saved Images:</label>
+                            <div class="image-gallery" id="existingImagesGallery"></div>
+                        </div>
                         <div id="deletedImagesContainer"></div>
-                        @if (Model.EditingPackageId.HasValue && Model.ImageList.Any())
-                        {
-                            <div class="mt-3">
-                                <label class="small fw-bold text-primary">Previously Saved Images:</label>
-                                <div class="image-gallery">
-                                    @foreach (var imgPath in Model.ImageList)
-                                    {
-                                        var uniqueId = "img-" + Math.Abs(imgPath.GetHashCode());
-                                        <div class="gallery-item" id="@uniqueId">
-                                            <img src="@imgPath" onerror="this.src='/img/default-package.jpg'" />
-                                            <span class="remove-btn" onclick="toggleDeletion('@imgPath', '@uniqueId')" title="Delete this image">&times;</span>
-                                        </div>
-                                    }
-                                </div>
-                            </div>
-                        }
                     </div>
 
                     <div class="form-group">
                         <label class="form-label">Package Inclusions</label>
-                        <div id="inclusions-container">
-                            @for (int i = 0; i < Model.Inclusions.Count; i++)
-                            {
-                                <div class="inclusion-item mb-2">
-                                    <div class="input-group">
-                                        <input type="text" class="form-control" name="Inclusions" value="@Model.Inclusions[i]" placeholder="Enter inclusion item" />
-                                        <button type="button" class="btn btn-danger" onclick="removeInclusion(this)">Remove</button>
-                                    </div>
-                                </div>
-                            }
-                        </div>
+                        <div id="inclusions-container"></div>
                         <button type="button" class="btn btn-secondary mt-2" onclick="addInclusion()">Add Inclusion</button>
                     </div>
 
@@ -264,57 +153,18 @@
                     <div class="form-group mb-4">
                         <div class="d-flex justify-content-between align-items-center mb-2">
                             <label class="form-label mb-0 h5">Itinerary</label>
-                            <small class="text-muted">Days will automatically appear based on date selection.</small>
+                            <small class="text-muted">Days appear on date selection.</small>
                         </div>
-
-                        <div id="itinerary-container">
-                            @if (Model.Itinerary != null && Model.Itinerary.Any())
-                            {
-                                for (int i = 0; i < Model.Itinerary.Count; i++)
-                                {
-                                    var day = Model.Itinerary[i];
-                                    <div class="card mb-2 p-3 bg-light border itinerary-row" id="day-row-@i">
-                                        <div class="d-flex justify-content-between">
-                                            <strong>Day <span class="day-label">@day.DayNumber</span></strong>
-                                            <button type="button" class="btn btn-sm btn-danger py-0" onclick="removeItineraryRow(this)">&times;</button>
-                                        </div>
-                                        <div class="row mt-2">
-                                            <div class="col-md-2">
-                                                <input type="number" class="form-control form-control-sm day-input" name="Itinerary[@i].DayNumber" value="@day.DayNumber" readonly />
-                                            </div>
-                                            <div class="col-md-10">
-                                                <input type="text"
-                                                       class="form-control form-control-sm title-input @(ViewData.ModelState[$"Itinerary[{i}].Title"]?.Errors.Any() == true ? "is-invalid" : "")"
-                                                       name="Itinerary[@i].Title" value="@day.Title" placeholder="Title (e.g. Arrival)" required />
-                                                <div class="invalid-feedback d-block">@Html.ValidationMessage($"Itinerary[{i}].Title")</div>
-                                            </div>
-                                        </div>
-                                        <div class="mt-2">
-                                            <textarea class="form-control form-control-sm desc-input @(ViewData.ModelState[$"Itinerary[{i}].ActivityDescription"]?.Errors.Any() == true ? "is-invalid" : "")"
-                                              name="Itinerary[@i].ActivityDescription" rows="2" placeholder="Description of activities..." required>@day.ActivityDescription</textarea>
-                                            <div class="invalid-feedback d-block">@Html.ValidationMessage($"Itinerary[{i}].ActivityDescription")</div>
-                                        </div>
-                                    </div>
-                                }
-                            }
-                        </div>
+                        <div id="itinerary-container"></div>
                         <button type="button" class="btn btn-outline-secondary mt-2 w-100" onclick="addItineraryRow()">+ Add Extra Day</button>
-
                         <small class="text-danger d-none" id="itineraryError" style="font-size: 1rem; font-weight: bold;">
-                            <i class="fas fa-exclamation-circle"></i> Please fill in the Title and Description for all itinerary days.
+                            <i class="fas fa-exclamation-circle"></i> Please fill in itinerary details.
                         </small>
                     </div>
 
                     <div class="form-actions">
-                        @if (Model.EditingPackageId == null)
-                        {
-                            <button type="submit" class="btn btn-primary"><i class="fas fa-plus"></i> Create Package</button>
-                        }
-                        else
-                        {
-                            <button type="submit" class="btn btn-warning"><i class="fas fa-save"></i> Update Package</button>
-                            <a href="@Url.Action("PackageManagement")" class="btn btn-secondary"><i class="fas fa-times"></i> Cancel</a>
-                        }
+                        <button type="button" id="submitBtn" onclick="submitForm()" class="btn btn-primary"><i class="fas fa-plus"></i> Create Package</button>
+                        <button type="button" id="cancelBtn" onclick="resetForm()" class="btn btn-secondary" style="display:none;"><i class="fas fa-times"></i> Cancel</button>
                     </div>
                 </form>
             </div>
@@ -322,48 +172,8 @@
 
         <div class="list-card">
             <div class="list-header"><h3>Existing Packages</h3></div>
-            <div class="packages-grid">
-                @if (Model.Packages.Any())
-                {
-                    @foreach (var package in Model.Packages)
-                    {
-                        var firstImage = !string.IsNullOrEmpty(package.ImageURL) ? package.ImageURL.Split(';', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() : "/img/default-package.jpg";
-                        var bookingCount = package.Bookings?.Count(b => b.BookingStatus != "Cancelled") ?? 0;
-                        <div class="package-management-card">
-                            <div class="package-image">
-                                <img src="@firstImage" alt="@package.PackageName" onerror="this.src='/img/default-package.jpg'" />
-                                <div class="package-actions">
-                                    <form method="post" action="@Url.Action("Edit")">
-                                        @Html.AntiForgeryToken()
-                                        <input type="hidden" name="id" value="@package.PackageID" />
-                                        <button type="submit" class="btn-edit"><i class="fas fa-edit"></i></button>
-                                    </form>
-
-                                    <form id="delete-form-@package.PackageID" method="post" action="@Url.Action("Delete")">
-                                        @Html.AntiForgeryToken()
-                                        <input type="hidden" name="id" value="@package.PackageID" />
-                                        <button type="button" class="btn-delete" onclick="confirmDelete(@package.PackageID, @bookingCount)">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    </form>
-                                </div>
-                            </div>
-                            <div class="package-content">
-                                <h4>@package.PackageName</h4>
-                                <div class="package-category"><strong>Category:</strong> @package.Category?.CategoryName</div>
-                                <div class="package-price">$@package.Price.ToString("N2")</div>
-                                @if (bookingCount > 0)
-                                {
-                                    <span class="badge bg-warning text-dark mt-1">@bookingCount Active Booking(s)</span>
-                                }
-                            </div>
-                        </div>
-                    }
-                }
-                else
-                {
-                    <div class="empty-state"><h4>No Packages Found</h4></div>
-                }
+            <div class="packages-grid" id="packagesGrid">
+                <partial name="_PackageListPartial" model="Model" />
             </div>
         </div>
     </div>
@@ -373,74 +183,294 @@
 
 @section Scripts {
     <script>
-        // --- 1. DELETE CONFIRMATION LOGIC ---
-        function confirmDelete(packageId, bookingCount) {
-            if (bookingCount > 0) {
-                Swal.fire({
-                    title: '⚠️ Active Bookings Found!',
-                    html: `This package has <b>${bookingCount} active bookings</b>.<br>
-                           Deleting it will <b>automatically cancel</b> all bookings,
-                           <b>refund</b> the payments, and <b>notify</b> users via email.<br><br>
-                           Please wait <b><span id="timer" style="color:red;font-size:1.5em;">3</span></b> seconds to confirm...`,
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#d33',
-                    cancelButtonColor: '#3085d6',
-                    confirmButtonText: 'Yes, Delete & Refund',
-                    didOpen: () => {
-                        Swal.showLoading();
-                        const confirmBtn = Swal.getConfirmButton();
-                        confirmBtn.setAttribute('disabled', '');
-                        let timeLeft = 3;
-                        const timerInterval = setInterval(() => {
-                            timeLeft--;
-                            const timerEl = document.getElementById('timer');
-                            if(timerEl) timerEl.textContent = timeLeft;
+        let currentPage = 1;
 
-                            if (timeLeft <= 0) {
-                                clearInterval(timerInterval);
-                                Swal.hideLoading();
-                                confirmBtn.removeAttribute('disabled');
-                            }
-                        }, 1000);
-                    }
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        document.getElementById('delete-form-' + packageId).submit();
-                    }
+        async function loadPage(page) {
+            if (page < 1) return;
+            currentPage = page;
+            await refreshPackageList();
+            document.querySelector('.list-card').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        async function refreshPackageList() {
+            try {
+                const response = await fetch(`@Url.Action("GetPackageList")?page=${currentPage}`);
+                const html = await response.text();
+                document.getElementById('packagesGrid').innerHTML = html;
+            } catch (e) { console.error("Failed to refresh list", e); }
+        }
+
+        async function submitForm() {
+            if (!validateForm()) return;
+            const form = document.getElementById('packageForm');
+            const formData = new FormData(form);
+            const id = document.getElementById('packageIdInput').value;
+            const url = (id && id !== "0") ? '@Url.Action("Update")' : '@Url.Action("Create")';
+            const btn = document.getElementById('submitBtn');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+            btn.disabled = true;
+
+            try {
+                const response = await fetch(url, {
+                    method: 'POST', body: formData, headers: { 'X-Requested-With': 'XMLHttpRequest' }
                 });
-            } else {
-                Swal.fire({
-                    title: 'Delete Package?',
-                    text: "You won't be able to revert this!",
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#d33',
-                    cancelButtonColor: '#3085d6',
-                    confirmButtonText: 'Yes, delete it!'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        document.getElementById('delete-form-' + packageId).submit();
-                    }
-                });
+                const result = await response.json();
+                if (result.success) {
+                    showAlert('success', result.message);
+                    resetForm();
+                    currentPage = 1;
+                    refreshPackageList();
+                    document.getElementById('alertArea').scrollIntoView({ behavior: 'smooth', block: 'center' });
+                } else {
+                    showAlert('danger', result.message);
+                    document.getElementById('alertArea').scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            } catch (error) {
+                console.error(error);
+                showAlert('danger', "An error occurred.");
+                document.getElementById('alertArea').scrollIntoView({ behavior: 'smooth', block: 'center' });
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
             }
         }
 
-        // --- 2. MAP LOGIC ---
+        async function editPackage(id) {
+            try {
+                const res = await fetch('/PackageManagement/GetPackage/' + id);
+                if (!res.ok) throw new Error("Failed to fetch package");
+                const data = await res.json();
+
+                document.getElementById('packageIdInput').value = data.packageID;
+                document.querySelector('input[name="PackageName"]').value = data.packageName;
+                document.querySelector('textarea[name="Description"]').value = data.description;
+                document.querySelector('input[name="Destination"]').value = data.destination;
+                document.querySelector('input[name="Price"]').value = data.price;
+                document.querySelector('input[name="AvailableSlots"]').value = data.availableSlots;
+                document.querySelector('input[name="StartDate"]').value = data.startDate;
+                document.querySelector('input[name="EndDate"]').value = data.endDate;
+
+                const catSelect = document.getElementById('categorySelect');
+                if(catSelect) catSelect.value = data.categoryID;
+                toggleNewCategoryInput();
+
+                if(map && marker) {
+                    const lat = data.latitude || 3.1390;
+                    const lng = data.longitude || 101.6869;
+                    document.getElementById('p_lat').value = lat;
+                    document.getElementById('p_long').value = lng;
+                    const newLatLng = new L.LatLng(lat, lng);
+                    marker.setLatLng(newLatLng);
+                    map.setView(newLatLng, 13);
+                }
+
+                const existingContainer = document.getElementById('existingImagesWrapper');
+                const gallery = document.getElementById('existingImagesGallery');
+                gallery.innerHTML = '';
+                document.getElementById('deletedImagesContainer').innerHTML = '';
+                if(data.images && data.images.length > 0) {
+                    existingContainer.style.display = 'block';
+                    data.images.forEach(img => {
+                         const div = document.createElement('div');
+                         div.className = 'gallery-item';
+                         div.id = "img-" + Math.abs(stringHashCode(img));
+                         div.innerHTML = `<img src="${img}" /><span class="remove-btn" onclick="toggleDeletion('${img}', '${div.id}')" title="Delete">&times;</span>`;
+                         gallery.appendChild(div);
+                    });
+                } else { existingContainer.style.display = 'none'; }
+
+                const incContainer = document.getElementById('inclusions-container');
+                incContainer.innerHTML = '';
+                if(data.inclusions) {
+                    data.inclusions.forEach(inc => {
+                        const div = document.createElement('div');
+                        div.className = 'inclusion-item mb-2';
+                        div.innerHTML = `<div class="input-group"><input type="text" class="form-control" name="Inclusions" value="${inc}" /><button type="button" class="btn btn-danger" onclick="removeInclusion(this)">Remove</button></div>`;
+                        incContainer.appendChild(div);
+                    });
+                }
+
+                const itinContainer = document.getElementById('itinerary-container');
+                itinContainer.innerHTML = '';
+                itineraryIndex = 0;
+                if(data.itinerary) {
+                    data.itinerary.forEach((day) => { addItineraryRow(day.dayNumber, day.title, day.activityDescription); });
+                }
+
+                document.getElementById('formTitle').innerText = "Edit Package";
+                const btn = document.getElementById('submitBtn');
+                btn.innerHTML = '<i class="fas fa-save"></i> Update Package';
+                btn.className = 'btn btn-warning';
+                document.getElementById('cancelBtn').style.display = 'inline-flex';
+                document.querySelector('.management-grid').scrollIntoView({ behavior: 'smooth' });
+
+            } catch (e) { console.error(e); showAlert('danger', 'Could not load package details.'); }
+        }
+
+        function resetForm() {
+            document.getElementById('packageForm').reset();
+            document.getElementById('packageIdInput').value = "0";
+            dt.items.clear();
+            document.getElementById('newImagesGallery').innerHTML = '';
+            document.getElementById('previewContainer').style.display = 'none';
+            document.getElementById('existingImagesWrapper').style.display = 'none';
+            document.getElementById('existingImagesGallery').innerHTML = '';
+            document.getElementById('deletedImagesContainer').innerHTML = '';
+            document.getElementById('inclusions-container').innerHTML = '';
+            document.getElementById('itinerary-container').innerHTML = '';
+
+            document.getElementById('formTitle').innerText = "Create New Package";
+            const btn = document.getElementById('submitBtn');
+            btn.innerHTML = '<i class="fas fa-plus"></i> Create Package';
+            btn.className = 'btn btn-primary';
+            document.getElementById('cancelBtn').style.display = 'none';
+            if(map) { map.setView([3.1390, 101.6869], 13); marker.setLatLng([3.1390, 101.6869]); }
+        }
+
+        function showAlert(type, msg) {
+            const area = document.getElementById('alertArea');
+            area.innerHTML = `<div class="alert alert-${type}">${msg}</div>`;
+            setTimeout(() => area.innerHTML = '', 5000);
+        }
+
+        function stringHashCode(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) { hash = (hash << 5) - hash + str.charCodeAt(i); hash |= 0; }
+            return hash;
+        }
+
+        class CalendarWidget {
+            constructor(containerId, inputId, type) {
+                this.container = document.getElementById(containerId);
+                this.input = document.getElementById(inputId);
+                this.type = type;
+                this.today = new Date();
+                this.currentYear = this.today.getFullYear();
+                this.currentMonth = this.today.getMonth() + 1;
+                this.monthNames = ["JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"];
+                this.weekDays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+                this.colors = ["#16a085", "#1abc9c", "#c0392b", "#27ae60", "#FF6860", "#f39c12", "#f1c40f", "#e67e22", "#2ecc71", "#e74c3c", "#d35400", "#2c3e50"];
+                this.init();
+            }
+            init() {
+                this.container.querySelector('.prev-btn').onclick = () => this.changeMonth('prev');
+                this.container.querySelector('.next-btn').onclick = () => this.changeMonth('next');
+                const weekContainer = this.container.querySelector('.calendar-weekdays');
+                weekContainer.innerHTML = '';
+                this.weekDays.forEach(day => { weekContainer.innerHTML += `<div>${day}</div>`; });
+            }
+            getDaysInMonth(year, month) { return new Date(year, month, 0).getDate(); }
+            getFirstDayIndex(year, month) { return new Date(year, month - 1, 1).getDay(); }
+            syncWithInput() {
+                if(this.input.value) {
+                    const date = new Date(this.input.value);
+                    if(!isNaN(date)) { this.currentYear = date.getFullYear(); this.currentMonth = date.getMonth() + 1; }
+                } else if (this.type === 'end') {
+                    const startVal = document.getElementById('startDate').value;
+                    if(startVal) { const sDate = new Date(startVal); this.currentYear = sDate.getFullYear(); this.currentMonth = sDate.getMonth() + 1; }
+                } else if (this.type === 'start') {
+                    const endVal = document.getElementById('endDate').value;
+                    if(endVal) { const eDate = new Date(endVal); this.currentYear = eDate.getFullYear(); this.currentMonth = eDate.getMonth() + 1; }
+                }
+            }
+            render() {
+                const content = this.container.querySelector('.calendar-content');
+                const headerH1 = this.container.querySelector('.calendar-header h1');
+                const headerColor = this.colors[this.currentMonth - 1];
+                this.container.querySelector('.calendar-header').style.backgroundColor = headerColor;
+                this.container.querySelector('.calendar-weekdays').style.color = headerColor;
+                headerH1.textContent = `${this.monthNames[this.currentMonth - 1]} ${this.currentYear}`;
+                content.innerHTML = '';
+                const daysInMonth = this.getDaysInMonth(this.currentYear, this.currentMonth);
+                const firstDayIdx = this.getFirstDayIndex(this.currentYear, this.currentMonth);
+                for (let i = 0; i < firstDayIdx; i++) content.innerHTML += `<div class="blank"></div>`;
+                for (let day = 1; day <= daysInMonth; day++) {
+                    const dateStr = `${this.currentYear}-${String(this.currentMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                    const isToday = (this.today.toDateString() === new Date(this.currentYear, this.currentMonth - 1, day).toDateString());
+                    const isSelected = (this.input.value === dateStr);
+                    let isDisabled = false;
+                    if (this.type === 'end') {
+                        const startVal = document.getElementById('startDate').value;
+                        if (startVal && dateStr < startVal) isDisabled = true;
+                    }
+                    const div = document.createElement('div');
+                    div.textContent = day;
+                    if (isToday) div.classList.add('today');
+                    if (isSelected) div.classList.add('selected');
+                    if (isDisabled) div.classList.add('disabled');
+                    if (isToday && !isDisabled) div.style.backgroundColor = headerColor;
+                    if (!isDisabled) {
+                        div.onclick = () => {
+                            this.input.value = dateStr;
+                            this.container.classList.remove('active');
+                            if(typeof syncItineraryDays === 'function') syncItineraryDays();
+                            if(this.type === 'start') validateEndDateAgainstStart();
+                        };
+                    }
+                    content.appendChild(div);
+                }
+            }
+            changeMonth(dir) {
+                if (dir === 'next') {
+                    this.currentMonth++;
+                    if (this.currentMonth > 12) { this.currentMonth = 1; this.currentYear++; }
+                } else {
+                    this.currentMonth--;
+                    if (this.currentMonth < 1) { this.currentMonth = 12; this.currentYear--; }
+                }
+                this.render();
+            }
+            show() {
+                document.querySelectorAll('.flyease-calendar').forEach(el => el.classList.remove('active'));
+                this.syncWithInput();
+                this.render();
+                this.container.classList.add('active');
+            }
+        }
+        let calStart, calEnd;
+        function toggleCalendar(type) {
+            if (type === 'start') { if(!calStart) calStart = new CalendarWidget('calendar_start', 'startDate', 'start'); calStart.show(); }
+            else { if(!calEnd) calEnd = new CalendarWidget('calendar_end', 'endDate', 'end'); calEnd.show(); }
+        }
+        document.addEventListener('click', function(event) {
+            const isCalendar = event.target.closest('.flyease-calendar');
+            const isInput = event.target.closest('input[type="text"][readonly]');
+            if (!isCalendar && !isInput) document.querySelectorAll('.flyease-calendar').forEach(el => el.classList.remove('active'));
+        });
+        function validateEndDateAgainstStart() {
+            const s = document.getElementById('startDate').value;
+            const e = document.getElementById('endDate');
+            if(s && e.value && e.value < s) { e.value = s; if(typeof syncItineraryDays === 'function') syncItineraryDays(); }
+        }
+
+        function confirmDelete(packageId, bookingCount) {
+             const title = bookingCount > 0 ? '⚠️ Active Bookings Found!' : 'Delete Package?';
+             const text = bookingCount > 0 ? `This package has <b>${bookingCount} active bookings</b>.<br>Deleting it will <b>automatically cancel</b> & <b>refund</b> bookings.` : "You won't be able to revert this!";
+             Swal.fire({
+                title: title, html: text, icon: 'warning',
+                showCancelButton: true, confirmButtonColor: '#d33', confirmButtonText: 'Yes, delete it!'
+             }).then((result) => {
+                if (result.isConfirmed) {
+                    const form = document.getElementById('delete-form-' + packageId);
+                    const formData = new FormData(form);
+                    fetch(form.action, { method: 'POST', body: formData, headers: {'X-Requested-With': 'XMLHttpRequest'} })
+                    .then(res => {
+                        if(res.ok) { showAlert('success', 'Package deleted successfully.'); refreshPackageList(); }
+                        else { showAlert('danger', 'Failed to delete package.'); }
+                    });
+                }
+             });
+        }
+
         let map, marker;
         function initMap() {
             if (!document.getElementById('adminMap')) return;
-
             let lat = parseFloat(document.getElementById('p_lat').value) || 3.1390;
             let lng = parseFloat(document.getElementById('p_long').value) || 101.6869;
-
             if (lat === 0 && lng === 0) { lat = 3.1390; lng = 101.6869; }
-
             map = L.map('adminMap').setView([lat, lng], 13);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; OpenStreetMap'
-            }).addTo(map);
-
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap' }).addTo(map);
             marker = L.marker([lat, lng], { draggable: true }).addTo(map);
             marker.on('dragend', function (e) {
                 var position = marker.getLatLng();
@@ -448,11 +478,9 @@
                 document.getElementById('p_long').value = position.lng;
             });
         }
-
         async function searchLocation() {
             const query = document.getElementById('locSearch').value;
             if (!query) return;
-
             try {
                 const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`);
                 const data = await res.json();
@@ -463,21 +491,13 @@
                     marker.setLatLng([lat, lon]);
                     document.getElementById('p_lat').value = lat;
                     document.getElementById('p_long').value = lon;
-                } else {
-                    alert("Location not found.");
-                }
+                } else { alert("Location not found."); }
             } catch (e) { console.error(e); }
         }
+        document.addEventListener("DOMContentLoaded", function () { initMap(); });
 
-        document.addEventListener("DOMContentLoaded", function () {
-            initMap();
-        });
-
-        // --- 3. ITINERARY LOGIC ---
-        let itineraryIndex = @(Model.Itinerary?.Count ?? 0);
-
+        let itineraryIndex = 0;
         function createItineraryRowHTML(index, dayNumber, title = "", desc = "") {
-            // Note: We added validation containers below inputs
             return `
                 <div class="card mb-2 p-3 bg-light border itinerary-row">
                     <div class="d-flex justify-content-between">
@@ -485,42 +505,23 @@
                         <button type="button" class="btn btn-sm btn-danger py-0" onclick="removeItineraryRow(this)">&times;</button>
                     </div>
                     <div class="row mt-2">
-                        <div class="col-md-2">
-                            <input type="number" class="form-control form-control-sm day-input" name="Itinerary[${index}].DayNumber" value="${dayNumber}" readonly />
-                        </div>
-                        <div class="col-md-10">
-                            <input type="text" class="form-control form-control-sm title-input" name="Itinerary[${index}].Title" value="${title}" placeholder="Title (e.g. Arrival)" required />
-                            <div class="invalid-feedback d-none">Title is required</div>
-                        </div>
+                        <div class="col-md-2"><input type="number" class="form-control form-control-sm day-input" name="Itinerary[${index}].DayNumber" value="${dayNumber}" readonly /></div>
+                        <div class="col-md-10"><input type="text" class="form-control form-control-sm title-input" name="Itinerary[${index}].Title" value="${title}" placeholder="Title" required /><div class="invalid-feedback d-none">Title is required</div></div>
                     </div>
-                    <div class="mt-2">
-                        <textarea class="form-control form-control-sm desc-input" name="Itinerary[${index}].ActivityDescription" rows="2" placeholder="Description..." required>${desc}</textarea>
-                        <div class="invalid-feedback d-none">Description is required</div>
-                    </div>
+                    <div class="mt-2"><textarea class="form-control form-control-sm desc-input" name="Itinerary[${index}].ActivityDescription" rows="2" placeholder="Description..." required>${desc}</textarea><div class="invalid-feedback d-none">Description is required</div></div>
                 </div>`;
         }
-
         function addItineraryRow(dayNum = null, title = "", desc = "") {
             const container = document.getElementById('itinerary-container');
             const currentRows = container.getElementsByClassName('itinerary-row').length;
             const displayDay = dayNum || (currentRows + 1);
-
             const div = document.createElement('div');
             div.innerHTML = createItineraryRowHTML(itineraryIndex, displayDay, title, desc);
             container.appendChild(div.firstElementChild);
             itineraryIndex++;
-
-            if (dayNum === null) {
-                updatePackageEndDate();
-            }
+            if (dayNum === null) updatePackageEndDate();
         }
-
-        function removeItineraryRow(btn) {
-            btn.closest('.itinerary-row').remove();
-            reorderDays();
-            updatePackageEndDate();
-        }
-
+        function removeItineraryRow(btn) { btn.closest('.itinerary-row').remove(); reorderDays(); updatePackageEndDate(); }
         function reorderDays() {
             const rows = document.querySelectorAll('.itinerary-row');
             rows.forEach((row, index) => {
@@ -528,18 +529,14 @@
                 row.querySelector('.day-label').innerText = newDay;
                 row.querySelector('.day-input').value = newDay;
                 const inputs = row.querySelectorAll('input, textarea');
-                inputs.forEach(input => {
-                    if (input.name) input.name = input.name.replace(/Itinerary\[\d+\]/, `Itinerary[${index}]`);
-                });
+                inputs.forEach(input => { if (input.name) input.name = input.name.replace(/Itinerary\[\d+\]/, `Itinerary[${index}]`); });
             });
             itineraryIndex = rows.length;
         }
-
         function updatePackageEndDate() {
             const startInput = document.getElementById('startDate');
             const endInput = document.getElementById('endDate');
             const rows = document.getElementsByClassName('itinerary-row');
-
             if (startInput.value && rows.length > 0) {
                 const startDate = new Date(startInput.value);
                 const totalDays = rows.length;
@@ -548,101 +545,52 @@
                 endInput.value = newEndDate.toISOString().split('T')[0];
             }
         }
-
         function syncItineraryDays() {
             const startStr = document.getElementById('startDate').value;
             const endStr = document.getElementById('endDate').value;
             if (!startStr || !endStr) return;
-
             const start = new Date(startStr);
             const end = new Date(endStr);
             const diffTime = end - start;
             if (diffTime < 0) return;
-
             const totalDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
             const container = document.getElementById('itinerary-container');
             let currentRows = container.getElementsByClassName('itinerary-row').length;
-
-            if (totalDays > currentRows) {
-                for (let i = currentRows + 1; i <= totalDays; i++) addItineraryRow(i);
-            } else if (totalDays < currentRows) {
+            if (totalDays > currentRows) { for (let i = currentRows + 1; i <= totalDays; i++) addItineraryRow(i); }
+            else if (totalDays < currentRows) {
                 const rows = container.getElementsByClassName('itinerary-row');
                 for (let i = currentRows - 1; i >= totalDays; i--) rows[i].remove();
                 reorderDays();
             }
         }
 
-        // --- 4. VALIDATION LOGIC ---
         function validateForm() {
             const rows = document.querySelectorAll('.itinerary-row');
             let isValid = true;
             const errorMsg = document.getElementById('itineraryError');
-
-            const startVal = document.getElementById('startDate').value;
-            const endVal = document.getElementById('endDate').value;
-
-            // Check rows
             rows.forEach(row => {
                 const titleInput = row.querySelector('.title-input');
                 const descInput = row.querySelector('.desc-input');
-                const title = titleInput.value.trim();
-                const desc = descInput.value.trim();
-
-                if (!title) {
-                    isValid = false;
-                    titleInput.classList.add('is-invalid');
-                    // Show client-side error msg
-                    const fb = titleInput.nextElementSibling;
-                    if(fb && fb.classList.contains('invalid-feedback')) fb.classList.remove('d-none');
-                } else {
-                    titleInput.classList.remove('is-invalid');
-                    const fb = titleInput.nextElementSibling;
-                    if(fb && fb.classList.contains('invalid-feedback')) fb.classList.add('d-none');
-                }
-
-                if (!desc) {
-                    isValid = false;
-                    descInput.classList.add('is-invalid');
-                    const fb = descInput.nextElementSibling;
-                    if(fb && fb.classList.contains('invalid-feedback')) fb.classList.remove('d-none');
-                } else {
-                    descInput.classList.remove('is-invalid');
-                    const fb = descInput.nextElementSibling;
-                    if(fb && fb.classList.contains('invalid-feedback')) fb.classList.add('d-none');
-                }
+                if (!titleInput.value.trim()) { isValid = false; titleInput.classList.add('is-invalid'); } else titleInput.classList.remove('is-invalid');
+                if (!descInput.value.trim()) { isValid = false; descInput.classList.add('is-invalid'); } else descInput.classList.remove('is-invalid');
             });
-
-            if (!isValid) {
-                errorMsg.classList.remove('d-none');
-                errorMsg.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                return false;
-            }
+            if (!isValid) { errorMsg.classList.remove('d-none'); errorMsg.scrollIntoView({ behavior: 'smooth', block: 'center' }); return false; }
             errorMsg.classList.add('d-none');
             return true;
         }
-
-        // --- 5. IMAGE/INCLUSION LOGIC ---
         const dt = new DataTransfer();
         function handleFileSelect(input) {
-            const container = document.getElementById('previewContainer');
-            const clearBtn = document.getElementById('clearNewBtn');
             if (input.files && input.files.length > 0) {
                 for (let i = 0; i < input.files.length; i++) dt.items.add(input.files[i]);
                 input.files = dt.files;
                 renderNewImages();
-                container.style.display = 'block';
-                clearBtn.style.display = 'block';
+                document.getElementById('previewContainer').style.display = 'block';
+                document.getElementById('clearNewBtn').style.display = 'block';
             }
         }
-
         function renderNewImages() {
             const gallery = document.getElementById('newImagesGallery');
             gallery.innerHTML = '';
-            if (dt.files.length === 0) {
-                document.getElementById('previewContainer').style.display = 'none';
-                document.getElementById('clearNewBtn').style.display = 'none';
-                return;
-            }
             for (let i = 0; i < dt.files.length; i++) {
                 const file = dt.files[i];
                 const reader = new FileReader();
@@ -655,19 +603,19 @@
                 reader.readAsDataURL(file);
             }
         }
-
         function removeNewFile(index) {
             dt.items.remove(index);
             document.getElementById('imageInput').files = dt.files;
             renderNewImages();
+            if(dt.files.length===0) { document.getElementById('previewContainer').style.display = 'none'; document.getElementById('clearNewBtn').style.display = 'none'; }
         }
-
         function clearNewUploads() {
             dt.items.clear();
             document.getElementById('imageInput').files = dt.files;
             renderNewImages();
+            document.getElementById('previewContainer').style.display = 'none';
+            document.getElementById('clearNewBtn').style.display = 'none';
         }
-
         function toggleDeletion(path, elementId) {
             const container = document.getElementById('deletedImagesContainer');
             const element = document.getElementById(elementId);
@@ -682,7 +630,6 @@
                 container.appendChild(input);
             }
         }
-
         function addInclusion() {
             const container = document.getElementById('inclusions-container');
             const div = document.createElement('div');
@@ -690,9 +637,7 @@
             div.innerHTML = `<div class="input-group"><input type="text" class="form-control" name="Inclusions" placeholder="Enter item" /><button type="button" class="btn btn-danger" onclick="removeInclusion(this)">Remove</button></div>`;
             container.appendChild(div);
         }
-
         function removeInclusion(btn) { btn.closest('.inclusion-item').remove(); }
-
         function toggleNewCategoryInput() {
             const sel = document.getElementById('categorySelect');
             const grp = document.getElementById('newCategoryGroup');
@@ -701,38 +646,9 @@
                 if (sel.value !== '') document.getElementById('newCategoryInput').value = '';
             }
         }
-
         document.addEventListener('DOMContentLoaded', function () {
             const sel = document.getElementById('categorySelect');
             if (sel) { sel.addEventListener('change', toggleNewCategoryInput); toggleNewCategoryInput(); }
-
-            @if (Model.EditingPackageId.HasValue)
-            {
-                    <text>
-                    const s = document.querySelector('input[name="StartDate"]');
-                    const e = document.querySelector('input[name="EndDate"]');
-                    if (s && s.value === '') s.value = '@Model.Package.StartDate.ToString("yyyy-MM-dd")';
-                    if (e && e.value === '') e.value = '@Model.Package.EndDate.ToString("yyyy-MM-dd")';
-                    </text>
-            }
-
-            // --- AUTO SCROLL TO ERROR ON LOAD ---
-            // If server returned error, find the first invalid input
-            const isSuccess = '@Model.IsSuccess'.toLowerCase() === 'false';
-            if(isSuccess) {
-               // Wait a tick for rendering
-               setTimeout(() => {
-                   const firstError = document.querySelector('.is-invalid, .input-validation-error');
-                   const alertBox = document.querySelector('.alert-danger');
-
-                   if(firstError) {
-                       firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                       firstError.focus();
-                   } else if (alertBox) {
-                       alertBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                   }
-               }, 100);
-            }
         });
     </script>
 }
