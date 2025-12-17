@@ -20,14 +20,13 @@ namespace FlyEase.Controllers
     {
         private readonly FlyEaseDbContext _context;
         private readonly IWebHostEnvironment _environment;
-        private readonly EmailService _emailService; // 1. Add this field
+        private readonly EmailService _emailService;
 
-        // 2. Inject EmailService in the constructor
         public AdminDashboardController(FlyEaseDbContext context, IWebHostEnvironment environment, EmailService emailService)
         {
             _context = context;
             _environment = environment;
-            _emailService = emailService; // 3. Assign it
+            _emailService = emailService;
         }
 
         // ==========================================
@@ -212,7 +211,6 @@ namespace FlyEase.Controllers
                     {
                         string packageImage = booking.Package.ImageURL?.Split(';').FirstOrDefault() ?? "";
 
-                        // 4. Use the injected _emailService instead of 'new EmailService()'
                         await _emailService.SendReviewInvitation(
                             booking.User.Email,
                             booking.User.FullName,
@@ -388,18 +386,38 @@ namespace FlyEase.Controllers
         }
 
         // ==========================================
-        // 6. DISCOUNTS
+        // 6. DISCOUNTS MANAGEMENT
         // ==========================================
+
+        // GET: /AdminDashboard/Discounts
         [HttpGet("Discounts")]
         public async Task<IActionResult> Discounts(string? search = null, int? page = 1)
         {
-            int pageSize = 5;
+            int pageSize = 10;
             int pageNumber = page ?? 1;
+
             var query = _context.DiscountTypes.AsQueryable();
-            if (!string.IsNullOrEmpty(search)) query = query.Where(d => d.DiscountTypeID.ToString().Contains(search) || d.DiscountName.Contains(search));
+
+            if (!string.IsNullOrEmpty(search))
+            {
+                query = query.Where(d => d.DiscountName.Contains(search));
+            }
+
             var totalItems = await query.CountAsync();
-            var pagedData = await query.OrderBy(d => d.DiscountName).Skip((pageNumber - 1) * pageSize).Take(pageSize).ToListAsync();
-            var vm = new DiscountPageVM { Discounts = new StaticPagedList<DiscountType>(pagedData, pageNumber, pageSize, totalItems), SearchTerm = search };
+            var pagedData = await query
+                .OrderByDescending(d => d.IsActive)
+                .ThenBy(d => d.DiscountName)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            var vm = new DiscountPageVM
+            {
+                Discounts = new StaticPagedList<DiscountType>(pagedData, pageNumber, pageSize, totalItems),
+                SearchTerm = search,
+                CurrentDiscount = new DiscountType() // Ensure this is initialized for the modal
+            };
+
             return View(vm);
         }
 
@@ -408,25 +426,58 @@ namespace FlyEase.Controllers
         public async Task<IActionResult> SaveDiscount(DiscountPageVM model)
         {
             var input = model.CurrentDiscount;
-            if (string.IsNullOrEmpty(input.DiscountName)) { TempData["Error"] = "Discount Name is required."; return RedirectToAction(nameof(Discounts)); }
-            if (input.DiscountRate == null && input.DiscountAmount == null) { TempData["Error"] = "Please specify either a Discount Rate or a Fixed Amount."; return RedirectToAction(nameof(Discounts)); }
 
-            if (input.DiscountTypeID == 0) { _context.DiscountTypes.Add(input); TempData["Success"] = "Discount created successfully!"; }
+            // 1. Manual Validation
+            if (string.IsNullOrEmpty(input.DiscountName))
+                ModelState.AddModelError("CurrentDiscount.DiscountName", "Discount Name is required.");
+
+            if (input.DiscountRate == null && input.DiscountAmount == null)
+                ModelState.AddModelError("CurrentDiscount.DiscountAmount", "Specify either Rate or Amount.");
+
+            // 2. Check Validity
+            if (!ModelState.IsValid)
+            {
+                // Collect errors and return to the list with a failure message
+                var errors = string.Join("; ", ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage));
+                TempData["Error"] = "Unable to save: " + errors;
+                return RedirectToAction(nameof(Discounts));
+            }
+
+            // 3. Save or Update
+            if (input.DiscountTypeID == 0)
+            {
+                _context.DiscountTypes.Add(input);
+                TempData["Success"] = "Discount created successfully!";
+            }
             else
             {
                 var existing = await _context.DiscountTypes.FindAsync(input.DiscountTypeID);
                 if (existing != null)
                 {
-                    existing.DiscountName = input.DiscountName; existing.DiscountRate = input.DiscountRate; existing.DiscountAmount = input.DiscountAmount;
-                    existing.MinPax = input.MinPax; existing.MinSpend = input.MinSpend; existing.StartDate = input.StartDate; existing.EndDate = input.EndDate; existing.IsActive = input.IsActive;
-                    _context.DiscountTypes.Update(existing); TempData["Success"] = "Discount updated successfully!";
+                    existing.DiscountName = input.DiscountName;
+                    existing.DiscountRate = input.DiscountRate;
+                    existing.DiscountAmount = input.DiscountAmount;
+                    existing.MinPax = input.MinPax;
+                    existing.MinSpend = input.MinSpend;
+                    existing.StartDate = input.StartDate;
+                    existing.EndDate = input.EndDate;
+                    existing.IsActive = input.IsActive;
+                    existing.AgeLimit = input.AgeLimit;
+                    existing.AgeCriteria = input.AgeCriteria;
+                    existing.EarlyBirdDays = input.EarlyBirdDays;
+
+                    _context.DiscountTypes.Update(existing);
+                    TempData["Success"] = "Discount updated successfully!";
                 }
-                else TempData["Error"] = "Discount not found.";
+                else
+                {
+                    TempData["Error"] = "Discount not found.";
+                }
             }
+
             await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Discounts));
         }
-
         [HttpPost("DeleteDiscount")]
         public async Task<IActionResult> DeleteDiscount(int id)
         {
@@ -434,8 +485,16 @@ namespace FlyEase.Controllers
             if (discount != null)
             {
                 bool isUsed = await _context.BookingDiscounts.AnyAsync(bd => bd.DiscountTypeID == id);
-                if (isUsed) TempData["Error"] = "Cannot delete this discount because it has been applied to existing bookings.";
-                else { _context.DiscountTypes.Remove(discount); await _context.SaveChangesAsync(); TempData["Success"] = "Discount deleted successfully."; }
+                if (isUsed)
+                {
+                    TempData["Error"] = "Cannot delete: Discount is used in existing bookings.";
+                }
+                else
+                {
+                    _context.DiscountTypes.Remove(discount);
+                    await _context.SaveChangesAsync();
+                    TempData["Success"] = "Discount deleted successfully.";
+                }
             }
             return RedirectToAction(nameof(Discounts));
         }
