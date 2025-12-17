@@ -9,8 +9,17 @@
             var bookingCount = package.Bookings?.Count(b => b.BookingStatus != "Cancelled") ?? 0;
 
             <div class="package-management-card">
+
                 <div class="package-image">
-                    <img src="@firstImage" alt="@package.PackageName" onerror="this.src='/img/default-package.jpg'" />
+                    <a asp-controller="PackageDetails"
+                       asp-action="PackageDetails"
+                       asp-route-id="@package.PackageID"
+                       title="View Package Details">
+                        <img src="@firstImage"
+                             alt="@package.PackageName"
+                             onerror="this.src='/img/default-package.jpg'"
+                             style="cursor: pointer;" />
+                    </a>
                 </div>
                 <div class="package-content">
                     <div class="content-body">
