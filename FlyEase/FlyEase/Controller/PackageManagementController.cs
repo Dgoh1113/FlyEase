@@ -32,15 +32,32 @@ namespace FlyEase.Controllers
             var p = await _context.Packages
                 .Include(x => x.PackageInclusions)
                 .Include(x => x.Itinerary)
+                .Include(x => x.Category) // Include Category for name lookup
                 .FirstOrDefaultAsync(x => x.PackageID == id);
 
             if (p == null) return NotFound();
+
+            // === Fix for Duplicate Categories ===
+            // If the package is using a duplicate category ID that we filtered out of the dropdown,
+            // find the "Canonical" (Lowest) ID for that category name so the dropdown pre-selects correctly.
+            int displayCategoryId = p.CategoryID;
+            if (p.Category != null)
+            {
+                var canonicalId = await _context.PackageCategories
+                    .Where(c => c.CategoryName == p.Category.CategoryName)
+                    .OrderBy(c => c.CategoryID)
+                    .Select(c => c.CategoryID)
+                    .FirstOrDefaultAsync();
+
+                if (canonicalId > 0) displayCategoryId = canonicalId;
+            }
+            // ====================================
 
             return Json(new
             {
                 p.PackageID,
                 p.PackageName,
-                p.CategoryID,
+                CategoryID = displayCategoryId, // Use the canonical ID
                 p.Description,
                 p.Destination,
                 p.Price,
@@ -237,13 +254,22 @@ namespace FlyEase.Controllers
         {
             try
             {
-                var package = await _context.Packages.FindAsync(id);
+                var package = await _context.Packages
+                    .Include(p => p.Bookings)
+                    .FirstOrDefaultAsync(p => p.PackageID == id);
+
                 if (package != null)
                 {
                     if (!string.IsNullOrEmpty(package.ImageURL))
                     {
                         foreach (var img in package.ImageURL.Split(';', StringSplitOptions.RemoveEmptyEntries)) DeleteImageFile(img);
                     }
+
+                    if (package.Bookings != null && package.Bookings.Any())
+                    {
+                        _context.Bookings.RemoveRange(package.Bookings);
+                    }
+
                     _context.Packages.Remove(package);
                     await _context.SaveChangesAsync();
                 }
@@ -251,9 +277,9 @@ namespace FlyEase.Controllers
                 if (IsAjaxRequest()) return Json(new { success = true, message = "Deleted successfully" });
                 return RedirectToAction("PackageManagement");
             }
-            catch
+            catch (Exception ex)
             {
-                if (IsAjaxRequest()) return Json(new { success = false, message = "Error deleting" });
+                if (IsAjaxRequest()) return Json(new { success = false, message = "Error deleting: " + ex.Message });
                 return RedirectToAction("PackageManagement");
             }
         }
@@ -271,10 +297,22 @@ namespace FlyEase.Controllers
             int totalItems = await query.CountAsync();
             var items = await query.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
 
+            // === Fix for Duplicates ===
+            // Fetch all, but group by name to filter out duplicates in the dropdown.
+            // We pick the one with the lowest ID to be the "Canonical" one.
+            var allCategories = await _context.PackageCategories.OrderBy(c => c.CategoryName).ToListAsync();
+
+            var distinctCategories = allCategories
+                .GroupBy(c => c.CategoryName)
+                .Select(g => g.OrderBy(c => c.CategoryID).First())
+                .OrderBy(c => c.CategoryName)
+                .ToList();
+            // ==========================
+
             return new PackageManagementViewModel
             {
                 Packages = items,
-                Categories = await _context.PackageCategories.OrderBy(c => c.CategoryName).ToListAsync(),
+                Categories = distinctCategories,
                 CurrentPage = page,
                 TotalPages = (int)Math.Ceiling(totalItems / (double)pageSize),
                 PageSize = pageSize
@@ -286,8 +324,14 @@ namespace FlyEase.Controllers
             if (categoryId.HasValue && categoryId > 0) return categoryId.Value;
             if (!string.IsNullOrWhiteSpace(newCategoryName))
             {
-                var existing = await _context.PackageCategories.FirstOrDefaultAsync(c => c.CategoryName.ToLower() == newCategoryName.Trim().ToLower());
+                // Ensure we pick the canonical (lowest ID) if duplicates exist
+                var existing = await _context.PackageCategories
+                    .Where(c => c.CategoryName.ToLower() == newCategoryName.Trim().ToLower())
+                    .OrderBy(c => c.CategoryID)
+                    .FirstOrDefaultAsync();
+
                 if (existing != null) return existing.CategoryID;
+
                 var newCat = new PackageCategory { CategoryName = newCategoryName.Trim() };
                 _context.PackageCategories.Add(newCat);
                 await _context.SaveChangesAsync();
