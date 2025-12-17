@@ -1,4 +1,5 @@
-﻿@using FlyEase.ViewModels
+﻿
+@using FlyEase.ViewModels
 @model PackageManagementViewModel
 
 @{
@@ -10,6 +11,7 @@
 <link rel="stylesheet" href="~/css/packagemanagement.css" />
 <link href='https://fonts.googleapis.com/css?family=Lato' rel='stylesheet' type='text/css'>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
 
 <div class="management-hero">
     <div class="hero-content">
@@ -119,15 +121,17 @@
                     <div class="form-group">
                         <label class="form-label">Package Images</label>
                         <div class="input-group">
-                            <input class="form-control" name="ImageFiles" id="imageInput" type="file" accept="image/*" multiple onchange="handleFileSelect(this)" />
+                            <input class="form-control" name="ImageFiles" id="imageInput" type="file" accept="image/*" multiple />
                             <button type="button" class="btn btn-outline-danger" id="clearNewBtn" style="display:none;" onclick="clearNewUploads()">Clear All</button>
                         </div>
+
                         <div class="mt-3" id="previewContainer" style="display:none; border: 1px dashed #28a745; padding: 10px; border-radius: 8px;">
-                            <label class="small fw-bold text-success">New Images:</label>
+                            <label class="small fw-bold text-success">New Images (Drag to Reorder):</label>
                             <div class="image-gallery" id="newImagesGallery"></div>
                         </div>
+
                         <div id="existingImagesWrapper" style="display:none;" class="mt-3">
-                            <label class="small fw-bold text-primary">Saved Images:</label>
+                            <label class="small fw-bold text-primary">Saved Images (Drag to Reorder):</label>
                             <div class="image-gallery" id="existingImagesGallery"></div>
                         </div>
                         <div id="deletedImagesContainer"></div>
@@ -175,6 +179,10 @@
 @section Scripts {
     <script>
         let currentPage = 1;
+        let uploadedFiles = [];
+        let newImagesSortable = null;
+        let existingImagesSortable = null;
+
         async function loadPage(page) {
             if (page < 1) return;
             currentPage = page;
@@ -187,25 +195,49 @@
                 const response = await fetch(`@Url.Action("GetPackageList")?page=${currentPage}`);
                 const html = await response.text();
                 document.getElementById('packagesGrid').innerHTML = html;
-            } catch (e) { console.error("Failed to refresh list", e);
-            }
+            } catch (e) { console.error("Failed to refresh list", e); }
         }
 
         async function submitForm() {
-            if (!validateForm()) return;
             const form = document.getElementById('packageForm');
+
+            document.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+            document.getElementById('itineraryError').classList.add('d-none');
+
+            if (!form.checkValidity()) {
+                const firstInvalid = form.querySelector(':invalid');
+                if (firstInvalid) {
+                    firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    firstInvalid.focus();
+                    form.reportValidity();
+                }
+                return;
+            }
+
+            if (!validateForm()) return;
+
             const formData = new FormData(form);
+            formData.delete('ImageFiles');
+            uploadedFiles.forEach(file => { formData.append('ImageFiles', file); });
+
+            const existingImgs = Array.from(document.querySelectorAll('#existingImagesGallery .gallery-item:not(.deleted) img'))
+                                      .map(img => img.getAttribute('data-server-path'));
+            if (existingImgs.length > 0) formData.append('OrderedExistingImages', existingImgs.join(','));
+
             const id = document.getElementById('packageIdInput').value;
             const url = (id && id !== "0") ? '@Url.Action("Update")' : '@Url.Action("Create")';
             const btn = document.getElementById('submitBtn');
             const originalText = btn.innerHTML;
+
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
             btn.disabled = true;
+
             try {
                 const response = await fetch(url, {
                     method: 'POST', body: formData, headers: { 'X-Requested-With': 'XMLHttpRequest' }
                 });
                 const result = await response.json();
+
                 if (result.success) {
                     showAlert('success', result.message);
                     resetForm();
@@ -214,7 +246,30 @@
                     document.getElementById('alertArea').scrollIntoView({ behavior: 'smooth', block: 'center' });
                 } else {
                     showAlert('danger', result.message);
-                    document.getElementById('alertArea').scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+                    if (result.errors) {
+                        let firstErrorField = null;
+                        for (const key in result.errors) {
+                            let selector = `[name="${key}"]`;
+                            const field = document.querySelector(`[name='${key}']`) || document.querySelector(`[name="${key}"]`);
+
+                            if (field) {
+                                field.classList.add('is-invalid');
+                                const feedback = field.parentElement.querySelector('.invalid-feedback');
+                                if (feedback) feedback.innerText = result.errors[key][0];
+                                if (!firstErrorField) firstErrorField = field;
+                            }
+                        }
+
+                        if (firstErrorField) {
+                            firstErrorField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            firstErrorField.focus();
+                        } else {
+                             document.getElementById('alertArea').scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }
+                    } else {
+                        document.getElementById('alertArea').scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
                 }
             } catch (error) {
                 console.error(error);
@@ -240,6 +295,7 @@
                 document.querySelector('input[name="AvailableSlots"]').value = data.availableSlots;
                 document.querySelector('input[name="StartDate"]').value = data.startDate;
                 document.querySelector('input[name="EndDate"]').value = data.endDate;
+
                 const catSelect = document.getElementById('categorySelect');
                 if(catSelect) catSelect.value = data.categoryID;
                 toggleNewCategoryInput();
@@ -258,15 +314,19 @@
                 const gallery = document.getElementById('existingImagesGallery');
                 gallery.innerHTML = '';
                 document.getElementById('deletedImagesContainer').innerHTML = '';
+
                 if(data.images && data.images.length > 0) {
                     existingContainer.style.display = 'block';
                     data.images.forEach(img => {
                          const div = document.createElement('div');
                          div.className = 'gallery-item';
                          div.id = "img-" + Math.abs(stringHashCode(img));
-                         div.innerHTML = `<img src="${img}" /><span class="remove-btn" onclick="toggleDeletion('${img}', '${div.id}')" title="Delete">&times;</span>`;
+                         div.innerHTML = `<img src="${img}" data-server-path="${img}" /><span class="remove-btn" onclick="toggleDeletion('${img}', '${div.id}')" title="Delete">&times;</span>`;
                          gallery.appendChild(div);
                     });
+
+                    if(existingImagesSortable) existingImagesSortable.destroy();
+                    existingImagesSortable = new Sortable(gallery, { animation: 150, ghostClass: 'sortable-ghost' });
                 } else { existingContainer.style.display = 'none'; }
 
                 const incContainer = document.getElementById('inclusions-container');
@@ -294,14 +354,14 @@
                 document.getElementById('cancelBtn').style.display = 'inline-flex';
                 document.querySelector('.management-grid').scrollIntoView({ behavior: 'smooth' });
 
-            } catch (e) { console.error(e); showAlert('danger', 'Could not load package details.');
-            }
+            } catch (e) { console.error(e); showAlert('danger', 'Could not load package details.'); }
         }
 
         function resetForm() {
             document.getElementById('packageForm').reset();
             document.getElementById('packageIdInput').value = "0";
-            dt.items.clear();
+            document.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+            uploadedFiles = [];
             document.getElementById('newImagesGallery').innerHTML = '';
             document.getElementById('previewContainer').style.display = 'none';
             document.getElementById('existingImagesWrapper').style.display = 'none';
@@ -315,8 +375,7 @@
             btn.innerHTML = '<i class="fas fa-plus"></i> Create Package';
             btn.className = 'btn btn-primary';
             document.getElementById('cancelBtn').style.display = 'none';
-            if(map) { map.setView([3.1390, 101.6869], 13);
-            marker.setLatLng([3.1390, 101.6869]); }
+            if(map) { map.setView([3.1390, 101.6869], 13); marker.setLatLng([3.1390, 101.6869]); }
         }
 
         function showAlert(type, msg) {
@@ -327,9 +386,70 @@
 
         function stringHashCode(str) {
             let hash = 0;
-            for (let i = 0; i < str.length; i++) { hash = (hash << 5) - hash + str.charCodeAt(i);
-            hash |= 0; }
+            for (let i = 0; i < str.length; i++) { hash = (hash << 5) - hash + str.charCodeAt(i); hash |= 0; }
             return hash;
+        }
+
+        document.getElementById('imageInput').addEventListener('change', function(e) { handleFileSelect(this); });
+        function handleFileSelect(input) {
+            if (input.files && input.files.length > 0) {
+                Array.from(input.files).forEach(file => { uploadedFiles.push(file); });
+                renderNewImages();
+                input.value = '';
+                document.getElementById('previewContainer').style.display = 'block';
+                document.getElementById('clearNewBtn').style.display = 'block';
+            }
+        }
+        function renderNewImages() {
+            const gallery = document.getElementById('newImagesGallery');
+            gallery.innerHTML = '';
+            uploadedFiles.forEach((file, index) => {
+                const reader = new FileReader();
+                const div = document.createElement('div');
+                div.className = 'gallery-item';
+                div.setAttribute('data-index', index);
+                reader.onload = function (e) { div.innerHTML = `<img src="${e.target.result}" /><span class="remove-btn" onclick="removeNewFile(${index})">&times;</span>`; }
+                reader.readAsDataURL(file);
+                gallery.appendChild(div);
+            });
+            if (newImagesSortable) newImagesSortable.destroy();
+            newImagesSortable = new Sortable(gallery, {
+                animation: 150, ghostClass: 'sortable-ghost',
+                onEnd: function (evt) {
+                    const newOrder = [];
+                    const items = gallery.querySelectorAll('.gallery-item');
+                    items.forEach(item => { newOrder.push(uploadedFiles[parseInt(item.getAttribute('data-index'))]); });
+                    uploadedFiles = newOrder;
+                    renderNewImages();
+                }
+            });
+        }
+        function removeNewFile(index) {
+            uploadedFiles.splice(index, 1);
+            renderNewImages();
+            if(uploadedFiles.length === 0) {
+                document.getElementById('previewContainer').style.display = 'none';
+                document.getElementById('clearNewBtn').style.display = 'none';
+            }
+        }
+        function clearNewUploads() {
+            uploadedFiles = [];
+            renderNewImages();
+            document.getElementById('previewContainer').style.display = 'none';
+            document.getElementById('clearNewBtn').style.display = 'none';
+        }
+        function toggleDeletion(path, elementId) {
+            const element = document.getElementById(elementId);
+            if (element.classList.contains('deleted')) {
+                element.classList.remove('deleted');
+                const input = document.querySelector(`input[name="DeleteImagePaths"][value="${path}"]`);
+                if (input) input.remove();
+            } else {
+                element.classList.add('deleted');
+                const input = document.createElement('input');
+                input.type = 'hidden'; input.name = 'DeleteImagePaths'; input.value = path;
+                document.getElementById('deletedImagesContainer').appendChild(input);
+            }
         }
 
         class CalendarWidget {
@@ -352,23 +472,18 @@
                 weekContainer.innerHTML = '';
                 this.weekDays.forEach(day => { weekContainer.innerHTML += `<div>${day}</div>`; });
             }
-            getDaysInMonth(year, month) { return new Date(year, month, 0).getDate();
-            }
-            getFirstDayIndex(year, month) { return new Date(year, month - 1, 1).getDay();
-            }
+            getDaysInMonth(year, month) { return new Date(year, month, 0).getDate(); }
+            getFirstDayIndex(year, month) { return new Date(year, month - 1, 1).getDay(); }
             syncWithInput() {
                 if(this.input.value) {
                     const date = new Date(this.input.value);
-                    if(!isNaN(date)) { this.currentYear = date.getFullYear(); this.currentMonth = date.getMonth() + 1;
-                    }
+                    if(!isNaN(date)) { this.currentYear = date.getFullYear(); this.currentMonth = date.getMonth() + 1; }
                 } else if (this.type === 'end') {
                     const startVal = document.getElementById('startDate').value;
-                    if(startVal) { const sDate = new Date(startVal); this.currentYear = sDate.getFullYear(); this.currentMonth = sDate.getMonth() + 1;
-                    }
+                    if(startVal) { const sDate = new Date(startVal); this.currentYear = sDate.getFullYear(); this.currentMonth = sDate.getMonth() + 1; }
                 } else if (this.type === 'start') {
                     const endVal = document.getElementById('endDate').value;
-                    if(endVal) { const eDate = new Date(endVal); this.currentYear = eDate.getFullYear(); this.currentMonth = eDate.getMonth() + 1;
-                    }
+                    if(endVal) { const eDate = new Date(endVal); this.currentYear = eDate.getFullYear(); this.currentMonth = eDate.getMonth() + 1; }
                 }
             }
             render() {
@@ -427,10 +542,8 @@
         }
         let calStart, calEnd;
         function toggleCalendar(type) {
-            if (type === 'start') { if(!calStart) calStart = new CalendarWidget('calendar_start', 'startDate', 'start');
-            calStart.show(); }
-            else { if(!calEnd) calEnd = new CalendarWidget('calendar_end', 'endDate', 'end');
-            calEnd.show(); }
+            if (type === 'start') { if(!calStart) calStart = new CalendarWidget('calendar_start', 'startDate', 'start'); calStart.show(); }
+            else { if(!calEnd) calEnd = new CalendarWidget('calendar_end', 'endDate', 'end'); calEnd.show(); }
         }
         document.addEventListener('click', function(event) {
             const isCalendar = event.target.closest('.flyease-calendar');
@@ -440,87 +553,74 @@
         function validateEndDateAgainstStart() {
             const s = document.getElementById('startDate').value;
             const e = document.getElementById('endDate');
-            if(s && e.value && e.value < s) { e.value = s; if(typeof syncItineraryDays === 'function') syncItineraryDays();
-            }
+            if(s && e.value && e.value < s) { e.value = s; if(typeof syncItineraryDays === 'function') syncItineraryDays(); }
         }
 
         // --- UPDATED CONFIRM DELETE FUNCTION ---
         function confirmDelete(packageId, bookingCount) {
-            const title = bookingCount > 0 ? '⚠️ Active Bookings Found!' : 'Delete Package?';
-            const baseHtml = bookingCount > 0 ?
-                `This package has <b>${bookingCount} active bookings</b>.<br>Deleting it will <b>automatically cancel</b> & <b>refund</b> bookings.` :
-                "You won't be able to revert this!";
+            // Helper function to execute deletion logic
+            const executeDelete = () => {
+                const form = document.getElementById('delete-form-' + packageId);
+                const formData = new FormData(form);
+                fetch(form.action, { method: 'POST', body: formData, headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                .then(res => res.json().then(data => ({ status: res.status, body: data })))
+                .then(res => {
+                    if (res.body.success) { showAlert('success', res.body.message); refreshPackageList(); }
+                    else { showAlert('danger', res.body.message || 'Failed to delete package.'); }
+                }).catch(err => { console.error(err); showAlert('danger', 'An error occurred while deleting.'); });
+            };
 
-            // Append the timer message
-            const text = baseHtml + '<br><br><span id="delete-timer-msg" style="color:#d33; font-weight:bold;">Wait 3s...</span>';
-
-            Swal.fire({
-                title: title,
-                html: text,
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#d33',
-                confirmButtonText: 'Yes, delete it!',
-                didOpen: () => {
-                    const confirmBtn = Swal.getConfirmButton();
-                    const timerMsg = Swal.getHtmlContainer().querySelector('#delete-timer-msg');
-
-                    // Disable button initially
-                    confirmBtn.disabled = true;
-
-                    let timeLeft = 3;
-                    confirmBtn.textContent = `Please wait (${timeLeft})`;
-
-                    const timer = setInterval(() => {
-                        timeLeft--;
-                        if (timeLeft > 0) {
-                            confirmBtn.textContent = `Please wait (${timeLeft})`;
-                            if(timerMsg) timerMsg.textContent = `Wait ${timeLeft}s...`;
-                        } else {
-                            // Enable button when time is up
-                            clearInterval(timer);
-                            confirmBtn.textContent = 'Yes, delete it!';
-                            confirmBtn.disabled = false;
-                            if(timerMsg) timerMsg.style.display = 'none';
-                        }
-                    }, 1000);
-                }
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    const form = document.getElementById('delete-form-' + packageId);
-                    const formData = new FormData(form);
-                    fetch(form.action, {
-                        method: 'POST',
-                        body: formData,
-                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
-                    })
-                    .then(res => {
-                        return res.json().then(data => ({ status: res.status, body: data }));
-                    })
-                    .then(res => {
-                        if (res.body.success) {
-                            showAlert('success', res.body.message);
-                            refreshPackageList();
-                        } else {
-                            showAlert('danger', res.body.message || 'Failed to delete package.');
-                        }
-                    })
-                    .catch(err => {
-                        console.error(err);
-                        showAlert('danger', 'An error occurred while deleting.');
-                    });
-                }
-            });
+            if (bookingCount > 0) {
+                // High risk: Active bookings exist -> Use strict timer
+                Swal.fire({
+                    title: '⚠️ Active Bookings Found!',
+                    html: `This package has <b>${bookingCount} active bookings</b>.<br>Deleting it will <b>automatically cancel</b> & <b>refund</b> bookings.<br><br><span id="delete-timer-msg" style="color:#d33; font-weight:bold;">Wait 3s...</span>`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#d33',
+                    confirmButtonText: 'Please wait (3)',
+                    didOpen: () => {
+                        const confirmBtn = Swal.getConfirmButton();
+                        const timerMsg = Swal.getHtmlContainer().querySelector('#delete-timer-msg');
+                        confirmBtn.disabled = true;
+                        let timeLeft = 3;
+                        const timer = setInterval(() => {
+                            timeLeft--;
+                            if (timeLeft > 0) {
+                                confirmBtn.textContent = `Please wait (${timeLeft})`;
+                                if(timerMsg) timerMsg.textContent = `Wait ${timeLeft}s...`;
+                            } else {
+                                clearInterval(timer);
+                                confirmBtn.textContent = 'Yes, delete it!';
+                                confirmBtn.disabled = false;
+                                if(timerMsg) timerMsg.style.display = 'none';
+                            }
+                        }, 1000);
+                    }
+                }).then((result) => {
+                    if (result.isConfirmed) executeDelete();
+                });
+            } else {
+                // Low risk: No bookings -> Immediate confirmation
+                Swal.fire({
+                    title: 'Delete Package?',
+                    text: "You won't be able to revert this!",
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#d33',
+                    confirmButtonText: 'Yes, delete it!'
+                }).then((result) => {
+                    if (result.isConfirmed) executeDelete();
+                });
+            }
         }
-        // ---------------------------------------
 
         let map, marker;
         function initMap() {
             if (!document.getElementById('adminMap')) return;
             let lat = parseFloat(document.getElementById('p_lat').value) || 3.1390;
             let lng = parseFloat(document.getElementById('p_long').value) || 101.6869;
-            if (lat === 0 && lng === 0) { lat = 3.1390; lng = 101.6869;
-            }
+            if (lat === 0 && lng === 0) { lat = 3.1390; lng = 101.6869; }
             map = L.map('adminMap').setView([lat, lng], 13);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap' }).addTo(map);
             marker = L.marker([lat, lng], { draggable: true }).addTo(map);
@@ -544,24 +644,12 @@
                     document.getElementById('p_lat').value = lat;
                     document.getElementById('p_long').value = lon;
                 } else { alert("Location not found."); }
-            } catch (e) { console.error(e);
-            }
+            } catch (e) { console.error(e); }
         }
         document.addEventListener("DOMContentLoaded", function () { initMap(); });
         let itineraryIndex = 0;
         function createItineraryRowHTML(index, dayNumber, title = "", desc = "") {
-            return `
-                <div class="card mb-2 p-3 bg-light border itinerary-row">
-                    <div class="d-flex justify-content-between">
-                        <strong>Day <span class="day-label">${dayNumber}</span></strong>
-                        <button type="button" class="btn btn-sm btn-danger py-0" onclick="removeItineraryRow(this)">&times;</button>
-                    </div>
-                    <div class="row mt-2">
-                        <div class="col-md-2"><input type="number" class="form-control form-control-sm day-input" name="Itinerary[${index}].DayNumber" value="${dayNumber}" readonly /></div>
-                        <div class="col-md-10"><input type="text" class="form-control form-control-sm title-input" name="Itinerary[${index}].Title" value="${title}" placeholder="Title" required /><div class="invalid-feedback d-none">Title is required</div></div>
-                    </div>
-                    <div class="mt-2"><textarea class="form-control form-control-sm desc-input" name="Itinerary[${index}].ActivityDescription" rows="2" placeholder="Description..." required>${desc}</textarea><div class="invalid-feedback d-none">Description is required</div></div>
-                </div>`;
+            return `<div class="card mb-2 p-3 bg-light border itinerary-row"><div class="d-flex justify-content-between"><strong>Day <span class="day-label">${dayNumber}</span></strong><button type="button" class="btn btn-sm btn-danger py-0" onclick="removeItineraryRow(this)">&times;</button></div><div class="row mt-2"><div class="col-md-2"><input type="number" class="form-control form-control-sm day-input" name="Itinerary[${index}].DayNumber" value="${dayNumber}" readonly /></div><div class="col-md-10"><input type="text" class="form-control form-control-sm title-input" name="Itinerary[${index}].Title" value="${title}" placeholder="Title" required /><div class="invalid-feedback d-none">Title is required</div></div></div><div class="mt-2"><textarea class="form-control form-control-sm desc-input" name="Itinerary[${index}].ActivityDescription" rows="2" placeholder="Description..." required>${desc}</textarea><div class="invalid-feedback d-none">Description is required</div></div></div>`;
         }
         function addItineraryRow(dayNum = null, title = "", desc = "") {
             const container = document.getElementById('itinerary-container');
@@ -573,8 +661,7 @@
             itineraryIndex++;
             if (dayNum === null) updatePackageEndDate();
         }
-        function removeItineraryRow(btn) { btn.closest('.itinerary-row').remove(); reorderDays(); updatePackageEndDate();
-        }
+        function removeItineraryRow(btn) { btn.closest('.itinerary-row').remove(); reorderDays(); updatePackageEndDate(); }
         function reorderDays() {
             const rows = document.querySelectorAll('.itinerary-row');
             rows.forEach((row, index) => {
@@ -582,8 +669,7 @@
                 row.querySelector('.day-label').innerText = newDay;
                 row.querySelector('.day-input').value = newDay;
                 const inputs = row.querySelectorAll('input, textarea');
-                inputs.forEach(input => { if
-                (input.name) input.name = input.name.replace(/Itinerary\[\d+\]/, `Itinerary[${index}]`); });
+                inputs.forEach(input => { if (input.name) input.name = input.name.replace(/Itinerary\[\d+\]/, `Itinerary[${index}]`); });
             });
             itineraryIndex = rows.length;
         }
@@ -610,82 +696,48 @@
             const totalDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
             const container = document.getElementById('itinerary-container');
             let currentRows = container.getElementsByClassName('itinerary-row').length;
-            if (totalDays > currentRows) { for (let i = currentRows + 1; i <= totalDays; i++) addItineraryRow(i);
-            }
+            if (totalDays > currentRows) { for (let i = currentRows + 1; i <= totalDays; i++) addItineraryRow(i); }
             else if (totalDays < currentRows) {
                 const rows = container.getElementsByClassName('itinerary-row');
                 for (let i = currentRows - 1; i >= totalDays; i--) rows[i].remove();
                 reorderDays();
             }
         }
-
         function validateForm() {
             const rows = document.querySelectorAll('.itinerary-row');
             let isValid = true;
+            let firstInvalidInput = null;
             const errorMsg = document.getElementById('itineraryError');
+
             rows.forEach(row => {
                 const titleInput = row.querySelector('.title-input');
                 const descInput = row.querySelector('.desc-input');
-                if (!titleInput.value.trim()) { isValid = false; titleInput.classList.add('is-invalid'); } else titleInput.classList.remove('is-invalid');
-                if (!descInput.value.trim()) { isValid = false; descInput.classList.add('is-invalid'); } else descInput.classList.remove('is-invalid');
+                if (!titleInput.value.trim()) {
+                    isValid = false;
+                    titleInput.classList.add('is-invalid');
+                    if(!firstInvalidInput) firstInvalidInput = titleInput;
+                } else titleInput.classList.remove('is-invalid');
+
+                if (!descInput.value.trim()) {
+                    isValid = false;
+                    descInput.classList.add('is-invalid');
+                    if(!firstInvalidInput) firstInvalidInput = descInput;
+                } else descInput.classList.remove('is-invalid');
             });
-            if (!isValid) { errorMsg.classList.remove('d-none');
-            errorMsg.scrollIntoView({ behavior: 'smooth', block: 'center' }); return false; }
+
+            if (!isValid) {
+                errorMsg.classList.remove('d-none');
+                if(firstInvalidInput) {
+                    firstInvalidInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    firstInvalidInput.focus();
+                } else {
+                    errorMsg.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+                return false;
+            }
+
             errorMsg.classList.add('d-none');
             return true;
-        }
-        const dt = new DataTransfer();
-        function handleFileSelect(input) {
-            if (input.files && input.files.length > 0) {
-                for (let i = 0; i < input.files.length; i++) dt.items.add(input.files[i]);
-                input.files = dt.files;
-                renderNewImages();
-                document.getElementById('previewContainer').style.display = 'block';
-                document.getElementById('clearNewBtn').style.display = 'block';
-            }
-        }
-        function renderNewImages() {
-            const gallery = document.getElementById('newImagesGallery');
-            gallery.innerHTML = '';
-            for (let i = 0; i < dt.files.length; i++) {
-                const file = dt.files[i];
-                const reader = new FileReader();
-                reader.onload = function (e) {
-                    const div = document.createElement('div');
-                    div.className = 'gallery-item';
-                    div.innerHTML = `<img src="${e.target.result}" /><span class="remove-btn" onclick="removeNewFile(${i})">&times;</span>`;
-                    gallery.appendChild(div);
-                }
-                reader.readAsDataURL(file);
-            }
-        }
-        function removeNewFile(index) {
-            dt.items.remove(index);
-            document.getElementById('imageInput').files = dt.files;
-            renderNewImages();
-            if(dt.files.length===0) { document.getElementById('previewContainer').style.display = 'none'; document.getElementById('clearNewBtn').style.display = 'none';
-            }
-        }
-        function clearNewUploads() {
-            dt.items.clear();
-            document.getElementById('imageInput').files = dt.files;
-            renderNewImages();
-            document.getElementById('previewContainer').style.display = 'none';
-            document.getElementById('clearNewBtn').style.display = 'none';
-        }
-        function toggleDeletion(path, elementId) {
-            const container = document.getElementById('deletedImagesContainer');
-            const element = document.getElementById(elementId);
-            if (element.classList.contains('deleted')) {
-                element.classList.remove('deleted');
-                const input = document.querySelector(`input[name="DeleteImagePaths"][value="${path}"]`);
-                if (input) input.remove();
-            } else {
-                element.classList.add('deleted');
-                const input = document.createElement('input');
-                input.type = 'hidden'; input.name = 'DeleteImagePaths'; input.value = path;
-                container.appendChild(input);
-            }
         }
         function addInclusion() {
             const container = document.getElementById('inclusions-container');
@@ -694,8 +746,7 @@
             div.innerHTML = `<div class="input-group"><input type="text" class="form-control" name="Inclusions" placeholder="Enter item" /><button type="button" class="btn btn-danger" onclick="removeInclusion(this)">Remove</button></div>`;
             container.appendChild(div);
         }
-        function removeInclusion(btn) { btn.closest('.inclusion-item').remove();
-        }
+        function removeInclusion(btn) { btn.closest('.inclusion-item').remove(); }
         function toggleNewCategoryInput() {
             const sel = document.getElementById('categorySelect');
             const grp = document.getElementById('newCategoryGroup');
