@@ -420,25 +420,33 @@ namespace FlyEase.Controllers
 
             return View(vm);
         }
-
         [HttpPost("SaveDiscount")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> SaveDiscount(DiscountPageVM model)
         {
+            // FIX: Remove "Discounts" and "SearchTerm" from validation because they 
+            // are null during form submission but are not needed for saving.
+            ModelState.Remove("Discounts");
+            ModelState.Remove("SearchTerm");
+
             var input = model.CurrentDiscount;
 
             // 1. Manual Validation
             if (string.IsNullOrEmpty(input.DiscountName))
                 ModelState.AddModelError("CurrentDiscount.DiscountName", "Discount Name is required.");
 
+            // Ensure at least one value is set
             if (input.DiscountRate == null && input.DiscountAmount == null)
-                ModelState.AddModelError("CurrentDiscount.DiscountAmount", "Specify either Rate or Amount.");
+                ModelState.AddModelError("CurrentDiscount.DiscountAmount", "Please specify either a Percentage Rate or a Fixed Amount.");
 
             // 2. Check Validity
             if (!ModelState.IsValid)
             {
-                // Collect errors and return to the list with a failure message
-                var errors = string.Join("; ", ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage));
+                // Debugging: This will now show you exactly what is wrong if it fails again
+                var errors = string.Join("; ", ModelState.Values
+                                        .SelectMany(v => v.Errors)
+                                        .Select(e => e.ErrorMessage));
+
                 TempData["Error"] = "Unable to save: " + errors;
                 return RedirectToAction(nameof(Discounts));
             }
@@ -446,11 +454,13 @@ namespace FlyEase.Controllers
             // 3. Save or Update
             if (input.DiscountTypeID == 0)
             {
+                // Create New
                 _context.DiscountTypes.Add(input);
                 TempData["Success"] = "Discount created successfully!";
             }
             else
             {
+                // Edit Existing
                 var existing = await _context.DiscountTypes.FindAsync(input.DiscountTypeID);
                 if (existing != null)
                 {
@@ -462,6 +472,8 @@ namespace FlyEase.Controllers
                     existing.StartDate = input.StartDate;
                     existing.EndDate = input.EndDate;
                     existing.IsActive = input.IsActive;
+
+                    // Advanced fields
                     existing.AgeLimit = input.AgeLimit;
                     existing.AgeCriteria = input.AgeCriteria;
                     existing.EarlyBirdDays = input.EarlyBirdDays;
