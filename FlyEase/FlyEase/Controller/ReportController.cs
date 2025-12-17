@@ -72,8 +72,8 @@ namespace FlyEase.Controllers
             [FromQuery] string bookingStatusFilter = "All")
         {
             // Set default dates (last 30 days)
-            var end = endDate ?? DateTime.Now;
-            var start = startDate ?? DateTime.Now.AddDays(-30);
+            var end = endDate ?? DateTime.Now.Date.AddDays(1); // End of day
+            var start = startDate ?? DateTime.Now.AddDays(-30).Date; // Start of day
 
             // Initialize ViewModel
             var vm = new SalesReportVM
@@ -103,14 +103,26 @@ namespace FlyEase.Controllers
             switch (dateFilterType.ToLower())
             {
                 case "payment":
-                    paymentsQuery = paymentsQuery.Where(p => p.PaymentDate >= start && p.PaymentDate <= end);
+                    // Filter payments by payment date
+                    paymentsQuery = paymentsQuery.Where(p => p.PaymentDate >= start && p.PaymentDate < end);
+                    
+                    // Get booking IDs from filtered payments
+                    var paymentBookingIds = await paymentsQuery
+                        .Select(p => p.BookingID)
+                        .Distinct()
+                        .ToListAsync();
+                    
+                    // Filter bookings by those IDs
+                    bookingsQuery = bookingsQuery.Where(b => paymentBookingIds.Contains(b.BookingID));
                     break;
+
                 case "travel":
-                    bookingsQuery = bookingsQuery.Where(b => b.TravelDate >= start && b.TravelDate <= end);
+                    bookingsQuery = bookingsQuery.Where(b => b.TravelDate >= start && b.TravelDate < end);
                     break;
+
                 case "booking":
                 default:
-                    bookingsQuery = bookingsQuery.Where(b => b.BookingDate >= start && b.BookingDate <= end);
+                    bookingsQuery = bookingsQuery.Where(b => b.BookingDate >= start && b.BookingDate < end);
                     break;
             }
 
@@ -147,7 +159,7 @@ namespace FlyEase.Controllers
             // ========== BUILD REVENUE CHART DATA (Daily breakdown) ==========
             var revenuByDay = bookings
                 .GroupBy(b => dateFilterType.ToLower() == "payment"
-                    ? b.Payments.FirstOrDefault()?.PaymentDate.Date ?? b.BookingDate.Date
+                    ? b.Payments.Where(p => p.PaymentDate >= start && p.PaymentDate < end).FirstOrDefault()?.PaymentDate.Date ?? b.BookingDate.Date
                     : dateFilterType.ToLower() == "travel"
                     ? b.TravelDate.Date
                     : b.BookingDate.Date)
@@ -164,7 +176,7 @@ namespace FlyEase.Controllers
 
             // ========== BUILD PAYMENT METHOD PIE CHART DATA ==========
             var paymentByMethod = payments
-                .Where(p => paymentMethodFilter == "All" || p.PaymentMethod.Contains(paymentMethodFilter))
+                .Where(p => paymentMethodFilter == "All" || ExtractPaymentMethod(p.PaymentMethod).Contains(paymentMethodFilter))
                 .GroupBy(p => ExtractPaymentMethod(p.PaymentMethod))
                 .Select(g => new
                 {
@@ -215,7 +227,7 @@ namespace FlyEase.Controllers
                 // Apply payment method filter
                 if (paymentMethodFilter != "All")
                 {
-                    if (!detail.PaymentMethod.Contains(paymentMethodFilter))
+                    if (!ExtractPaymentMethod(detail.PaymentMethod).Contains(paymentMethodFilter))
                         continue;
                 }
 
@@ -229,7 +241,7 @@ namespace FlyEase.Controllers
                 "Credit Card",
                 "Bank Transfer",
                 "Touch 'n Go",
-                "Cash Payment"
+                "Cash"
             };
 
             vm.AvailableBookingStatuses = new List<string>
