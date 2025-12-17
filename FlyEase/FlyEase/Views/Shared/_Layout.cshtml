@@ -516,6 +516,15 @@
                                 </a>
                             </li>
                         }
+                        @if (User.IsInRole("Admin"))
+                        {
+                            <li class="sidebar__item">
+                                <a class="sidebar__link text-warning fw-bold" asp-controller="AdminDashboard" asp-action="AdminDashboard" data-tooltip="Manage">
+                                    <span class="icon"><i class="fa-solid fa-clipboard-user"></i></span>
+                                    <span class="text">Dashboard</span>
+                                </a>
+                            </li>
+                        }
                     </ul>
 
                     <ul class="sidebar__list list--secondary mt-auto">
