@@ -46,7 +46,7 @@
         position: fixed;
         bottom: 30px;
         right: 30px;
-        z-index: 9998; /* Below window */
+        z-index: 9998;
     }
 
     #flybot-trigger {
@@ -65,29 +65,26 @@
             transform: scale(1.05);
         }
 
-    /* === WINDOW (Floating & Draggable) === */
+    /* === WINDOW === */
     #flybot-window {
-        display: none; /* Hidden by default */
+        display: none;
         position: fixed;
         z-index: 9999;
         background: white;
         border-radius: 12px;
         border: 1px solid #ccc;
-        overflow: hidden; /* Hide resize handles overflowing */
+        overflow: hidden;
         flex-direction: column;
         box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-        /* Default Position & Size */
         bottom: 100px;
         right: 30px;
         width: 380px;
         height: 500px;
-        /* Resizable Properties */
         min-width: 300px;
         min-height: 400px;
         resize: both;
     }
 
-        /* Maximized State */
         #flybot-window.maximized {
             width: 90vw !important;
             height: 90vh !important;
@@ -97,12 +94,12 @@
             right: auto !important;
         }
 
-    /* === HEADER (Draggable Handle) === */
+    /* === HEADER === */
     .flybot-header {
         background: linear-gradient(to right, #0066a1, #005080);
         color: white;
         padding: 10px 15px;
-        cursor: move; /* Shows move cursor */
+        cursor: move;
         display: flex;
         justify-content: space-between;
         align-items: center;
@@ -127,7 +124,7 @@
         color: #ff6b6b !important;
     }
 
-    /* Content Wrapper */
+    /* === CONTENT & MESSAGES === */
     #flybot-content-wrapper {
         display: flex;
         flex-direction: column;
@@ -146,7 +143,6 @@
         scrollbar-width: thin;
     }
 
-    /* === MESSAGES === */
     .bot-msg, .user-msg {
         max-width: 85%;
         padding: 10px 14px;
@@ -172,7 +168,7 @@
         border-bottom-right-radius: 2px;
     }
 
-    /* === CHIPS (Scrollable) === */
+    /* === CHIPS === */
     .flybot-chips-area {
         padding: 10px 15px;
         display: flex;
@@ -183,7 +179,7 @@
         white-space: nowrap;
         scrollbar-width: thin;
     }
-        /* Custom Scrollbar for Chips */
+
         .flybot-chips-area::-webkit-scrollbar {
             height: 4px;
         }
@@ -211,7 +207,7 @@
             transform: translateY(-1px);
         }
 
-    /* === INPUT AREA === */
+    /* === INPUT === */
     .flybot-input-area {
         padding: 10px 15px;
         background: white;
@@ -247,7 +243,6 @@
             transform: scale(1.2);
         }
 
-    /* Custom Resize Handle */
     .resize-handle {
         position: absolute;
         bottom: 0;
@@ -257,7 +252,7 @@
         cursor: nwse-resize;
     }
 
-    /* Typing Dots Animation (Razor Compatible @@) */
+    /* === ANIMATION === */
     .typing-indicator span {
         display: inline-block;
         width: 5px;
@@ -293,7 +288,6 @@
     const STORAGE_KEY_MSG = 'flyease_chat_history_v3';
     const STORAGE_KEY_STATE = 'flyease_chat_open';
 
-    // === 1. EXTENDED OPTIONS LIST ===
     const CHIP_OPTIONS = [
         "How to Book?",
         "Refund Policy",
@@ -312,10 +306,11 @@
         dragElement(document.getElementById(WIN_ID));
     });
 
-    // === 2. WINDOW CONTROLS ===
+    // === WINDOW LOGIC ===
     function openChat() {
         const win = document.getElementById(WIN_ID);
         win.style.display = 'flex';
+        // Hide trigger button when chat is open
         document.getElementById('flybot-trigger-container').style.display = 'none';
         localStorage.setItem(STORAGE_KEY_STATE, 'true');
         scrollToBottom();
@@ -323,6 +318,7 @@
 
     function minimizeChat() {
         document.getElementById(WIN_ID).style.display = 'none';
+        // Show trigger button when chat is minimized
         document.getElementById('flybot-trigger-container').style.display = 'block';
         localStorage.setItem(STORAGE_KEY_STATE, 'false');
     }
@@ -333,7 +329,7 @@
         document.getElementById(WIN_ID).classList.toggle('maximized');
     }
 
-    // === 3. DRAGGABLE LOGIC ===
+    // === DRAG LOGIC ===
     function dragElement(elmnt) {
         var pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
         const header = document.getElementById(HEADER_ID);
@@ -342,7 +338,7 @@
 
         function dragMouseDown(e) {
             e = e || window.event;
-            if(e.target.closest('button')) return; // Ignore buttons
+            if(e.target.closest('button')) return;
             e.preventDefault();
             pos3 = e.clientX;
             pos4 = e.clientY;
@@ -370,7 +366,7 @@
         }
     }
 
-    // === 4. CHAT LOGIC ===
+    // === CHAT LOGIC (Connected to ChatbotController) ===
     function loadChatState() {
         if(localStorage.getItem(STORAGE_KEY_STATE) === 'true') {
             openChat();
@@ -379,7 +375,6 @@
         const history = localStorage.getItem(STORAGE_KEY_MSG);
         const messagesDiv = document.getElementById('flybot-messages');
         messagesDiv.innerHTML = '';
-
         if (history) {
             JSON.parse(history).forEach(msg => appendMsgToDOM(msg.text, msg.className));
         } else {
@@ -396,22 +391,41 @@
         const txt = text || input.value.trim();
         if(!txt) return;
 
+        // 1. Show User Message
         appendMsgToDOM(txt, 'user-msg');
         saveMsg(txt, 'user-msg');
         input.value = '';
         scrollToBottom();
 
+        // 2. Show Typing Indicator
         const typing = document.getElementById('flybot-typing');
         typing.style.display = 'block';
         scrollToBottom();
 
-        setTimeout(() => {
+        // 3. SEND TO SERVER
+        fetch('/Chatbot/GetResponse', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: txt })
+        })
+        .then(response => {
+            if (!response.ok) throw new Error("Server Error");
+            return response.json();
+        })
+        .then(data => {
+            // 4. Show Bot Response
+            setTimeout(() => {
+                typing.style.display = 'none';
+                appendMsgToDOM(data.response, 'bot-msg');
+                saveMsg(data.response, 'bot-msg');
+                scrollToBottom();
+            }, 500);
+        })
+        .catch(error => {
+            console.error(error);
             typing.style.display = 'none';
-            const response = getBotResponse(txt);
-            appendMsgToDOM(response, 'bot-msg');
-            saveMsg(response, 'bot-msg');
-            scrollToBottom();
-        }, 800);
+            appendMsgToDOM("⚠️ Offline or Server Error.", 'bot-msg');
+        });
     }
 
     function saveMsg(text, className) {
@@ -451,45 +465,4 @@
     }
 
     function handleEnter(e) { if(e.key==='Enter') sendMessage(); }
-
-    // === 5. BOT BRAIN (Updated for 10 options) ===
-    function getBotResponse(input) {
-        input = input.toLowerCase();
-
-        // Greetings
-        if(input.match(/(hello|hi|hey)/)) return "Hello! 👋 Select an option below or type your question.";
-
-        // Booking Status
-        if(input.includes("status") || input.includes("check booking"))
-            return "You can check your current booking status in your <a href='/Auth/Profile'>Profile Dashboard</a>.";
-
-        // Refunds / Cancel
-        if(input.includes("refund") || input.includes("cancel"))
-            return "<b>Cancellation Policy:</b><br>✅ > 7 days: Full Refund<br>⚠️ < 3 days: No Refund<br>Go to <a href='/Auth/Profile'>Profile</a> to manage bookings.";
-
-        // How to Book
-        if(input.includes("book") || input.includes("package"))
-            return "Check out our <a href='/Home/Packages'>Packages Page</a> to find your dream destination! 🌍 Click 'Book Now' on any package.";
-
-        // Payment
-        if(input.includes("pay") || input.includes("card") || input.includes("method"))
-            return "We accept: <br>💳 Visa / Mastercard<br>🏦 Online Banking (FPX)<br>📱 Touch 'n Go eWallet.";
-
-        // Forgot Password
-        if(input.includes("password") || input.includes("reset"))
-            return "No worries! Go to the <a href='/Auth/Login'>Login Page</a> and click 'Forgot Password' to reset it.";
-
-        // Contact / Human / Office
-        if(input.includes("contact") || input.includes("call") || input.includes("human") || input.includes("speak"))
-            return "Our support team is available 9AM - 6PM.<br>📞 <b>+60 11-1685 8138</b><br>📧 support@flyease.com";
-
-        if(input.includes("location") || input.includes("office") || input.includes("address"))
-            return "<b>FlyEase HQ:</b><br>Level 5, Menara FlyEase,<br>Jalan Tun Razak, 50400 Kuala Lumpur.";
-
-        // Discounts
-        if(input.includes("discount") || input.includes("code") || input.includes("promo"))
-            return "Visit the <a href='/Discount/Discounts'>Discounts Page</a> for the latest promo codes! 🎁";
-
-        return "I'm mostly trained on Bookings & Refunds. Try selecting a topic from the list above! 😅";
-    }
 </script>
