@@ -19,6 +19,28 @@ namespace FlyEase.Controllers
             _environment = environment;
         }
 
+        private List<string> GenerateColors(int count)
+        {
+            var colors = new List<string>
+            {
+                "#4E73DF", // Blue
+                "#1CC88A", // Green
+                "#36B9CC", // Cyan
+                "#F6C23E", // Yellow
+                "#E74A3B", // Red
+                "#858796", // Gray
+                "#FF6B6B", // Light Red
+                "#4ECDC4"  // Teal
+            };
+
+            while (colors.Count < count)
+            {
+                colors.AddRange(colors);
+            }
+
+            return colors.Take(count).ToList();
+        }
+
         [HttpGet("SalesReport")]
         [HttpGet("")]
         public async Task<IActionResult> SalesReport(
@@ -251,6 +273,251 @@ namespace FlyEase.Controllers
             if (totalPaid >= bookingAmount) return "Fully Paid";
             if (totalPaid > 0) return "Partial";
             return "Unpaid";
+        }
+
+        // ==========================================
+        // 5B. PACKAGE PERFORMANCE REPORT
+        // ==========================================
+        [HttpGet("PackagePerformanceReport")]
+        public async Task<IActionResult> PackagePerformanceReport(
+            [FromQuery] DateTime? startDate = null,
+            [FromQuery] DateTime? endDate = null,
+            [FromQuery] string categoryFilter = "All")
+        {
+            // Set default dates (last 30 days)
+            var end = endDate ?? DateTime.Now;
+            var start = startDate ?? DateTime.Now.AddDays(-30);
+
+            // Initialize ViewModel
+            var vm = new PackagePerformanceReportVM
+            {
+                StartDate = start,
+                EndDate = end,
+                CategoryFilter = categoryFilter
+            };
+
+            // ========== FETCH ALL PACKAGES WITH RELATED DATA ==========
+            var packagesQuery = _context.Packages
+                .Include(p => p.Category)
+                .Include(p => p.Bookings)
+                .ThenInclude(b => b.Feedbacks)
+                .AsQueryable();
+
+            // Apply category filter
+            if (categoryFilter != "All" && !string.IsNullOrEmpty(categoryFilter))
+            {
+                packagesQuery = packagesQuery.Where(p => p.Category.CategoryName == categoryFilter);
+            }
+
+            var packages = await packagesQuery.ToListAsync();
+
+            // ========== CALCULATE PACKAGE PERFORMANCE METRICS ==========
+            foreach (var package in packages)
+            {
+                // Filter bookings by date range
+                var packageBookings = package.Bookings
+                    .Where(b => b.BookingDate >= start && b.BookingDate <= end)
+                    .ToList();
+
+                if (packageBookings.Count == 0) continue; // Skip packages with no bookings in range
+
+                var totalPeople = packageBookings.Sum(b => b.NumberOfPeople);
+                var totalRevenue = packageBookings.Sum(b => b.FinalAmount);
+                var feedbacks = packageBookings.SelectMany(b => b.Feedbacks).ToList();
+                var averageRating = feedbacks.Any() ? feedbacks.Average(f => f.Rating) : 0;
+
+                // Calculate occupancy rate (booked slots / total slots * 100)
+                var totalDays = (package.EndDate - package.StartDate).Days + 1;
+                var bookingDays = packageBookings.Count * totalDays; // Assume each booking covers full package days
+                var occupancyRate = (decimal)(totalPeople * 100.0 / (bookingDays > 0 ? bookingDays : 1));
+
+                var detail = new PackagePerformanceDetailVM
+                {
+                    PackageID = package.PackageID,
+                    PackageName = package.PackageName,
+                    Destination = package.Destination,
+                    Category = package.Category?.CategoryName ?? "Uncategorized",
+                    Price = package.Price,
+                    TotalBookings = packageBookings.Count,
+                    TotalPeople = totalPeople,
+                    TotalRevenue = totalRevenue,
+                    AverageRevenuePerBooking = packageBookings.Count > 0 ? totalRevenue / packageBookings.Count : 0,
+                    AverageRating = averageRating,
+                    TotalReviews = feedbacks.Count,
+                    AvailableSlots = package.AvailableSlots,
+                    OccupancyRate = occupancyRate
+                };
+
+                vm.Details.Add(detail);
+            }
+
+            // ========== CALCULATE SUMMARY STATISTICS ==========
+            vm.TotalPackages = vm.Details.Count;
+            vm.TotalBookings = vm.Details.Sum(d => d.TotalBookings);
+            vm.TotalRevenue = vm.Details.Sum(d => d.TotalRevenue);
+            vm.AverageRevenuePerPackage = vm.Details.Count > 0 ? vm.TotalRevenue / vm.Details.Count : 0;
+            vm.AverageRating = vm.Details.Count > 0 ? (decimal)vm.Details.Average(d => d.AverageRating) : 0;
+
+            // ========== BUILD TOP PERFORMERS (By Bookings) ==========
+            vm.TopPerformers = vm.Details
+                .OrderByDescending(d => d.TotalBookings)
+                .ThenByDescending(d => d.TotalRevenue)
+                .Take(5)
+                .ToList();
+
+            // ========== BUILD BOTTOM PERFORMERS (By Bookings) ==========
+            vm.BottomPerformers = vm.Details
+                .OrderBy(d => d.TotalBookings)
+                .ThenBy(d => d.TotalRevenue)
+                .Take(5)
+                .ToList();
+
+            // ========== BUILD CHART DATA - TOP 10 BY BOOKINGS ==========
+            var topByBookings = vm.Details
+                .OrderByDescending(d => d.TotalBookings)
+                .Take(10)
+                .ToList();
+
+            vm.PackageNames = topByBookings.Select(d => d.PackageName).ToList();
+            vm.BookingCounts = topByBookings.Select(d => d.TotalBookings).ToList();
+            vm.TopPackageColors = GenerateColors(topByBookings.Count);
+
+            // ========== BUILD CHART DATA - TOP 10 BY REVENUE ==========
+            var topByRevenue = vm.Details
+                .OrderByDescending(d => d.TotalRevenue)
+                .Take(10)
+                .ToList();
+
+            vm.RevenuePackageNames = topByRevenue.Select(d => d.PackageName).ToList();
+            vm.RevenueValues = topByRevenue.Select(d => d.TotalRevenue).ToList();
+
+            // ========== BUILD CHART DATA - TOP 10 BY RATING ==========
+            var topByRating = vm.Details
+                .Where(d => d.TotalReviews > 0) // Only packages with reviews
+                .OrderByDescending(d => d.AverageRating)
+                .Take(10)
+                .ToList();
+
+            vm.RatingPackageNames = topByRating.Select(d => d.PackageName).ToList();
+            vm.RatingValues = topByRating.Select(d => d.AverageRating).ToList();
+
+            // ========== POPULATE DROPDOWN OPTIONS ==========
+            vm.AvailableCategories = new List<string> { "All" };
+            var allCategories = await _context.PackageCategories
+                .Select(c => c.CategoryName)
+                .Distinct()
+                .OrderBy(c => c)
+                .ToListAsync();
+            vm.AvailableCategories.AddRange(allCategories);
+
+            return View(vm);
+        }
+
+
+        // ==========================================
+        // 5C. CUSTOMER INSIGHT REPORT
+        // ==========================================
+        [HttpGet("CustomerInsightReport")]
+        public async Task<IActionResult> CustomerInsightReport(
+            [FromQuery] DateTime? startDate = null,
+            [FromQuery] DateTime? endDate = null,
+            [FromQuery] string sortBy = "Spending")
+        {
+            // Set default dates (last 90 days)
+            var end = endDate ?? DateTime.Now;
+            var start = startDate ?? DateTime.Now.AddDays(-90);
+
+            // Initialize ViewModel
+            var vm = new CustomerInsightReportVM
+            {
+                StartDate = start,
+                EndDate = end,
+                SortBy = sortBy
+            };
+
+            // ========== FETCH ALL CUSTOMERS WITH BOOKING DATA ==========
+            var customersQuery = _context.Users
+                .Include(u => u.Bookings)
+                    .ThenInclude(b => b.Payments)
+                .Include(u => u.Bookings)
+                    .ThenInclude(b => b.Feedbacks)
+                .Where(u => u.Bookings.Any(b => b.BookingDate >= start && b.BookingDate <= end))
+                .AsQueryable();
+
+            var customers = await customersQuery.ToListAsync();
+
+            // ========== CALCULATE CUSTOMER METRICS ==========
+            foreach (var customer in customers)
+            {
+                // Filter bookings by date range
+                var customerBookings = customer.Bookings
+                    .Where(b => b.BookingDate >= start && b.BookingDate <= end)
+                    .ToList();
+
+                if (customerBookings.Count == 0) continue; // Skip customers with no bookings in range
+
+                // Calculate totals
+                var totalSpent = customerBookings.Sum(b => b.Payments
+                    .Where(p => p.PaymentStatus == "Completed")
+                    .Sum(p => p.AmountPaid));
+
+                var totalPeople = customerBookings.Sum(b => b.NumberOfPeople);
+                var feedbacks = customerBookings.SelectMany(b => b.Feedbacks).ToList();
+                var avgRating = feedbacks.Any() ? feedbacks.Average(f => f.Rating) : 0;
+
+                // Determine Customer Tier based on spending
+                string tier = totalSpent switch
+                {
+                    >= 10000 => "VIP",
+                    >= 5000 => "Premium",
+                    >= 2000 => "Standard",
+                    _ => "New"
+                };
+
+                var detail = new CustomerInsightDetailVM
+                {
+                    UserID = customer.UserID,
+                    CustomerName = customer.FullName,
+                    Email = customer.Email,
+                    Phone = customer.Phone ?? "N/A",
+                    TotalBookings = customerBookings.Count,
+                    TotalPeople = totalPeople,
+                    TotalSpent = totalSpent,
+                    AverageSpentPerBooking = customerBookings.Count > 0 ? totalSpent / customerBookings.Count : 0,
+                    FirstBookingDate = customerBookings.Min(b => b.BookingDate),
+                    LastBookingDate = customerBookings.Max(b => b.BookingDate),
+                    AverageRating = (decimal)avgRating,
+                    ReviewsGiven = feedbacks.Count,
+                    CustomerTier = tier
+                };
+
+                vm.Details.Add(detail);
+            }
+
+            // ========== CALCULATE SUMMARY STATISTICS ==========
+            vm.TotalCustomers = vm.Details.Count;
+            vm.TotalBookings = vm.Details.Sum(d => d.TotalBookings);
+            vm.TotalRevenue = vm.Details.Sum(d => d.TotalSpent);
+            vm.AverageSpendingPerCustomer = vm.Details.Count > 0 ? vm.TotalRevenue / vm.Details.Count : 0;
+            vm.ActiveCustomers = vm.Details.Count(d => d.LastBookingDate >= DateTime.Now.AddDays(-30));
+
+            // ========== SORT DATA ==========
+            var sortedDetails = sortBy.ToLower() == "frequency"
+                ? vm.Details.OrderByDescending(d => d.TotalBookings).ThenByDescending(d => d.TotalSpent).ToList()
+                : vm.Details.OrderByDescending(d => d.TotalSpent).ThenByDescending(d => d.TotalBookings).ToList();
+
+            // ========== BUILD CHART DATA - TOP 10 CUSTOMERS ==========
+            var topCustomers = sortedDetails.Take(10).ToList();
+
+            vm.TopCustomerNames = topCustomers.Select(d => d.CustomerName).ToList();
+            vm.TopCustomerSpending = topCustomers.Select(d => d.TotalSpent).ToList();
+            vm.TopCustomerBookings = topCustomers.Select(d => d.TotalBookings).ToList();
+            vm.ChartColors = GenerateColors(topCustomers.Count);
+
+            // ========== POPULATE SORTED DETAILS FOR TABLE ==========
+            vm.Details = sortedDetails;
+
+            return View(vm);
         }
     }
 }

@@ -78,12 +78,14 @@
                 <p class="text-muted mt-2">Comprehensive analysis of bookings, revenue, users and packages.</p>
             </div>
             <div class="d-flex gap-2">
-                <a asp-controller="Report" asp-action="PackagePerformanceReport" class="btn btn-outline-primary">
-                    <i class="fas fa-box-open me-2"></i>Package Performance
-                </a>
-                <a asp-controller="Report" asp-action="CustomerInsightReport" class="btn btn-outline-primary">
-                    <i class="fas fa-users me-2"></i>Customer Insight
-                </a>
+                    <a asp-controller="Report" asp-action="PackagePerformanceReport" 
+                       class="btn @(ViewContext.RouteData.Values["Action"]?.ToString() == "PackagePerformanceReport" ? "btn-primary active" : "btn-outline-primary")">
+                        <i class="fas fa-box-open me-2"></i>Package Performance
+                    </a>
+                    <a asp-controller="Report" asp-action="CustomerInsightReport" 
+                       class="btn @(ViewContext.RouteData.Values["Action"]?.ToString() == "CustomerInsightReport" ? "btn-primary active" : "btn-outline-primary")">
+                        <i class="fas fa-users me-2"></i>Customer Insight
+                    </a>
                 <button class="btn btn-danger" data-action="export-pdf">
                     <i class="fas fa-file-pdf me-2"></i> Export PDF
                 </button>

@@ -112,7 +112,7 @@ namespace FlyEase.Controllers
 
                 if (user.Role == "Admin" || user.Role == "Staff")
                 {
-                    return RedirectToAction("Index", "AdminDashboard");
+                    return RedirectToAction("AdminDashboard", "AdminDashboard");
                 }
 
                 return RedirectToAction("Index", "Home");
