@@ -3,11 +3,13 @@ using FlyEase.Services;
 using FlyEase.ViewModels;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authorization; // Added for [Authorize]
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using System;
 using System.Collections.Generic;
+using System.Linq; // Added for LINQ
 using System.Security.Claims;
 using System.Threading.Tasks;
 
@@ -17,10 +19,9 @@ namespace FlyEase.Controllers
     {
         private readonly FlyEaseDbContext _context;
         private readonly IMemoryCache _cache;
-        private readonly IEmailService _emailService; // For Password Reset (Interface)
-        private readonly EmailService _otpService;    // For OTP (Concrete Class)
+        private readonly IEmailService _emailService;
+        private readonly EmailService _otpService;
 
-        // Constructor Injection
         public AuthController(
             FlyEaseDbContext context,
             IMemoryCache cache,
@@ -55,7 +56,6 @@ namespace FlyEase.Controllers
             string failCountKey = $"FailCount_{model.Email}";
             string lockoutKey = $"Lockout_{model.Email}";
 
-            // 1. CHECK: Is Account Currently Locked?
             if (_cache.TryGetValue(lockoutKey, out DateTime lockoutEnd))
             {
                 if (DateTime.Now < lockoutEnd)
@@ -70,27 +70,22 @@ namespace FlyEase.Controllers
                 }
             }
 
-            // 2. Find User
             var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == model.Email);
 
-            // 3. CHECK: Account does not exist
             if (user == null)
             {
                 ViewData["ErrorMessage"] = "Account does not exist.";
                 return View(model);
             }
 
-            // 4. CHECK: Is User Banned?
             if (user.Role == "Ban")
             {
                 ViewData["ErrorMessage"] = "Your account has been banned. Please contact support.";
                 return View(model);
             }
 
-            // 5. Verify Password
             if (VerifyPassword(model.Password, user.PasswordHash))
             {
-                // --- SUCCESS ---
                 _cache.Remove(failCountKey);
                 _cache.Remove(lockoutKey);
 
@@ -124,7 +119,6 @@ namespace FlyEase.Controllers
             }
             else
             {
-                // --- FAILURE ---
                 int currentFails = _cache.GetOrCreate(failCountKey, entry =>
                 {
                     entry.SlidingExpiration = TimeSpan.FromMinutes(10);
@@ -160,7 +154,7 @@ namespace FlyEase.Controllers
         }
 
         // ==========================================
-        // REGISTER ACTIONS (With OTP)
+        // REGISTER ACTIONS
         // ==========================================
 
         [HttpPost]
@@ -174,13 +168,8 @@ namespace FlyEase.Controllers
                 return Json(new { success = false, message = "This email is already registered." });
             }
 
-            // Generate OTP
             var otp = new Random().Next(100000, 999999).ToString();
-
-            // Store in Cache (5 minutes)
             _cache.Set($"OTP_{email}", otp, TimeSpan.FromMinutes(5));
-
-            // Send Email using the OTP Service
             await _otpService.SendOtpEmail(email, otp);
 
             return Json(new { success = true, message = "OTP code sent to your email." });
@@ -198,7 +187,6 @@ namespace FlyEase.Controllers
         {
             if (ModelState.IsValid)
             {
-                // 1. Verify OTP
                 string otpKey = $"OTP_{model.Email}";
                 if (!_cache.TryGetValue(otpKey, out string storedOtp) || storedOtp != model.Otp)
                 {
@@ -206,14 +194,12 @@ namespace FlyEase.Controllers
                     return View(model);
                 }
 
-                // 2. Check Email Uniqueness
                 if (await _context.Users.AnyAsync(u => u.Email == model.Email))
                 {
                     ModelState.AddModelError("Email", "Email is already taken.");
                     return View(model);
                 }
 
-                // 3. Create User
                 var user = new User
                 {
                     FullName = model.FullName,
@@ -227,11 +213,8 @@ namespace FlyEase.Controllers
 
                 _context.Users.Add(user);
                 await _context.SaveChangesAsync();
-
-                // 4. Clear OTP
                 _cache.Remove(otpKey);
 
-                // 5. Auto Login
                 var claims = new List<Claim>
                 {
                     new Claim(ClaimTypes.NameIdentifier, user.UserID.ToString()),
@@ -245,6 +228,157 @@ namespace FlyEase.Controllers
                 return RedirectToAction("Index", "Home");
             }
             return View(model);
+        }
+
+        // ==========================================
+        // PROFILE ACTIONS (ADDED BACK)
+        // ==========================================
+
+        [Authorize]
+        [HttpGet]
+        public async Task<IActionResult> Profile()
+        {
+            var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userIdStr)) return RedirectToAction("Login");
+            int userId = int.Parse(userIdStr);
+
+            // Fetch User with all necessary inclusions for the dashboard
+            var user = await _context.Users
+                .Include(u => u.Bookings)
+                    .ThenInclude(b => b.Package)
+                .Include(u => u.Bookings)
+                    .ThenInclude(b => b.Payments)
+                .Include(u => u.Bookings)
+                    .ThenInclude(b => b.Feedbacks)
+                .Include(u => u.Feedbacks)
+                    .ThenInclude(f => f.Booking)
+                    .ThenInclude(b => b.Package)
+                .FirstOrDefaultAsync(u => u.UserID == userId);
+
+            if (user == null) return RedirectToAction("Login");
+
+            var model = new ProfileViewModel
+            {
+                FullName = user.FullName,
+                Email = user.Email,
+                Phone = user.Phone,
+                Address = user.Address,
+
+                // Map Bookings
+                MyBookings = user.Bookings.Select(b => new BookingDisplayModel
+                {
+                    BookingID = b.BookingID,
+                    PackageTitle = b.Package?.PackageName ?? "Unknown Package",
+                    BookingDate = b.BookingDate,
+                    Status = b.BookingStatus,
+                    TotalAmount = b.FinalAmount,
+                    // Check if this booking has a feedback
+                    IsReviewed = b.Feedbacks.Any()
+                }).OrderByDescending(x => x.BookingDate).ToList(),
+
+                // Map Reviews
+                MyReviews = user.Feedbacks.Select(f => new ReviewDisplayModel
+                {
+                    PackageTitle = f.Booking?.Package?.PackageName ?? "Unknown Package",
+                    Rating = f.Rating,
+                    Comment = f.Comment,
+                    CreatedDate = f.CreatedDate
+                }).OrderByDescending(x => x.CreatedDate).ToList(),
+
+                // Map Payment History (Flattened from Bookings)
+                PaymentHistory = user.Bookings
+                    .SelectMany(b => b.Payments)
+                    .Select(p => new PaymentDisplayModel
+                    {
+                        PaymentID = p.PaymentID,
+                        PaymentDate = p.PaymentDate,
+                        PaymentMethod = p.PaymentMethod,
+                        AmountPaid = p.AmountPaid,
+                        PaymentStatus = p.PaymentStatus
+                    }).OrderByDescending(x => x.PaymentDate).ToList()
+            };
+
+            return View(model);
+        }
+
+        [Authorize]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> UpdateProfile(ProfileViewModel model)
+        {
+            var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userIdStr)) return RedirectToAction("Login");
+            int userId = int.Parse(userIdStr);
+
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null) return NotFound();
+
+            // Only update allowed fields
+            user.FullName = model.FullName;
+            user.Phone = model.Phone;
+            user.Address = model.Address;
+
+            _context.Users.Update(user);
+            await _context.SaveChangesAsync();
+
+            // Refresh cookie if name changed
+            if (User.Identity.Name != user.FullName)
+            {
+                var claims = new List<Claim>
+                {
+                    new Claim(ClaimTypes.NameIdentifier, user.UserID.ToString()),
+                    new Claim(ClaimTypes.Name, user.FullName),
+                    new Claim(ClaimTypes.Email, user.Email),
+                    new Claim(ClaimTypes.Role, user.Role)
+                };
+                var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+                await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(identity));
+            }
+
+            TempData["SuccessMessage"] = "Profile updated successfully!";
+            return RedirectToAction("Profile", new { tab = "details" });
+        }
+
+        [Authorize]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ChangePassword(ProfileViewModel model)
+        {
+            // Note: We only validate password fields here, ignoring others
+            if (string.IsNullOrEmpty(model.CurrentPassword) ||
+                string.IsNullOrEmpty(model.NewPassword) ||
+                string.IsNullOrEmpty(model.ConfirmNewPassword))
+            {
+                TempData["SecurityErrorMessage"] = "All password fields are required.";
+                return RedirectToAction("Profile", new { tab = "security" });
+            }
+
+            if (model.NewPassword != model.ConfirmNewPassword)
+            {
+                TempData["SecurityErrorMessage"] = "New password and confirmation do not match.";
+                return RedirectToAction("Profile", new { tab = "security" });
+            }
+
+            var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            int userId = int.Parse(userIdStr);
+
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null) return RedirectToAction("Login");
+
+            // Verify old password
+            if (!VerifyPassword(model.CurrentPassword, user.PasswordHash))
+            {
+                TempData["SecurityErrorMessage"] = "Current password is incorrect.";
+                return RedirectToAction("Profile", new { tab = "security" });
+            }
+
+            // Update to new password
+            user.PasswordHash = HashPassword(model.NewPassword);
+            _context.Users.Update(user);
+            await _context.SaveChangesAsync();
+
+            TempData["SecuritySuccessMessage"] = "Password changed successfully!";
+            return RedirectToAction("Profile", new { tab = "security" });
         }
 
         // ==========================================
@@ -263,20 +397,11 @@ namespace FlyEase.Controllers
                 var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == model.Email);
                 if (user != null)
                 {
-                    // Generate a unique token
                     var token = Guid.NewGuid().ToString();
-
-                    // Store token in cache for 15 mins (Key: ResetToken_GUID -> Email)
                     _cache.Set($"ResetToken_{token}", model.Email, TimeSpan.FromMinutes(15));
-
-                    // Generate Link
                     var resetLink = Url.Action("ResetPassword", "Auth", new { token = token, email = model.Email }, Request.Scheme);
-
-                    // Send Email using IEmailService (Interface for Forgot Password)
                     await _emailService.SendPasswordResetLinkAsync(user.Email, user.FullName, resetLink);
                 }
-
-                // Show success message regardless to prevent email enumeration
                 TempData["SuccessMessage"] = "If an account exists, a reset link has been sent to your email.";
                 return RedirectToAction("ForgotPassword");
             }
@@ -299,14 +424,12 @@ namespace FlyEase.Controllers
         {
             if (!ModelState.IsValid) return View(model);
 
-            // 1. Verify Token from Cache
             if (!_cache.TryGetValue($"ResetToken_{model.Token}", out string cachedEmail) || cachedEmail != model.Email)
             {
                 TempData["ErrorMessage"] = "This reset link is invalid or has expired.";
                 return RedirectToAction("ForgotPassword");
             }
 
-            // 2. Find User
             var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == model.Email);
             if (user == null)
             {
@@ -314,12 +437,9 @@ namespace FlyEase.Controllers
                 return RedirectToAction("Login");
             }
 
-            // 3. Update Password
             user.PasswordHash = HashPassword(model.NewPassword);
             _context.Users.Update(user);
             await _context.SaveChangesAsync();
-
-            // 4. Invalidate Token
             _cache.Remove($"ResetToken_{model.Token}");
 
             TempData["SuccessMessage"] = "Password has been reset successfully. Please login.";
@@ -327,7 +447,7 @@ namespace FlyEase.Controllers
         }
 
         // ==========================================
-        // OTHER ACTIONS
+        // LOGOUT
         // ==========================================
         public async Task<IActionResult> Logout()
         {
