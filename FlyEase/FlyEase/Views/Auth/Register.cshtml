@@ -6,166 +6,314 @@
 }
 
 @section Head {
-    <link rel="stylesheet" href="~/css/auth.css" />
+    <link rel="stylesheet" href="~/css/login.css" />
+
     <style>
-        /* Fix header overlap */
-        .register-wrapper {
-            margin-top: 120px;
-            min-height: calc(100vh - 120px);
+        /* --- 1. COMPACT STYLING (Matches Login) --- */
+        .login-form-section {
+            padding: 2rem; /* Compact padding */
+        }
+
+        /* Smaller fonts for a cleaner look */
+        .form-control,
+        .form-floating > label,
+        .btn,
+        .input-group-text,
+        .small-text {
+            font-size: 0.9rem !important;
+        }
+
+        /* Compact Input Height (45px) */
+        .form-floating > .form-control {
+            height: 45px;
+            min-height: 45px;
+        }
+
+        .form-floating > label {
+            padding: 0.6rem 0.75rem; /* Adjust label position for smaller input */
+        }
+
+        /* --- 2. PASSWORD ICON & PHONE GROUP --- */
+        .password-toggle-btn {
+            position: static !important;
+            transform: none !important;
+            border: 1px solid #ced4da;
+            border-left: none;
+            background-color: #fff;
+            color: #6c757d;
+            padding: 0 15px;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 20px 0;
+            border-top-right-radius: 0.375rem;
+            border-bottom-right-radius: 0.375rem;
+            transition: all 0.2s;
+            z-index: 5;
+            height: 45px; /* Matches input height */
         }
 
-        /* Make links more visible */
-        .highlight-link {
-            color: var(--accent-primary) !important;
-            font-weight: 600;
-            text-decoration: underline !important;
-            transition: all 0.3s ease;
-        }
-
-            .highlight-link:hover {
-                color: var(--accent-hover) !important;
-                text-decoration: none !important;
+            .password-toggle-btn:hover {
+                background-color: #f8f9fa;
+                color: #0d6efd;
             }
 
-        /* Terms checkbox styling */
-        .terms-check {
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 15px;
-            background: var(--bg-input);
+        .input-group > .form-floating > .form-control {
+            border-top-right-radius: 0;
+            border-bottom-right-radius: 0;
+            border-right: 0;
+        }
+
+        .input-group-text {
+            height: 45px; /* Matches input height */
+            display: flex;
+            align-items: center;
+            border: 1px solid #ced4da;
+            border-right: 0;
+        }
+
+        /* --- 3. CUSTOM ANIMATED CHECKBOX --- */
+        .custom-checkbox-wrapper {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .custom-checkbox {
+            display: inline-flex;
+            align-items: center;
+            cursor: pointer;
+            user-select: none;
+            margin-right: 10px;
+        }
+
+            .custom-checkbox input[type="checkbox"] {
+                display: none;
+            }
+
+            /* The Box */
+            .custom-checkbox .checkmark {
+                width: 20px;
+                height: 20px;
+                border: 2px solid #ced4da;
+                border-radius: 4px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                transition: all 0.3s;
+                background: #fff;
+            }
+
+                /* The Check Icon */
+                .custom-checkbox .checkmark::before {
+                    content: "\2713";
+                    font-size: 14px;
+                    color: transparent;
+                    transition: all 0.3s;
+                    font-weight: bold;
+                }
+
+            /* Checked State */
+            .custom-checkbox input[type="checkbox"]:checked + .checkmark {
+                background-color: #0d6efd; /* Theme Blue */
+                border-color: #0d6efd;
+                transform: scale(1.05);
+            }
+
+                .custom-checkbox input[type="checkbox"]:checked + .checkmark::before {
+                    color: #fff;
+                }
+
+            /* Hover Effect */
+            .custom-checkbox:hover .checkmark {
+                border-color: #0d6efd;
+                background-color: #f8f9fa;
+            }
+
+        .terms-text {
+            font-size: 0.85rem;
+            color: #6c757d;
+            cursor: pointer;
+            margin-bottom: 0;
         }
     </style>
 }
 
-<div class="register-wrapper">
-    <div class="container">
-        <div class="row justify-content-center">
-            <div class="col-md-8 col-lg-6">
-                <div class="card shadow-lg border-0 rounded-lg">
+<div class="login-container">
+    <div class="login-card">
 
-                    <div class="card-header booking-header text-center py-4">
-                        <h3 class="font-weight-light my-1">Create Account</h3>
-                        <small class="opacity-75">Join our community today</small>
-                    </div>
+        <div class="login-image d-none d-md-block" style="background-image: url('/img/663fa460-2cb0-4505-a6fe-49bb9e6e855f.jpg');">
+            <div class="login-overlay">
+                <h2 class="fw-bold display-6 mb-3">Join FlyEase</h2>
+                <p class="lead">Create an account to start your journey.</p>
+            </div>
+        </div>
 
-                    <div class="card-body p-4">
-                        <form asp-action="Register" method="post" id="registerForm" novalidate>
-                            @Html.AntiForgeryToken()
+        <div class="login-form-section">
+            <div class="text-center mb-3">
+                <h3 class="fw-bold text-dark">Create Account</h3>
+                <p class="text-muted small">Enter your details below</p>
+            </div>
 
-                            <!-- Show validation summary -->
-                            <div asp-validation-summary="ModelOnly" class="alert alert-danger small mb-3">
-                                <i class="fas fa-exclamation-triangle me-1"></i> Please fix the errors below.
-                            </div>
+            <form asp-action="Register" method="post" id="registerForm" novalidate>
+                @Html.AntiForgeryToken()
+                <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2 small mb-3 text-center"></div>
 
-                            <div class="row">
-                                <div class="col-md-12">
-                                    <div class="form-floating mb-3">
-                                        <input asp-for="FullName" class="form-control" placeholder="Enter your full name" id="fullName" />
-                                        <label asp-for="FullName">Full Name</label>
-                                        <span asp-validation-for="FullName" class="text-danger small"></span>
-                                    </div>
-                                </div>
-                            </div>
+                <div class="form-floating mb-2">
+                    <input asp-for="FullName" class="form-control" placeholder="John Doe" />
+                    <label asp-for="FullName">Full Name</label>
+                    <span asp-validation-for="FullName" class="text-danger small"></span>
+                </div>
 
-                            <div class="form-floating mb-3">
-                                <input asp-for="Email" class="form-control" placeholder="name@example.com" id="email" />
-                                <label asp-for="Email">Email Address</label>
-                                <span asp-validation-for="Email" class="text-danger small"></span>
-                            </div>
-
-                            <div class="mb-3">
-                                <div class="input-group">
-                                    <span class="input-group-text bg-light" style="border-right: 0;">+60</span>
-                                    <div class="form-floating">
-                                        <input asp-for="Phone" class="form-control" placeholder="123456789" id="phone" style="border-left: 0; border-top-left-radius: 0; border-bottom-left-radius: 0;" />
-                                        <label asp-for="Phone" class="ms-2">Phone Number</label>
-                                    </div>
-                                </div>
-                                <span asp-validation-for="Phone" class="text-danger small"></span>
-                            </div>
-
-                            <div class="row mb-2">
-                                <div class="col-md-6">
-                                    <div class="form-floating mb-3 mb-md-0 position-relative">
-                                        <input asp-for="Password" class="form-control" type="password" placeholder="Create a password" id="password" />
-                                        <label asp-for="Password">Password</label>
-                                        <button type="button" class="btn btn-link position-absolute top-50 end-0 translate-middle-y text-decoration-none me-2 password-toggle" tabindex="-1" style="z-index: 10; color: var(--text-muted);">
-                                            <i class="fas fa-eye"></i>
-                                        </button>
-                                    </div>
-                                    <span asp-validation-for="Password" class="text-danger small"></span>
-                                </div>
-
-                                <div class="col-md-6">
-                                    <div class="form-floating mb-3 mb-md-0 position-relative">
-                                        <input asp-for="ConfirmPassword" class="form-control" type="password" placeholder="Confirm password" id="confirmPassword" />
-                                        <label asp-for="ConfirmPassword">Confirm Password</label>
-                                        <button type="button" class="btn btn-link position-absolute top-50 end-0 translate-middle-y text-decoration-none me-2 password-toggle" tabindex="-1" style="z-index: 10; color: var(--text-muted);">
-                                            <i class="fas fa-eye"></i>
-                                        </button>
-                                    </div>
-                                    <span asp-validation-for="ConfirmPassword" class="text-danger small"></span>
-                                </div>
-                            </div>
-
-                            <div class="mb-4">
-                                <div class="strength-meter">
-                                    <div class="d-flex justify-content-between mb-1">
-                                        <small id="strengthText" class="text-muted" style="font-size: 0.75rem;">Password Strength</small>
-                                    </div>
-                                    <div class="strength-bar">
-                                        <div class="strength-fill" id="strengthFill"></div>
-                                    </div>
-                                </div>
-
-                                <ul class="requirement-list mt-2">
-                                    <li id="req-length"><i class="fas fa-circle me-2"></i> At least 8 characters</li>
-                                    <li id="req-number"><i class="fas fa-circle me-2"></i> At least one number</li>
-                                    <li id="req-special"><i class="fas fa-circle me-2"></i> At least one special char</li>
-                                    <li id="req-upper"><i class="fas fa-circle me-2"></i> At least one uppercase letter</li>
-                                </ul>
-                                <div id="passwordMatch"></div>
-                            </div>
-
-                            <div class="terms-check mb-4" id="termsContainer">
-                                <div class="terms-checkbox-container">
-                                    <label class="terms-checkbox-custom">
-                                        <input class="terms-checkbox-input" type="checkbox" id="agreeTerms" name="AgreeToTerms" value="true" required>
-                                        <span class="terms-checkbox-checkmark"></span>
-                                    </label>
-                                    <label class="terms-checkbox-label text-muted small" for="agreeTerms">
-                                        I agree to the <a href="#" class="terms-link" onclick="openTermsModal()">Terms</a>
-                                        and <a href="#" class="terms-link" onclick="openPrivacyModal()">Privacy Policy</a>
-                                        <span class="text-danger">*</span>
-                                    </label>
-                                </div>
-                                <span asp-validation-for="AgreeToTerms" class="text-danger small mt-2 d-block"></span>
-                            </div>
-
-                            <div class="d-grid gap-2 mb-0">
-                                <button type="submit" class="btn btn-primary btn-lg fw-bold">
-                                    <i class="fas fa-user-plus me-2"></i>Create Account
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-
-                    <div class="card-footer text-center py-3">
-                        <div class="small">
-                            <i class="fas fa-user me-1"></i> Already have an account?
-                            <a asp-action="Login" class="highlight-link fw-bold">Sign in here</a>
-                        </div>
+                <div class="input-group mb-2">
+                    <span class="input-group-text text-muted">+60</span>
+                    <div class="form-floating flex-grow-1">
+                        <input asp-for="Phone" class="form-control border-start-0" placeholder="123456789" style="border-top-left-radius: 0; border-bottom-left-radius: 0;" />
+                        <label asp-for="Phone" style="margin-left: -10px;">Phone Number</label>
                     </div>
                 </div>
+                <span asp-validation-for="Phone" class="text-danger small d-block mb-2"></span>
+
+                <div class="form-floating mb-2">
+                    <input asp-for="Email" class="form-control" placeholder="name@example.com" id="email" />
+                    <label asp-for="Email">Email Address</label>
+                    <span asp-validation-for="Email" class="text-danger small"></span>
+                </div>
+
+                <div class="input-group mb-2">
+                    <div class="form-floating flex-grow-1">
+                        <input asp-for="Otp" class="form-control" placeholder="123456" id="otpInput" style="border-top-right-radius: 0; border-bottom-right-radius: 0;" />
+                        <label asp-for="Otp">Verification Code</label>
+                    </div>
+                    <button type="button" class="btn btn-primary fw-bold px-3" id="btnRequestOtp" style="z-index: 0;">
+                        Get Code
+                    </button>
+                </div>
+                <span asp-validation-for="Otp" class="text-danger small"></span>
+                <div id="otpMessage" class="small mt-1 ms-1 fw-bold"></div>
+
+                <div class="row g-2 mb-3 mt-2">
+                    <div class="col-md-6">
+                        <div class="input-group">
+                            <div class="form-floating flex-grow-1">
+                                <input asp-for="Password" class="form-control" type="password" placeholder="Password" id="passwordInput" />
+                                <label asp-for="Password">Password</label>
+                            </div>
+                            <button type="button" class="password-toggle-btn" onclick="togglePassword('passwordInput', this)" tabindex="-1" title="Show Password">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                        <span asp-validation-for="Password" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="input-group">
+                            <div class="form-floating flex-grow-1">
+                                <input asp-for="ConfirmPassword" class="form-control" type="password" placeholder="Confirm" id="confirmPasswordInput" />
+                                <label asp-for="ConfirmPassword">Confirm</label>
+                            </div>
+                            <button type="button" class="password-toggle-btn" onclick="togglePassword('confirmPasswordInput', this)" tabindex="-1" title="Show Password">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                        <span asp-validation-for="ConfirmPassword" class="text-danger small"></span>
+                    </div>
+                </div>
+
+                <div class="custom-checkbox-wrapper ms-1">
+                    <label class="custom-checkbox">
+                        <input asp-for="AgreeToTerms" type="checkbox" id="agreeTerms">
+                        <span class="checkmark"></span>
+                    </label>
+
+                    <label for="agreeTerms" class="terms-text">
+                        I agree to the <a href="#" class="fw-bold text-primary text-decoration-none">Terms</a> & <a href="#" class="fw-bold text-primary text-decoration-none">Privacy Policy</a>
+                    </label>
+                </div>
+                <span asp-validation-for="AgreeToTerms" class="text-danger small d-block mb-3 text-center" style="margin-top: -5px;"></span>
+
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-primary btn-lg shadow-sm fw-bold">
+                        Create Account
+                    </button>
+                </div>
+            </form>
+
+            <div class="text-center mt-3">
+                <p class="text-muted small mb-0">
+                    Already have an account?
+                    <a asp-action="Login" class="fw-bold text-primary text-decoration-none">Sign in here</a>
+                </p>
             </div>
         </div>
     </div>
 </div>
 
 @section Scripts {
+    <partial name="_ValidationScriptsPartial" />
     <script src="~/js/auth.js"></script>
+    <script>
+        $(document).ready(function() {
+            // OTP Logic
+            $('#btnRequestOtp').click(function() {
+                var email = $('#email').val();
+                var btn = $(this);
+                var msgDiv = $('#otpMessage');
+                var emailRegex = /^[^\s@@]+@@[^\s@@]+\.[^\s@@]+$/;
+
+                if (!email || !emailRegex.test(email)) {
+                    msgDiv.removeClass('text-success').addClass('text-danger').text("Please enter a valid email address first.");
+                    return;
+                }
+
+                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span>');
+                msgDiv.text("");
+
+                $.ajax({
+                    url: '/Auth/SendRegisterOtp',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(email),
+                    success: function(res) {
+                        if (res.success) {
+                            msgDiv.removeClass('text-danger').addClass('text-success').text(res.message);
+                            var count = 60;
+                            var timer = setInterval(function() {
+                                count--;
+                                msgDiv.text("Resend code in " + count + " seconds.");
+
+                                if (count <= 0) {
+                                    clearInterval(timer);
+                                    btn.prop('disabled', false).text('Get Code');
+                                    msgDiv.text("");
+                                }
+                            }, 1000);
+                        } else {
+                            msgDiv.removeClass('text-success').addClass('text-danger').text(res.message);
+                            btn.prop('disabled', false).text('Get Code');
+                        }
+                    },
+                    error: function() {
+                        msgDiv.removeClass('text-success').addClass('text-danger').text("Failed to send OTP. Try again.");
+                        btn.prop('disabled', false).text('Get Code');
+                    }
+                });
+            });
+        });
+
+        // Password toggle
+        function togglePassword(inputId, btn) {
+            var input = document.getElementById(inputId);
+            var icon = btn.querySelector('i');
+
+            if (input.type === "password") {
+                input.type = "text";
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                input.type = "password";
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        }
+    </script>
 }

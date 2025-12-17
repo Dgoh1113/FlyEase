@@ -20,11 +20,14 @@ namespace FlyEase.Controllers
     {
         private readonly FlyEaseDbContext _context;
         private readonly IWebHostEnvironment _environment;
+        private readonly EmailService _emailService; // 1. Add this field
 
-        public AdminDashboardController(FlyEaseDbContext context, IWebHostEnvironment environment)
+        // 2. Inject EmailService in the constructor
+        public AdminDashboardController(FlyEaseDbContext context, IWebHostEnvironment environment, EmailService emailService)
         {
             _context = context;
             _environment = environment;
+            _emailService = emailService; // 3. Assign it
         }
 
         // ==========================================
@@ -122,14 +125,12 @@ namespace FlyEase.Controllers
             return RedirectToAction(nameof(Users));
         }
 
-        // === FIXED: BAN USER (ROLE CHANGE) ===
         [HttpPost("BanUser")]
         public async Task<IActionResult> BanUser(int id)
         {
             var user = await _context.Users.FindAsync(id);
             if (user != null)
             {
-                // CHANGE ROLE TO BAN
                 user.Role = "Ban";
                 await _context.SaveChangesAsync();
                 TempData["Success"] = $"User {user.FullName} has been banned.";
@@ -210,8 +211,9 @@ namespace FlyEase.Controllers
                     try
                     {
                         string packageImage = booking.Package.ImageURL?.Split(';').FirstOrDefault() ?? "";
-                        var emailService = new EmailService();
-                        await emailService.SendReviewInvitation(
+
+                        // 4. Use the injected _emailService instead of 'new EmailService()'
+                        await _emailService.SendReviewInvitation(
                             booking.User.Email,
                             booking.User.FullName,
                             booking.BookingID,

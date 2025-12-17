@@ -1,26 +1,36 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using FlyEase.Data;
+﻿using FlyEase.Data;
+using FlyEase.Services;
 using FlyEase.ViewModels;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System.Security.Claims;
-using System.Threading.Tasks;
+using Microsoft.Extensions.Caching.Memory;
 using System;
 using System.Collections.Generic;
-using Microsoft.Extensions.Caching.Memory;
+using System.Security.Claims;
+using System.Threading.Tasks;
 
 namespace FlyEase.Controllers
 {
     public class AuthController : Controller
     {
         private readonly FlyEaseDbContext _context;
-        private readonly IMemoryCache _cache; // Inject Cache
+        private readonly IMemoryCache _cache;
+        private readonly IEmailService _emailService; // For Password Reset (Interface)
+        private readonly EmailService _otpService;    // For OTP (Concrete Class)
 
-        public AuthController(FlyEaseDbContext context, IMemoryCache cache)
+        // Constructor Injection
+        public AuthController(
+            FlyEaseDbContext context,
+            IMemoryCache cache,
+            IEmailService emailService,
+            EmailService otpService)
         {
             _context = context;
             _cache = cache;
+            _emailService = emailService;
+            _otpService = otpService;
         }
 
         // ==========================================
@@ -77,12 +87,10 @@ namespace FlyEase.Controllers
                 return View(model);
             }
 
-            // 5. Verify Password (Robust Check)
+            // 5. Verify Password
             if (VerifyPassword(model.Password, user.PasswordHash))
             {
                 // --- SUCCESS ---
-
-                // Clear any fail counts on success
                 _cache.Remove(failCountKey);
                 _cache.Remove(lockoutKey);
 
@@ -116,37 +124,31 @@ namespace FlyEase.Controllers
             }
             else
             {
-                // --- FAILURE (Wrong Password) ---
-
-                // Get current fail count (default 0)
+                // --- FAILURE ---
                 int currentFails = _cache.GetOrCreate(failCountKey, entry =>
                 {
-                    entry.SlidingExpiration = TimeSpan.FromMinutes(10); // Reset count after 10 mins of inactivity
+                    entry.SlidingExpiration = TimeSpan.FromMinutes(10);
                     return 0;
                 });
 
                 currentFails++;
-                _cache.Set(failCountKey, currentFails); // Update count
+                _cache.Set(failCountKey, currentFails);
 
                 string errorMsg = "Invalid password.";
 
-                // LOCKOUT & COUNTDOWN LOGIC
                 if (currentFails < 3)
                 {
-                    // Show countdown warnings
                     int remaining = 3 - currentFails;
                     errorMsg = $"Invalid password. {remaining} attempt{(remaining > 1 ? "s" : "")} remaining before temporary lockout.";
                 }
                 else if (currentFails == 3)
                 {
-                    // Lock for 30 seconds
                     DateTime lockEnd = DateTime.Now.AddSeconds(30);
                     _cache.Set(lockoutKey, lockEnd, TimeSpan.FromSeconds(30));
                     errorMsg = "3 failed attempts. Account locked for 30 seconds.";
                 }
                 else if (currentFails >= 4)
                 {
-                    // Lock for 5 minutes (if they fail again after the 30s lock)
                     DateTime lockEnd = DateTime.Now.AddMinutes(5);
                     _cache.Set(lockoutKey, lockEnd, TimeSpan.FromMinutes(5));
                     errorMsg = "Too many failed attempts. Account locked for 5 minutes.";
@@ -158,8 +160,32 @@ namespace FlyEase.Controllers
         }
 
         // ==========================================
-        // OTHER ACTIONS (Register, Logout, etc.)
+        // REGISTER ACTIONS (With OTP)
         // ==========================================
+
+        [HttpPost]
+        public async Task<IActionResult> SendRegisterOtp([FromBody] string email)
+        {
+            if (string.IsNullOrEmpty(email))
+                return Json(new { success = false, message = "Please enter an email address." });
+
+            if (await _context.Users.AnyAsync(u => u.Email == email))
+            {
+                return Json(new { success = false, message = "This email is already registered." });
+            }
+
+            // Generate OTP
+            var otp = new Random().Next(100000, 999999).ToString();
+
+            // Store in Cache (5 minutes)
+            _cache.Set($"OTP_{email}", otp, TimeSpan.FromMinutes(5));
+
+            // Send Email using the OTP Service
+            await _otpService.SendOtpEmail(email, otp);
+
+            return Json(new { success = true, message = "OTP code sent to your email." });
+        }
+
         [HttpGet]
         public IActionResult Register()
         {
@@ -172,12 +198,22 @@ namespace FlyEase.Controllers
         {
             if (ModelState.IsValid)
             {
+                // 1. Verify OTP
+                string otpKey = $"OTP_{model.Email}";
+                if (!_cache.TryGetValue(otpKey, out string storedOtp) || storedOtp != model.Otp)
+                {
+                    ModelState.AddModelError("Otp", "Invalid or expired verification code.");
+                    return View(model);
+                }
+
+                // 2. Check Email Uniqueness
                 if (await _context.Users.AnyAsync(u => u.Email == model.Email))
                 {
                     ModelState.AddModelError("Email", "Email is already taken.");
                     return View(model);
                 }
 
+                // 3. Create User
                 var user = new User
                 {
                     FullName = model.FullName,
@@ -192,7 +228,10 @@ namespace FlyEase.Controllers
                 _context.Users.Add(user);
                 await _context.SaveChangesAsync();
 
-                // Auto-login after register
+                // 4. Clear OTP
+                _cache.Remove(otpKey);
+
+                // 5. Auto Login
                 var claims = new List<Claim>
                 {
                     new Claim(ClaimTypes.NameIdentifier, user.UserID.ToString()),
@@ -208,23 +247,92 @@ namespace FlyEase.Controllers
             return View(model);
         }
 
-        public async Task<IActionResult> Logout()
-        {
-            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-            return RedirectToAction("Login");
-        }
+        // ==========================================
+        // FORGOT PASSWORD ACTIONS
+        // ==========================================
 
         [HttpGet]
         public IActionResult ForgotPassword() { return View(); }
 
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ForgotPassword(ForgotPasswordViewModel model)
+        {
+            if (ModelState.IsValid)
+            {
+                var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == model.Email);
+                if (user != null)
+                {
+                    // Generate a unique token
+                    var token = Guid.NewGuid().ToString();
+
+                    // Store token in cache for 15 mins (Key: ResetToken_GUID -> Email)
+                    _cache.Set($"ResetToken_{token}", model.Email, TimeSpan.FromMinutes(15));
+
+                    // Generate Link
+                    var resetLink = Url.Action("ResetPassword", "Auth", new { token = token, email = model.Email }, Request.Scheme);
+
+                    // Send Email using IEmailService (Interface for Forgot Password)
+                    await _emailService.SendPasswordResetLinkAsync(user.Email, user.FullName, resetLink);
+                }
+
+                // Show success message regardless to prevent email enumeration
+                TempData["SuccessMessage"] = "If an account exists, a reset link has been sent to your email.";
+                return RedirectToAction("ForgotPassword");
+            }
+            return View(model);
+        }
+
         [HttpGet]
         public IActionResult ResetPassword(string token, string email)
         {
-            if (token == null || email == null)
+            if (string.IsNullOrEmpty(token) || string.IsNullOrEmpty(email))
             {
-                ModelState.AddModelError("", "Invalid password reset token");
+                TempData["ErrorMessage"] = "Invalid password reset link.";
             }
             return View(new ResetPasswordViewModel { Token = token, Email = email });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ResetPassword(ResetPasswordViewModel model)
+        {
+            if (!ModelState.IsValid) return View(model);
+
+            // 1. Verify Token from Cache
+            if (!_cache.TryGetValue($"ResetToken_{model.Token}", out string cachedEmail) || cachedEmail != model.Email)
+            {
+                TempData["ErrorMessage"] = "This reset link is invalid or has expired.";
+                return RedirectToAction("ForgotPassword");
+            }
+
+            // 2. Find User
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == model.Email);
+            if (user == null)
+            {
+                TempData["ErrorMessage"] = "User not found.";
+                return RedirectToAction("Login");
+            }
+
+            // 3. Update Password
+            user.PasswordHash = HashPassword(model.NewPassword);
+            _context.Users.Update(user);
+            await _context.SaveChangesAsync();
+
+            // 4. Invalidate Token
+            _cache.Remove($"ResetToken_{model.Token}");
+
+            TempData["SuccessMessage"] = "Password has been reset successfully. Please login.";
+            return RedirectToAction("Login");
+        }
+
+        // ==========================================
+        // OTHER ACTIONS
+        // ==========================================
+        public async Task<IActionResult> Logout()
+        {
+            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            return RedirectToAction("Login");
         }
 
         // --- HELPERS ---
@@ -234,23 +342,18 @@ namespace FlyEase.Controllers
             return BCrypt.Net.BCrypt.HashPassword(password);
         }
 
-        // FIXED: Safe verification that handles legacy plain text passwords without crashing
         private bool VerifyPassword(string password, string storedHash)
         {
             try
             {
-                // If storedHash is empty or likely plain text (doesn't start with BCrypt identifier), compare directly
                 if (string.IsNullOrEmpty(storedHash) || !storedHash.StartsWith("$2"))
                 {
                     return password == storedHash;
                 }
-
-                // Attempt standard BCrypt verify
                 return BCrypt.Net.BCrypt.Verify(password, storedHash);
             }
             catch (Exception)
             {
-                // If BCrypt crashes (e.g., SaltParseException), assume stored value is plain text
                 return password == storedHash;
             }
         }
