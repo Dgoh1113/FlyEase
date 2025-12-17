@@ -6,96 +6,54 @@
 
 <link rel="stylesheet" href="~/css/report.css" />
 <script src="~/js/report.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-<style>
-    .chart-tab-btn {
-        min-width: 120px;
-        font-weight: 600;
-        border-radius: 0;
-        border: 1px solid #e3e6f0;
-        color: #6e707e;
-        background-color: #fff;
-    }
-
-        .chart-tab-btn.active {
-            background-color: #4e73df;
-            color: white;
-            border-color: #4e73df;
-        }
-
-        .chart-tab-btn:first-child {
-            border-radius: 0.35rem 0 0 0.35rem;
-        }
-
-        .chart-tab-btn:last-child {
-            border-radius: 0 0.35rem 0.35rem 0;
-        }
-
-    .chart-section {
-        display: none;
-        animation: fadeIn 0.5s;
-    }
-
-        .chart-section.active-section {
-            display: flex;
-        }
-
-    /* Scrollable Chart Containers */
-    /* Wrapper handles the scrollbar */
-    .chart-scroll-wrapper {
-        height: 350px; /* Visible height */
-        overflow-y: auto;
-        border-bottom: 1px solid #e3e6f0;
-        scrollbar-width: thin;
-        position: relative;
-    }
-
-    /* Inner Box holds the canvas and grows */
-    .chart-canvas-box {
-        position: relative;
-        width: 100%;
-        /* Min height ensures at least the minimum lines fit comfortably */
-        min-height: 400px;
-    }
-
-    @@keyframes fadeIn {
-        from {
-            opacity: 0;
-        }
-
-        to {
-            opacity: 1;
-        }
-    }
-</style>
 
 <div class="container-fluid py-4">
     <div id="printable-area">
+        <!-- HEADER -->
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
                 <h2 class="fw-bold mb-2 text-primary">Reports</h2>
-                <p class="text-muted mt-2">Comprehensive analysis of bookings, revenue, users and packages.</p>
+                <!-- REPORT SWITCHER BUTTONS -->
+                <div class="btn-group" role="group" aria-label="Report Type">
+                    <a asp-controller="Report" asp-action="SalesReport"
+                       class="btn btn-primary @(ViewContext.RouteData.Values["Action"]?.ToString() == "SalesReport" ? "active" : "btn-outline-primary")">
+                        <i class="fas fa-chart-line me-2"></i>Sales Report
+                    </a>
+                    <a asp-controller="Report" asp-action="PackagePerformanceReport"
+                       class="btn @(ViewContext.RouteData.Values["Action"]?.ToString() == "PackagePerformanceReport" ? "btn-primary active" : "btn-outline-primary")">
+                        <i class="fas fa-box-open me-2"></i>Package Performance
+                    </a>
+                    <a asp-controller="Report" asp-action="CustomerInsightReport"
+                       class="btn @(ViewContext.RouteData.Values["Action"]?.ToString() == "CustomerInsightReport" ? "btn-primary active" : "btn-outline-primary")">
+                        <i class="fas fa-users me-2"></i>Customer Insight
+                    </a>
+                </div>
+                <p class="text-muted mt-2">Comprehensive analysis of bookings and payments</p>
             </div>
-            <div class="d-flex gap-2">
-                <a asp-controller="Report" asp-action="PackagePerformanceReport" class="btn btn-outline-primary">
-                    <i class="fas fa-box-open me-2"></i>Package Performance
-                </a>
-                <a asp-controller="Report" asp-action="CustomerInsightReport" class="btn btn-outline-primary">
-                    <i class="fas fa-users me-2"></i>Customer Insight
-                </a>
+            <div class="alert alert-info no-print">
+                <h6><i class="fas fa-info-circle me-2"></i>PDF Download Tips:</h6>
+                <ol class="mb-0">
+                    <li>Click <strong>Export PDF </strong> button</li>
+                    <li>In print dialog, select <strong>"Save as PDF"</strong> as printer</li>
+                    <li>Adjust margins to <strong>"None"</strong> or <strong>"Minimum"</strong></li>
+                    <li>Click <strong>Save</strong> to download</li>
+                </ol>
+            </div>
+            <div class="d-flex">
                 <button class="btn btn-danger" data-action="export-pdf">
                     <i class="fas fa-file-pdf me-2"></i> Export PDF
                 </button>
             </div>
         </div>
 
+        <!-- FILTERS CARD -->
         <div class="card shadow-sm mb-4 no-print">
             <div class="card-header bg-white py-3">
-                <h5 class="mb-0 fw-bold">Report Filters (Table Only)</h5>
+                <h5 class="mb-0 fw-bold">Report Filters</h5>
             </div>
             <div class="card-body">
-                <form method="get" asp-action="SalesReport" class="row g-3" id="reportFilterForm">
+                <form method="get" asp-action="Report" class="row g-3" id="reportFilterForm">
+                    <!-- Date Range -->
                     <div class="col-md-2">
                         <label class="form-label fw-bold">Start Date</label>
                         <input type="date" class="form-control" name="startDate" value="@Model.StartDate.ToString("yyyy-MM-dd")" required>
@@ -104,6 +62,8 @@
                         <label class="form-label fw-bold">End Date</label>
                         <input type="date" class="form-control" name="endDate" value="@Model.EndDate.ToString("yyyy-MM-dd")" required>
                     </div>
+
+                    <!-- Filter Type -->
                     <div class="col-md-2">
                         <label class="form-label fw-bold">Filter By</label>
                         <select class="form-select" name="dateFilterType">
@@ -112,6 +72,8 @@
                             <option value="travel" selected="@(Model.DateFilterType == "travel")">Travel Date</option>
                         </select>
                     </div>
+
+                    <!-- Payment Method -->
                     <div class="col-md-2">
                         <label class="form-label fw-bold">Payment Method</label>
                         <select class="form-select" name="paymentMethodFilter">
@@ -121,6 +83,8 @@
                             }
                         </select>
                     </div>
+
+                    <!-- Booking Status -->
                     <div class="col-md-2">
                         <label class="form-label fw-bold">Booking Status</label>
                         <select class="form-select" name="bookingStatusFilter">
@@ -130,137 +94,129 @@
                             }
                         </select>
                     </div>
+
+                    <!-- Submit -->
                     <div class="col-md-2 d-flex align-items-end">
                         <button type="submit" class="btn btn-primary w-100">
-                            <i class="fas fa-search me-2"></i>Generate
+                            <i class="fas fa-search me-2"></i>Generate Report
                         </button>
                     </div>
                 </form>
             </div>
         </div>
 
-        <div class="d-flex justify-content-center mb-4">
-            <div class="btn-group shadow-sm" role="group">
-                <button type="button" class="btn chart-tab-btn active" onclick="switchChartTab('revenue', this)">Revenue</button>
-                <button type="button" class="btn chart-tab-btn" onclick="switchChartTab('booking', this)">Booking</button>
-                <button type="button" class="btn chart-tab-btn" onclick="switchChartTab('user', this)">User</button>
-                <button type="button" class="btn chart-tab-btn" onclick="switchChartTab('packages', this)">Packages</button>
-            </div>
-        </div>
-
-        <div id="section-revenue" class="row mb-4 g-4 chart-section active-section">
-            <div class="col-lg-8">
-                <div class="card shadow-sm h-100 dashboard-card">
-                    <div class="card-header py-3 bg-transparent border-bottom d-flex justify-content-between align-items-center">
-                        <h6 class="m-0 fw-bold text-primary">Revenue Overview</h6>
-                        <div class="btn-group btn-group-sm">
-                            <button type="button" class="btn btn-outline-primary active" onclick="updateChartData('revenue', '1year', this)">1 Year</button>
-                            <button type="button" class="btn btn-outline-primary" onclick="updateChartData('revenue', '30days', this)">1 Month</button>
-                            <button type="button" class="btn btn-outline-primary" onclick="updateChartData('revenue', '7days', this)">7 Days</button>
-                        </div>
-                    </div>
-                    <div class="card-body p-0">
-                        <div class="chart-scroll-wrapper">
-                            <div class="chart-canvas-box" id="box-revenue">
-                                <canvas id="chartRevenueLine"></canvas>
+        <!-- SUMMARY STATISTICS -->
+        <div class="row mb-4 g-3">
+            <div class="col-md-3">
+                <div class="card border-0 shadow-sm h-100 summary-card" style="border-left: 5px solid #4e73df;">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <p class="text-muted mb-1">Total Revenue</p>
+                                <h4 class="fw-bold mb-0">RM @Model.TotalRevenue.ToString("N0")</h4>
                             </div>
+                            <i class="fas fa-dollar-sign fa-2x text-muted opacity-50"></i>
                         </div>
                     </div>
                 </div>
             </div>
-            <div class="col-lg-4">
-                <div class="card shadow-sm h-100 dashboard-card">
-                    <div class="card-header py-3 bg-transparent border-bottom">
-                        <h6 class="m-0 fw-bold text-primary">Top Packages by Revenue</h6>
-                    </div>
-                    <div class="card-body position-relative">
-                        <div class="chart-pie pt-4 pb-2" style="height: 300px;">
-                            <canvas id="chartRevenueDonut"></canvas>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
 
-        <div id="section-booking" class="row mb-4 g-4 chart-section">
-            <div class="col-lg-8">
-                <div class="card shadow-sm h-100 dashboard-card">
-                    <div class="card-header py-3 bg-transparent border-bottom d-flex justify-content-between align-items-center">
-                        <h6 class="m-0 fw-bold text-success">Booking Overview</h6>
-                        <div class="btn-group btn-group-sm">
-                            <button type="button" class="btn btn-outline-success active" onclick="updateChartData('booking', '1year', this)">1 Year</button>
-                            <button type="button" class="btn btn-outline-success" onclick="updateChartData('booking', '30days', this)">1 Month</button>
-                            <button type="button" class="btn btn-outline-success" onclick="updateChartData('booking', '7days', this)">7 Days</button>
-                        </div>
-                    </div>
-                    <div class="card-body p-0">
-                        <div class="chart-scroll-wrapper">
-                            <div class="chart-canvas-box" id="box-booking">
-                                <canvas id="chartBookingLine"></canvas>
+            <div class="col-md-3">
+                <div class="card border-0 shadow-sm h-100 summary-card" style="border-left: 5px solid #1cc88a;">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <p class="text-muted mb-1">Total Bookings</p>
+                                <h4 class="fw-bold mb-0">@Model.TotalBookings</h4>
                             </div>
+                            <i class="fas fa-calendar-check fa-2x text-muted opacity-50"></i>
                         </div>
                     </div>
                 </div>
             </div>
-            <div class="col-lg-4">
-                <div class="card shadow-sm h-100 dashboard-card">
-                    <div class="card-header py-3 bg-transparent border-bottom">
-                        <h6 class="m-0 fw-bold text-success">Booking Status</h6>
-                    </div>
-                    <div class="card-body position-relative">
-                        <div class="chart-pie pt-4 pb-2" style="height: 300px;">
-                            <canvas id="chartBookingDonut"></canvas>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
 
-        <div id="section-user" class="row mb-4 g-4 chart-section">
-            <div class="col-lg-12">
-                <div class="card shadow-sm h-100 dashboard-card">
-                    <div class="card-header py-3 bg-transparent border-bottom d-flex justify-content-between align-items-center">
-                        <h6 class="m-0 fw-bold text-info">User Registrations</h6>
-                        <div class="btn-group btn-group-sm">
-                            <button type="button" class="btn btn-outline-info active" onclick="updateChartData('user', '1year', this)">1 Year</button>
-                            <button type="button" class="btn btn-outline-info" onclick="updateChartData('user', '30days', this)">1 Month</button>
-                            <button type="button" class="btn btn-outline-info" onclick="updateChartData('user', '7days', this)">7 Days</button>
-                        </div>
-                    </div>
-                    <div class="card-body p-0">
-                        <div class="chart-scroll-wrapper">
-                            <div class="chart-canvas-box" id="box-user">
-                                <canvas id="chartUserLine"></canvas>
+            <div class="col-md-3">
+                <div class="card border-0 shadow-sm h-100 summary-card" style="border-left: 5px solid #f6c23e;">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <p class="text-muted mb-1">Avg Booking Value</p>
+                                <h4 class="fw-bold mb-0">RM @Model.AverageBookingValue.ToString("N0")</h4>
                             </div>
+                            <i class="fas fa-chart-bar fa-2x text-muted opacity-50"></i>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <div id="section-packages" class="row mb-4 g-4 chart-section">
-            <div class="col-lg-12">
-                <div class="card shadow-sm h-100 dashboard-card">
-                    <div class="card-header py-3 bg-transparent border-bottom d-flex justify-content-between align-items-center">
-                        <h6 class="m-0 fw-bold text-warning">Top Package Ratings</h6>
-                        <div class="btn-group btn-group-sm">
-                            <button type="button" class="btn btn-outline-warning active" onclick="updateChartData('packages', '1year', this)">1 Year</button>
-                            <button type="button" class="btn btn-outline-warning" onclick="updateChartData('packages', '30days', this)">1 Month</button>
-                            <button type="button" class="btn btn-outline-warning" onclick="updateChartData('packages', '7days', this)">7 Days</button>
-                        </div>
-                    </div>
-                    <div class="card-body p-0">
-                        <div class="chart-scroll-wrapper">
-                            <div class="chart-canvas-box" id="box-packages">
-                                <canvas id="chartPackagesBar"></canvas>
+            <div class="col-md-3">
+                <div class="card border-0 shadow-sm h-100 summary-card" style="border-left: 5px solid #36b9cc;">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <p class="text-muted mb-1">Payment Success Rate</p>
+                                <h4 class="fw-bold mb-0">@Model.PaymentSuccessRate.ToString("N1")%</h4>
                             </div>
+                            <i class="fas fa-check-circle fa-2x text-muted opacity-50"></i>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="card shadow-sm mt-4">
+        <!-- BOOKING & PAYMENT STATUS BREAKDOWN -->
+        <div class="row mb-4 g-3">
+            <div class="col-md-6">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-white py-3">
+                        <h5 class="mb-0 fw-bold">Booking Status Breakdown</h5>
+                    </div>
+                    <div class="card-body">
+                        <div style="height: 300px;">
+                            <canvas id="bookingStatusChart"
+                                    data-labels='@Html.Raw(Json.Serialize(Model.BookingStatusLabels))'
+                                    data-values='@Html.Raw(Json.Serialize(Model.BookingStatusValues))'>
+                            </canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-white py-3">
+                        <h5 class="mb-0 fw-bold">Payment Method Distribution</h5>
+                    </div>
+                    <div class="card-body">
+                        <div style="height: 300px;">
+                            <canvas id="paymentMethodChart"
+                                    data-labels='@Html.Raw(Json.Serialize(Model.PaymentMethodLabels))'
+                                    data-values='@Html.Raw(Json.Serialize(Model.PaymentMethodValues))'
+                                    data-colors='@Html.Raw(Json.Serialize(Model.PaymentMethodColors))'>
+                            </canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- REVENUE CHART -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-white py-3">
+                <h5 class="mb-0 fw-bold">Daily Revenue Trend</h5>
+            </div>
+            <div class="card-body">
+                <div style="height: 350px;">
+                    <canvas id="revenueChart"
+                            data-dates='@Html.Raw(Json.Serialize(Model.RevenueChartDates))'
+                            data-values='@Html.Raw(Json.Serialize(Model.RevenueChartValues))'>
+                    </canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- DETAILED TABLE -->
+        <div class="card shadow-sm">
             <div class="card-header bg-white py-3">
                 <div class="d-flex justify-content-between align-items-center">
                     <h5 class="mb-0 fw-bold">Detailed Bookings & Payments</h5>
@@ -276,8 +232,13 @@
                                 <th>Customer</th>
                                 <th>Package</th>
                                 <th>Booking Date</th>
+                                <th>Travel Date</th>
+                                <th>Pax</th>
                                 <th>Booking Amount</th>
-                                <th>Status</th>
+                                <th>Total Paid</th>
+                                <th>Balance</th>
+                                <th>Booking Status</th>
+                                <th>Payment Status</th>
                                 <th>Payment Method</th>
                             </tr>
                         </thead>
@@ -287,17 +248,51 @@
                                 <tr>
                                     <td class="ps-4"><strong>#@detail.BookingID</strong></td>
                                     <td>
-                                        <div><p class="fw-bold mb-0">@detail.CustomerName</p><small class="text-muted">@detail.CustomerEmail</small></div>
+                                        <div>
+                                            <p class="fw-bold mb-0">@detail.CustomerName</p>
+                                            <small class="text-muted">@detail.CustomerEmail</small>
+                                        </div>
                                     </td>
                                     <td>@detail.PackageName</td>
                                     <td>@detail.BookingDate.ToString("dd MMM yyyy")</td>
+                                    <td>@detail.TravelDate.ToString("dd MMM yyyy")</td>
+                                    <td>@detail.NumberOfPeople</td>
                                     <td><strong>RM @detail.BookingAmount.ToString("N2")</strong></td>
+                                    <td><span class="text-success fw-bold">RM @detail.TotalPaid.ToString("N2")</span></td>
+                                    <td>
+                                        @if (detail.BalanceDue > 0)
+                                        {
+                                            <span class="text-danger fw-bold">RM @detail.BalanceDue.ToString("N2")</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">—</span>
+                                        }
+                                    </td>
                                     <td>
                                         @{
-                                            var badgeClass = detail.BookingStatus == "Completed" ? "bg-success" :
-                                            detail.BookingStatus == "Pending" ? "bg-warning text-dark" : "bg-danger";
+                                            var statusClass = detail.BookingStatus switch
+                                            {
+                                                "Completed" => "bg-success",
+                                                "Pending" => "bg-warning text-dark",
+                                                "Cancelled" => "bg-danger",
+                                                _ => "bg-secondary"
+                                            };
                                         }
-                                        <span class="badge @badgeClass">@detail.BookingStatus</span>
+                                        <span class="badge @statusClass">@detail.BookingStatus</span>
+                                    </td>
+                                    <td>
+                                        @{
+                                            var paymentClass = detail.PaymentStatus switch
+                                            {
+                                                "Fully Paid" => "bg-success",
+                                                "Partial" => "bg-info",
+                                                "Unpaid" => "bg-danger",
+                                                "Free" => "bg-secondary",
+                                                _ => "bg-muted"
+                                            };
+                                        }
+                                        <span class="badge @paymentClass">@detail.PaymentStatus</span>
                                     </td>
                                     <td><small>@detail.PaymentMethod</small></td>
                                 </tr>
@@ -309,233 +304,3 @@
         </div>
     </div>
 </div>
-
-<script>
-    // ==========================================
-    // 1. DATA PREPARATION
-    // ==========================================
-    const allData = {
-        'revenue': {
-            '7days': { labels: @Html.Raw(Json.Serialize(Model.RevenueLabels7Days)), data: @Html.Raw(Json.Serialize(Model.RevenueValues7Days)) },
-            '30days': { labels: @Html.Raw(Json.Serialize(Model.RevenueLabels30Days)), data: @Html.Raw(Json.Serialize(Model.RevenueValues30Days)) },
-            '1year': { labels: @Html.Raw(Json.Serialize(Model.RevenueLabels1Year)), data: @Html.Raw(Json.Serialize(Model.RevenueValues1Year)) }
-        },
-        'booking': {
-            '7days': { labels: @Html.Raw(Json.Serialize(Model.BookingLabels7Days)), data: @Html.Raw(Json.Serialize(Model.BookingValues7Days)) },
-            '30days': { labels: @Html.Raw(Json.Serialize(Model.BookingLabels30Days)), data: @Html.Raw(Json.Serialize(Model.BookingValues30Days)) },
-            '1year': { labels: @Html.Raw(Json.Serialize(Model.BookingLabels1Year)), data: @Html.Raw(Json.Serialize(Model.BookingValues1Year)) }
-        },
-        'user': {
-            '7days': { labels: @Html.Raw(Json.Serialize(Model.UserLabels7Days)), data: @Html.Raw(Json.Serialize(Model.UserValues7Days)) },
-            '30days': { labels: @Html.Raw(Json.Serialize(Model.UserLabels30Days)), data: @Html.Raw(Json.Serialize(Model.UserValues30Days)) },
-            '1year': { labels: @Html.Raw(Json.Serialize(Model.UserLabels1Year)), data: @Html.Raw(Json.Serialize(Model.UserValues1Year)) }
-        },
-        'packages': {
-            '7days': { labels: @Html.Raw(Json.Serialize(Model.PackageRatingLabels7Days)), data: @Html.Raw(Json.Serialize(Model.PackageRatingValues7Days)) },
-            '30days': { labels: @Html.Raw(Json.Serialize(Model.PackageRatingLabels30Days)), data: @Html.Raw(Json.Serialize(Model.PackageRatingValues30Days)) },
-            '1year': { labels: @Html.Raw(Json.Serialize(Model.PackageRatingLabels1Year)), data: @Html.Raw(Json.Serialize(Model.PackageRatingValues1Year)) }
-        }
-    };
-
-    // Chart Settings for Grid Lines (Step Size)
-    const chartSettings = {
-        'revenue': { '7days': 500, '30days': 500, '1year': 2000 },
-        'booking': { '7days': 1, '30days': 1, '1year': 10 },
-        'user':    { '7days': 1, '30days': 1, '1year': 10 },
-        'packages':{ '7days': 1, '30days': 1, '1year': 1 }
-    };
-
-    let charts = {
-        'revenue': null,
-        'booking': null,
-        'user': null,
-        'packages': null,
-        'revenueDonut': null,
-        'bookingDonut': null
-    };
-
-    // ==========================================
-    // 2. CHART INITIALIZATION
-    // ==========================================
-    document.addEventListener("DOMContentLoaded", function() {
-
-        // --- A. Revenue Line ---
-        initChart('revenue', 'chartRevenueLine', 'line', '#4e73df', "Revenue (RM)");
-
-        // --- B. Revenue Donut ---
-        var ctxRevDonut = document.getElementById("chartRevenueDonut");
-        if(ctxRevDonut) {
-             charts.revenueDonut = new Chart(ctxRevDonut, {
-                type: 'doughnut',
-                data: {
-                    labels: @Html.Raw(Json.Serialize(Model.RevenueDonutLabels)),
-                    datasets: [{
-                        data: @Html.Raw(Json.Serialize(Model.RevenueDonutValues)),
-                        backgroundColor: ['#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b'],
-                    }]
-                },
-                options: { maintainAspectRatio: false, cutout: '70%', plugins: { legend: { position: 'bottom' } } }
-            });
-        }
-
-        // --- C. Booking Line ---
-        initChart('booking', 'chartBookingLine', 'line', '#1cc88a', "Bookings");
-
-        // --- D. Booking Donut ---
-        var ctxBookDonut = document.getElementById("chartBookingDonut");
-        if(ctxBookDonut) {
-             charts.bookingDonut = new Chart(ctxBookDonut, {
-                type: 'doughnut',
-                data: {
-                    labels: @Html.Raw(Json.Serialize(Model.BookingDonutLabels)),
-                    datasets: [{
-                        data: @Html.Raw(Json.Serialize(Model.BookingDonutValues)),
-                        backgroundColor: ['#1cc88a', '#f6c23e', '#e74a3b', '#858796'],
-                    }]
-                },
-                options: { maintainAspectRatio: false, cutout: '70%', plugins: { legend: { position: 'bottom' } } }
-            });
-        }
-
-        // --- E. User Line ---
-        initChart('user', 'chartUserLine', 'line', '#36b9cc', "New Users");
-
-        // --- F. Packages Bar ---
-        var ctxPkg = document.getElementById("chartPackagesBar");
-        if(ctxPkg) {
-            charts.packages = new Chart(ctxPkg, {
-                type: 'bar',
-                data: {
-                    labels: allData.packages['1year'].labels,
-                    datasets: [{
-                        label: 'Avg Rating',
-                        data: allData.packages['1year'].data,
-                        backgroundColor: [ 'rgba(255, 99, 132, 0.2)', 'rgba(255, 159, 64, 0.2)', 'rgba(255, 205, 86, 0.2)', 'rgba(75, 192, 192, 0.2)', 'rgba(54, 162, 235, 0.2)', 'rgba(153, 102, 255, 0.2)', 'rgba(201, 203, 207, 0.2)' ],
-                        borderColor: [ 'rgb(255, 99, 132)', 'rgb(255, 159, 64)', 'rgb(255, 205, 86)', 'rgb(75, 192, 192)', 'rgb(54, 162, 235)', 'rgb(153, 102, 255)', 'rgb(201, 203, 207)' ],
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    maintainAspectRatio: false,
-                    scales: { y: { beginAtZero: true, max: 5, ticks: { stepSize: 1 } } },
-                    plugins: { legend: { display: false } }
-                }
-            });
-            // Initial adjustment
-            adjustChartHeight('packages', '1year');
-        }
-
-        // Initial adjustment for lines
-        adjustChartHeight('revenue', '1year');
-        adjustChartHeight('booking', '1year');
-        adjustChartHeight('user', '1year');
-    });
-
-    // Helper to init standard line charts
-    function initChart(type, canvasId, chartType, color, label) {
-        var ctx = document.getElementById(canvasId);
-        if(ctx) {
-            charts[type] = new Chart(ctx, {
-                type: chartType,
-                data: {
-                    labels: allData[type]['1year'].labels,
-                    datasets: [{
-                        label: label,
-                        data: allData[type]['1year'].data,
-                        borderColor: color,
-                        tension: 0.3,
-                        pointBackgroundColor: color,
-                        fill: false
-                    }]
-                },
-                options: {
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            beginAtZero: true
-                        }
-                    },
-                    plugins: { legend: { display: false } }
-                }
-            });
-        }
-    }
-
-    // ==========================================
-    // 3. LOGIC FUNCTIONS
-    // ==========================================
-
-    function switchChartTab(type, btn) {
-        document.querySelectorAll('.chart-tab-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        document.querySelectorAll('.chart-section').forEach(s => s.classList.remove('active-section'));
-        document.getElementById('section-' + type).classList.add('active-section');
-    }
-
-    function updateChartData(chartType, range, btn) {
-        if(btn) {
-            btn.parentNode.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-        }
-
-        const newData = allData[chartType][range];
-        const chart = charts[chartType];
-
-        if (chart) {
-            // Update Data
-            chart.data.labels = newData.labels;
-            chart.data.datasets[0].data = newData.data;
-
-            chart.update();
-
-            // Adjust Height for scrolling and Scale steps
-            adjustChartHeight(chartType, range);
-        }
-    }
-
-    // Function to calculate and apply dynamic height
-    function adjustChartHeight(type, range) {
-        const step = chartSettings[type][range];
-        const data = allData[type][range].data;
-
-        let maxVal = 0;
-        if (data && data.length > 0) {
-            maxVal = Math.max(...data);
-        }
-
-        if (maxVal === 0) maxVal = step * 5; // Default fallback if no data
-
-        // Calculate how many steps (grid lines) we need to cover the max value
-        let steps = Math.ceil(maxVal / step);
-
-        // ENFORCE MINIMUM 10 STEPS (LINES)
-        if (steps < 10) steps = 10;
-
-        // Calculate the exact max value for the axis to ensure it ends on a step
-        const axisMax = steps * step;
-
-        // Pixels per step (Fixed height per grid line)
-        const pixelsPerStep = 40;
-
-        // Total Height = (Number of Steps * Height per Step) + Buffer for X-axis labels
-        const chartHeight = (steps * pixelsPerStep) + 60;
-
-        // Apply height to container
-        const box = document.getElementById('box-' + type);
-        if(box) {
-            box.style.height = chartHeight + 'px';
-        }
-
-        // Update Chart Options
-        if (charts[type]) {
-            // We set the step size and explicit max to force the grid
-            charts[type].options.scales.y.min = 0;
-            charts[type].options.scales.y.max = axisMax;
-            charts[type].options.scales.y.ticks.stepSize = step;
-
-            // Resize and Update to apply changes
-            charts[type].resize();
-            charts[type].update();
-        }
-    }
-</script>
