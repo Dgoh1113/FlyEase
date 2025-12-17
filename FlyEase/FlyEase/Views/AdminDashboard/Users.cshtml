@@ -20,15 +20,13 @@
     <div class="card-body py-3">
         <form method="get" asp-action="Users" class="row g-3">
             <div class="col-md-7">
-                <input type="text" name="search" class="form-control" placeholder="Search by ID, Name or Email..."
-                       value="@Model.SearchTerm">
+                <input type="text" name="search" class="form-control" placeholder="Search by ID, Name or Email..." value="@Model.SearchTerm">
             </div>
             <div class="col-md-3">
                 <select name="role" class="form-select">
                     <option value="All">All Roles</option>
                     <option value="User" selected="@(Model.RoleFilter == "User")">User</option>
                     <option value="Staff" selected="@(Model.RoleFilter == "Staff")">Staff</option>
-                    @* --- ADDED BAN OPTION --- *@
                     <option value="Ban" selected="@(Model.RoleFilter == "Ban")">Banned</option>
                 </select>
             </div>
@@ -65,7 +63,6 @@
                                 <td>@user.Email</td>
                                 <td>@(user.Phone ?? "-")</td>
                                 <td>
-                                    @* --- UPDATED ROLE BADGES --- *@
                                     @if (user.Role == "Ban")
                                     {
                                         <span class="badge bg-danger">Banned</span>
@@ -81,17 +78,20 @@
                                 </td>
                                 <td>@user.CreatedDate.ToString("MMM dd, yyyy")</td>
                                 <td class="text-end pe-4">
-                                    @* --- UPDATED ACTION BUTTON --- *@
-                                    @if (user.Role != "Ban")
+                                    @* --- ACTION BUTTONS LOGIC --- *@
+                                    @if (user.Role == "Ban")
+                                    {
+                                        <button class="btn btn-sm btn-outline-success" title="Unban User"
+                                                onclick="confirmUnban(@user.UserID, '@System.Web.HttpUtility.JavaScriptStringEncode(user.FullName)')">
+                                            <i class="fas fa-check-circle"></i> Unban
+                                        </button>
+                                    }
+                                    else
                                     {
                                         <button class="btn btn-sm btn-outline-danger" title="Ban User"
                                                 onclick="confirmBan(@user.UserID, '@System.Web.HttpUtility.JavaScriptStringEncode(user.FullName)')">
                                             <i class="fas fa-ban"></i> Ban
                                         </button>
-                                    }
-                                    else
-                                    {
-                                        <span class="text-muted small">Banned</span>
                                     }
                                 </td>
                             </tr>
@@ -122,6 +122,7 @@
     </div>
 </div>
 
+@* --- BAN CONFIRMATION MODAL --- *@
 <div class="modal fade" id="banModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
@@ -147,6 +148,33 @@
     </div>
 </div>
 
+@* --- UNBAN CONFIRMATION MODAL (NEW) --- *@
+<div class="modal fade" id="unbanModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title"><i class="fas fa-check-circle me-2"></i>Confirm Unban</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center py-4">
+                <i class="fas fa-user-check fa-4x text-success mb-3"></i>
+                <p class="mb-1">Are you sure you want to unban <strong id="unbanUserName"></strong>?</p>
+                <p class="text-muted small">This will restore the user's access to the system.</p>
+            </div>
+            <div class="modal-footer justify-content-center">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form asp-action="UnbanUser" method="post">
+                    <input type="hidden" id="unbanUserId" name="id" />
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-unlock me-2"></i>Unban User
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* --- ADD/EDIT USER MODAL --- *@
 <div class="modal fade" id="userModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -203,6 +231,14 @@
         document.getElementById('banUserId').value = id;
         document.getElementById('banUserName').innerText = name;
         var modal = new bootstrap.Modal(document.getElementById('banModal'));
+        modal.show();
+    }
+
+    // --- NEW: Unban Function ---
+    function confirmUnban(id, name) {
+        document.getElementById('unbanUserId').value = id;
+        document.getElementById('unbanUserName').innerText = name;
+        var modal = new bootstrap.Modal(document.getElementById('unbanModal'));
         modal.show();
     }
 </script>
