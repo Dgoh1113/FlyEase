@@ -1,0 +1,34 @@
+[
+  {
+    "keywords": [ "hello", "hi", "hey" ],
+    "response": "Hello! 👋 I can help you navigate FlyEase. Try asking: <br>• 'How do I book?' <br>• 'Show me discounts' <br>• 'Check status'"
+  },
+  {
+    "keywords": [ "how to book", "booking process", "new booking" ],
+    "response": "<b>How to Book:</b><br>1. Browse our <a href='/Package/Index'>Tour Packages</a>.<br>2. Click 'View Details' on a trip you like.<br>3. Click 'Book Now' and fill in your details.<br>👉 <a href='/Package/Index'><b>Go to Packages Now</b></a>"
+  },
+  {
+    "keywords": [ "status", "check booking", "my booking" ],
+    "response": "<b>Two ways to check status:</b><br>1. Go to your <a href='/User/Profile'>Profile Dashboard</a>.<br>2. Or just type your Booking ID here (e.g., <b>#101</b>) and I will look it up for you!"
+  },
+  {
+    "keywords": [ "discount", "promo", "offer", "save" ],
+    "response": "<b>Looking for a deal?</b> 🎁<br>Check out our <a href='/Discount/Index'>Discounts Page</a> for the latest vouchers and seasonal offers."
+  },
+  {
+    "keywords": [ "cancel", "refund", "change trip" ],
+    "response": "To cancel a trip, please visit your <a href='/User/Profile'>Profile Page</a> and select the booking.<br><i>Note: Cancellations within 3 days of travel are non-refundable.</i>"
+  },
+  {
+    "keywords": [ "register", "sign up", "account" ],
+    "response": "New to FlyEase? Welcome! 🎉<br>You can <a href='/Account/Register'>Create an Account here</a> to start booking."
+  },
+  {
+    "keywords": [ "login", "sign in" ],
+    "response": "Already have an account? <a href='/Account/Login'>Log in here</a> to access your bookings."
+  },
+  {
+    "keywords": [ "contact", "support", "help" ],
+    "response": "Need human help? <a href='/Home/Contact'>Contact Us</a> or call <b>+60 11-1685 8138</b>."
+  }
+]
