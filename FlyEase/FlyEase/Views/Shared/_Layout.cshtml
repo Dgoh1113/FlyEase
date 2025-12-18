@@ -122,14 +122,16 @@
             flex-direction: row-reverse; /* Puts Toggle on Right, Logo on Left */
             align-items: center;
             justify-content: center; /* Center toggle when collapsed */
-            height: 4rem; /* Fixed height so box size doesn't change */
+            height: 4rem;
+            /* Fixed height so box size doesn't change */
             margin-bottom: 1rem;
             padding: 0 0.25rem;
             overflow: hidden;
         }
 
         .vertical-sidebar:has(:checked) header.sidebar-header {
-            justify-content: space-between; /* Spread Logo and Toggle when expanded */
+            justify-content: space-between;
+            /* Spread Logo and Toggle when expanded */
         }
 
         .sidebar__toggle-container {
@@ -196,7 +198,8 @@
 
         /* Adjust Icon Container inside Logo */
         figure.sidebar-logo .text-primary {
-            margin-bottom: 0 !important; /* Remove bottom margin to align horizontally */
+            margin-bottom: 0 !important;
+            /* Remove bottom margin to align horizontally */
             display: flex;
             align-items: center;
         }
@@ -217,14 +220,16 @@
 
         /* Make Brand Font Smaller */
         .user-id {
-            font-size: 1rem; /* Smaller than 1.25rem */
+            font-size: 1rem;
+            /* Smaller than 1.25rem */
             font-weight: 700;
             color: var(--accent-primary);
             margin: 0;
         }
 
         .user-role {
-            font-size: 0.7rem; /* Smaller subtext */
+            font-size: 0.7rem;
+            /* Smaller subtext */
             font-weight: 500;
             color: var(--text-muted);
             margin: 0;
@@ -522,6 +527,16 @@
                             </a>
                         </li>
 
+                        @if (User.Identity != null && User.Identity.IsAuthenticated)
+                        {
+                            <li class="sidebar__item">
+                                <a class="sidebar__link @(ViewContext.RouteData.Values["Action"]?.ToString() == "Insights" ? "active" : "")"
+                                   asp-controller="Feedback" asp-action="Insights" data-tooltip="Travel Insights">
+                                    <span class="icon"><i class="fas fa-chart-pie"></i></span>
+                                    <span class="text">Insights</span>
+                                </a>
+                            </li>
+                        }
                         @if (User.IsInRole("Staff") || User.IsInRole("Admin"))
                         {
                             <li class="sidebar__item">
