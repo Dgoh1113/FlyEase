@@ -102,25 +102,45 @@
         let isValid = true;
         let errorMessage = '';
 
-        switch (input.type) {
-            case 'email':
-                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                isValid = emailRegex.test(input.value);
-                if (!isValid) errorMessage = 'Please enter a valid email address';
-                break;
+        // Check if this is the name field by id or name attribute
+        const isNameField = input.id === 'FullName' ||
+            input.name === 'FullName' ||
+            input.type === 'text' && input.placeholder && input.placeholder.toLowerCase().includes('name');
 
-            case 'password':
-                // REMOVED: Real-time password complexity validation
-                // Only validate on form submission
-                break;
+        if (isNameField) {
+            // Name validation: only letters, spaces, hyphens, and apostrophes
+            const nameRegex = /^[a-zA-Z\s'-]+$/;
+            isValid = nameRegex.test(input.value);
+            if (!isValid) errorMessage = 'Name can only contain letters, spaces';
 
-            case 'text':
-                if (input.name === 'Phone') {
-                    const cleanVal = input.value.replace(/\D/g, '');
-                    isValid = cleanVal.length >= 9 && cleanVal.length <= 11;
-                    if (!isValid) errorMessage = 'Phone must be 9-11 digits';
-                }
-                break;
+            // Additional check: at least 2 characters
+            if (isValid && input.value.trim().length < 5) {
+                isValid = false;
+                errorMessage = 'Name must be at least 5 characters long';
+            }
+
+            // Additional check: not just spaces
+            if (isValid && !input.value.trim().replace(/\s+/g, '').length) {
+                isValid = false;
+                errorMessage = 'Please enter a valid name';
+            }
+        }
+        else if (input.type === 'email' || input.id === 'Email') {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            isValid = emailRegex.test(input.value);
+            if (!isValid) errorMessage = 'Please enter a valid email address';
+        }
+        else if (input.type === 'password') {
+            // REMOVED: Real-time password complexity validation
+            // Only validate on form submission
+            return;
+        }
+        else if (input.type === 'text') {
+            if (input.name === 'Phone' || input.id === 'Phone' || input.placeholder && input.placeholder.toLowerCase().includes('phone')) {
+                const cleanVal = input.value.replace(/\D/g, '');
+                isValid = cleanVal.length >= 9 && cleanVal.length <= 11;
+                if (!isValid) errorMessage = 'Phone must be 9-11 digits';
+            }
         }
 
         this.toggleError(input, isValid, errorMessage);

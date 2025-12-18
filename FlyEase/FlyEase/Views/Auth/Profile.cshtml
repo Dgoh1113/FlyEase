@@ -349,13 +349,13 @@
                             <i class="fas fa-user-edit me-2 text-primary"></i>Edit Profile
                         </h3>
 
-                        <form asp-action="UpdateProfile" method="post" class="needs-validation" novalidate>
+                        <form asp-action="UpdateProfile" method="post" id="updateProfileForm" class="needs-validation" novalidate>
                             @Html.AntiForgeryToken()
 
                             <div class="row">
                                 <div class="col-md-6">
                                     <div class="form-floating mb-3">
-                                        <input asp-for="FullName" class="form-control" placeholder="Full Name" required />
+                                        <input asp-for="FullName" id="FullName" class="form-control" placeholder="Full Name" required />
                                         <label asp-for="FullName" class="text-muted">Full Name</label>
                                         <span asp-validation-for="FullName" class="text-danger small"></span>
                                     </div>
@@ -376,7 +376,7 @@
                                         <div class="input-group">
                                             <span class="input-group-text bg-light">+60</span>
                                             <div class="form-floating">
-                                                <input asp-for="Phone" class="form-control" placeholder="Phone" required />
+                                                <input asp-for="Phone" id="Phone" class="form-control" placeholder="Phone" required />
                                                 <label asp-for="Phone" class="ms-2">Phone Number</label>
                                             </div>
                                         </div>
