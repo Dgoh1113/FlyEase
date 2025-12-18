@@ -313,6 +313,21 @@ namespace FlyEase.Controllers
             var user = await _context.Users.FindAsync(userId);
             if (user == null) return NotFound();
 
+            // Validate Name: Only letters and spaces allowed
+            if (!System.Text.RegularExpressions.Regex.IsMatch(model.FullName, @"^[a-zA-Z\s]+$"))
+            {
+                TempData["ErrorMessage"] = "Update Failed: Name can only contain letters and spaces.";
+                // Redirect back to the edit tab so they can try again
+                return RedirectToAction("Profile", new { tab = "edit-profile" });
+            }
+
+            // Validate Phone: Must be numbers only, 9 to 11 digits
+            if (!System.Text.RegularExpressions.Regex.IsMatch(model.Phone, @"^\d{9,11}$"))
+            {
+                TempData["ErrorMessage"] = "Update Failed: Phone must be 9-11 digits (numbers only).";
+                return RedirectToAction("Profile", new { tab = "edit-profile" });
+            }
+
             // Only update allowed fields
             user.FullName = model.FullName;
             user.Phone = model.Phone;
