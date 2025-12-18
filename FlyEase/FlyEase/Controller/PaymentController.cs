@@ -15,8 +15,8 @@ public class PriceRequest
 {
     public int PackageId { get; set; }
     public int People { get; set; }
-    public int Seniors { get; set; } // Count of Seniors
-    public int Juniors { get; set; } // Count of Juniors
+    public int Seniors { get; set; }
+    public int Juniors { get; set; }
     public DateTime TravelDate { get; set; }
 }
 
@@ -26,20 +26,19 @@ namespace FlyEase.Controllers
     {
         private readonly FlyEaseDbContext _context;
         private readonly IConfiguration _configuration;
-        private readonly StripeService _stripeService; // Dependency Injection
+        private readonly StripeService _stripeService;
         private readonly ILogger<PaymentController> _logger;
 
-        // --- UPDATED CONSTRUCTOR ---
         public PaymentController(
             FlyEaseDbContext context,
             IConfiguration configuration,
             ILogger<PaymentController> logger,
-            StripeService stripeService) // Inject Service here
+            StripeService stripeService)
         {
             _context = context;
             _configuration = configuration;
             _logger = logger;
-            _stripeService = stripeService; // Assign the injected instance
+            _stripeService = stripeService;
         }
 
         // =========================================================
@@ -51,7 +50,6 @@ namespace FlyEase.Controllers
             var user = await GetCurrentUserAsync();
             if (user == null) { TempData["Error"] = "Please login first"; return RedirectToAction("Login", "Auth"); }
 
-            // --- RESTRICT ADMIN & STAFF FROM BOOKING ---
             if (User.IsInRole("Admin") || User.IsInRole("Staff"))
             {
                 TempData["Error"] = "Administrator and Staff accounts are not allowed to make bookings.";
@@ -80,7 +78,8 @@ namespace FlyEase.Controllers
                 NumberOfJuniors = 0
             };
 
-            CalculateDiscounts(vm);
+            // --- CHANGED: Now awaits the async version ---
+            await CalculateDiscountsAsync(vm);
 
             HttpContext.Session.SetString("OriginalPackageId", packageId.ToString());
             HttpContext.Session.SetString("OriginalPeople", people.ToString());
@@ -91,7 +90,7 @@ namespace FlyEase.Controllers
         }
 
         [HttpPost]
-        public IActionResult CustomerInfo(CustomerInfoViewModel model)
+        public async Task<IActionResult> CustomerInfo(CustomerInfoViewModel model)
         {
             if (User.IsInRole("Admin") || User.IsInRole("Staff"))
             {
@@ -106,9 +105,21 @@ namespace FlyEase.Controllers
 
             if (!ModelState.IsValid) return View(model);
 
-            CalculateDiscounts(model);
+            // --- CRITICAL FIX: Ensure BasePrice is correct before recalculating ---
+            // The model might have a stale BasePrice from the form. We should verify it against the DB price.
+            var package = await _context.Packages.FindAsync(model.PackageID);
+            if (package != null)
+            {
+                model.PackagePrice = package.Price;
+                model.BasePrice = package.Price * model.NumberOfPeople;
+            }
 
+            // --- CHANGED: Now calls the async version that includes DB discounts ---
+            await CalculateDiscountsAsync(model);
+
+            // Now the 'model' has the correct FinalAmount with ALL discounts applied
             HttpContext.Session.SetCustomerInfo(model);
+
             return RedirectToAction("PaymentMethod");
         }
 
@@ -209,6 +220,9 @@ namespace FlyEase.Controllers
             ViewBag.AllowDeposit = allowDeposit;
             ViewBag.DepositMessage = depositMessage;
 
+            // Debugging: Verify if FinalAmount is correct here
+            // _logger.LogInformation($"Base: {customerInfo.BasePrice}, Discount: {customerInfo.DiscountAmount}, Final: {customerInfo.FinalAmount}");
+
             decimal depositAmount = customerInfo.FinalAmount * 0.30m;
 
             var model = new PaymentMethodViewModel
@@ -249,7 +263,6 @@ namespace FlyEase.Controllers
             HttpContext.Session.SetPaymentMethod(model.SelectedMethod);
             HttpContext.Session.SetString("PaymentType", model.PaymentType ?? "Full");
 
-            // --- Route EVERYTHING to Stripe Checkout ---
             return RedirectToAction("StripeCheckout");
         }
 
@@ -262,9 +275,8 @@ namespace FlyEase.Controllers
             var customerInfo = HttpContext.Session.GetCustomerInfo();
             if (customerInfo == null) return RedirectToAction("Index", "Home");
 
-            // 1. Get Payment Info
             string paymentType = HttpContext.Session.GetString("PaymentType") ?? "Full";
-            string selectedMethod = HttpContext.Session.GetPaymentMethod(); // "Credit Card", "TouchNGo", etc.
+            string selectedMethod = HttpContext.Session.GetPaymentMethod();
 
             decimal amountToPay = (paymentType == "Deposit")
                 ? customerInfo.FinalAmount * 0.30m
@@ -272,7 +284,6 @@ namespace FlyEase.Controllers
 
             var domain = $"{Request.Scheme}://{Request.Host}";
 
-            // 2. Configure Stripe Method Types based on selection
             var paymentMethodTypes = new List<string>();
 
             switch (selectedMethod)
@@ -281,19 +292,16 @@ namespace FlyEase.Controllers
                     paymentMethodTypes.Add("card");
                     break;
                 case "Online Banking":
-                    paymentMethodTypes.Add("fpx"); // FPX for Malaysia
+                    paymentMethodTypes.Add("fpx");
                     break;
                 case "GrabPay":
                     paymentMethodTypes.Add("grabpay");
                     break;
                 case "TouchNGo":
-                    // Stripe often handles TNG via FPX or specialized wallets. 
-                    // Adding both ensures the user sees valid options.
                     paymentMethodTypes.Add("fpx");
                     paymentMethodTypes.Add("grabpay");
                     break;
                 default:
-                    // Fallback: show everything relevant
                     paymentMethodTypes.Add("card");
                     paymentMethodTypes.Add("fpx");
                     paymentMethodTypes.Add("grabpay");
@@ -302,14 +310,13 @@ namespace FlyEase.Controllers
 
             try
             {
-                // 3. Create Session with SPECIFIC method types
                 var session = await _stripeService.CreateCheckoutSessionAsync(
                     amountToPay,
                     "myr",
                     $"{domain}/Payment/StripeCallback?session_id={{CHECKOUT_SESSION_ID}}",
                     $"{domain}/Payment/PaymentMethod",
                     $"BK-{DateTime.Now.Ticks}",
-                    paymentMethodTypes // <--- Passing the list here
+                    paymentMethodTypes
                 );
 
                 return Redirect(session.Url);
@@ -329,10 +336,7 @@ namespace FlyEase.Controllers
 
             if (session.PaymentStatus == "paid")
             {
-                // Payment Successful - Process Booking
-                // We use the generic "Online Payment" label or the one from session
                 string method = HttpContext.Session.GetPaymentMethod() ?? "Stripe";
-
                 return await ProcessBooking(method + " (Online)", session.PaymentIntentId);
             }
 
@@ -365,7 +369,6 @@ namespace FlyEase.Controllers
                 return RedirectToAction("Index", "Home");
             }
 
-            // Status is Confirmed because payment is successful via Stripe
             string bookingStatus = isDeposit ? "Deposit" : "Confirmed";
 
             var booking = new Booking
@@ -551,14 +554,37 @@ namespace FlyEase.Controllers
             return null;
         }
 
-        private void CalculateDiscounts(CustomerInfoViewModel model)
+        // --- UPDATED HELPER: Now Async and Includes DB Discounts ---
+        private async Task CalculateDiscountsAsync(CustomerInfoViewModel model)
         {
             decimal totalDiscount = 0;
+
+            // 1. Bulk Discount
             if (model.NumberOfPeople > 3) totalDiscount += model.BasePrice * 0.10m;
+
             decimal unitPrice = model.BasePrice / (model.NumberOfPeople > 0 ? model.NumberOfPeople : 1);
+
+            // 2. Senior/Junior Logic
             totalDiscount += (unitPrice * 0.20m) * model.NumberOfSeniors;
             totalDiscount += (unitPrice * 0.15m) * model.NumberOfJuniors;
+
+            // 3. Database Discounts (The missing part)
+            var dbDiscounts = await _context.DiscountTypes.ToListAsync();
+            foreach (var d in dbDiscounts)
+            {
+                if (d.DiscountRate.HasValue && d.DiscountRate.Value > 0)
+                {
+                    decimal amount = model.BasePrice * d.DiscountRate.Value;
+                    totalDiscount += amount;
+                }
+                else if (d.DiscountAmount.HasValue && d.DiscountAmount.Value > 0)
+                {
+                    totalDiscount += d.DiscountAmount.Value;
+                }
+            }
+
             if (totalDiscount > model.BasePrice) totalDiscount = model.BasePrice;
+
             model.DiscountAmount = totalDiscount;
             model.FinalAmount = model.BasePrice - totalDiscount;
         }
