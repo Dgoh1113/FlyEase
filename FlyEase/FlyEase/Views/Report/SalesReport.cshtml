@@ -1,280 +1,111 @@
 ﻿@model FlyEase.ViewModels.SalesReportVM
 @{
-    ViewData["Title"] = "Sales Transaction Report";
+    ViewData["Title"] = "Vendor Sales Report";
     Layout = "~/Views/Shared/_AdminLayout.cshtml";
 }
 
-<link rel="stylesheet" href="~/css/report.css" />
+    <link rel="stylesheet" href="~/css/report.css" />
 
-<style>
-    @@media print {
-        .sidebar, .navbar, .no-print, .btn, form {
-            display: none !important;
-        }
 
-        .main-content {
-            margin: 0 !important;
-            padding: 0 !important;
-            width: 100% !important;
-        }
-
-        .card {
-            border: none !important;
-            shadow: none !important;
-        }
-
-        .report-header {
-            display: block !important;
-            margin-bottom: 20px;
-            border-bottom: 2px solid #000;
-            padding-bottom: 10px;
-        }
-
-        table {
-            width: 100% !important;
-            font-size: 10pt;
-            border-collapse: collapse;
-        }
-
-        th, td {
-            border: 1px solid #ddd;
-            padding: 5px;
-            text-align: left;
-        }
-
-        th {
-            background-color: #f8f9fa !important;
-            -webkit-print-color-adjust: exact;
-        }
-
-        .badge {
-            border: none;
-            background: none;
-            color: #000;
-            padding: 0;
-            font-weight: bold;
-        }
-    }
-
-    .report-header {
-        display: none;
-    }
-
-    @@media print {
-        .sidebar, .navbar, .no-print, .btn, form {
-            display: none !important;
-        }
-
-        .main-content {
-            margin: 0 !important;
-            padding: 0 !important;
-            width: 100% !important;
-        }
-
-        .card {
-            border: none !important;
-            shadow: none !important;
-        }
-
-        .report-header {
-            display: block !important;
-            margin-bottom: 20px;
-            border-bottom: 2px solid #000;
-            padding-bottom: 10px;
-        }
-
-        table {
-            width: 100% !important;
-            font-size: 10pt;
-            border-collapse: collapse;
-        }
-
-        th, td {
-            border: 1px solid #ddd;
-            padding: 5px;
-            text-align: left;
-        }
-
-        th {
-            background-color: #f8f9fa !important;
-            -webkit-print-color-adjust: exact;
-        }
-
-        .badge {
-            border: none;
-            background: none;
-            color: #000;
-            padding: 0;
-            font-weight: bold;
-        }
-    }
-
-    .report-header {
-        display: none;
-    }
-</style>
-
-<div class="container-fluid py-4">
-
-    <partial name="_ReportNavigation" />
-
-    <div class="d-flex justify-content-end mb-3 no-print">
-        <div class="btn-group">
-            <a asp-action="ExportSalesExcel"
-               asp-route-startDate="@Model.StartDate.ToString("yyyy-MM-dd")"
-               asp-route-endDate="@Model.EndDate.ToString("yyyy-MM-dd")"
-               asp-route-dateFilterType="@Model.DateFilterType"
-               asp-route-paymentMethodFilter="@Model.PaymentMethodFilter"
-               asp-route-bookingStatusFilter="@Model.BookingStatusFilter"
-               class="btn btn-success">
-                <i class="fas fa-file-excel me-2"></i> Export Excel
+<div class="container-fluid py-4 report-dashboard-container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-0">Sales Report</h2>
+            <p class="text-muted small">Detailed transactional ledger</p>
+        </div>
+        <div>
+             <a href="@Url.Action("ExportSalesExcel", Context.Request.Query)" class="btn btn-success btn-sm">
+                <i class="fas fa-file-excel me-1"></i> Export Excel
             </a>
-            <button onclick="window.print()" class="btn btn-dark">
-                <i class="fas fa-print me-2"></i> Print / PDF
-            </button>
+            
+            <a href="@Url.Action("SalesReportPrinted", Context.Request.Query)" target="_blank" class="btn btn-secondary btn-sm">
+                <i class="fas fa-print me-1"></i> Print / PDF
+            </a>
         </div>
     </div>
 
-    <div class="report-header text-center">
-        <h1>FlyEase Sales Report</h1>
-        <p>Generated on: @Model.GeneratedAt.ToString("dd MMM yyyy HH:mm") | By: @Model.GeneratedBy</p>
-        <p><strong>Period:</strong> @Model.StartDate.ToString("dd MMM yyyy") - @Model.EndDate.ToString("dd MMM yyyy")</p>
-    </div>
-
-</div>
-    <div class="card shadow-sm mb-4 no-print">
+    <div class="card shadow-sm mb-4">
         <div class="card-body bg-light">
-            <form method="get" asp-action="SalesReport" class="row g-3 align-items-end">
-                <div class="col-md-2">
-                    <label class="form-label fw-bold small">From</label>
-                    <input type="date" class="form-control form-control-sm" name="startDate" value="@Model.StartDate.ToString("yyyy-MM-dd")">
+            <form method="GET" action="@Url.Action("SalesReport")">
+                <input type="hidden" name="page" value="1" />
+                
+                <div class="quick-filter-wrapper">
+                    <span class="filter-label">Quick View:</span>
+                    <button type="submit" name="viewMode" value="daily" class="preset-btn @(Model.ViewMode == "daily" ? "active" : "")">Today</button>
+                    <button type="submit" name="viewMode" value="monthly" class="preset-btn @(Model.ViewMode == "monthly" ? "active" : "")">This Month</button>
+                    <button type="submit" name="viewMode" value="custom" class="preset-btn @(Model.ViewMode == "custom" ? "active" : "")">Custom</button>
                 </div>
-                <div class="col-md-2">
-                    <label class="form-label fw-bold small">To</label>
-                    <input type="date" class="form-control form-control-sm" name="endDate" value="@Model.EndDate.ToString("yyyy-MM-dd")">
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label fw-bold small">Date Type</label>
-                    <select class="form-select form-select-sm" name="dateFilterType">
-                        <option value="booking" selected="@(Model.DateFilterType == "booking")">Booking Date</option>
-                        <option value="travel" selected="@(Model.DateFilterType == "travel")">Travel Date</option>
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label fw-bold small">Status</label>
-                    <select class="form-select form-select-sm" name="bookingStatusFilter">
-                        @foreach (var s in Model.AvailableBookingStatuses)
-                        {
-                            <option value="@s" selected="@(Model.BookingStatusFilter == s)">@s</option>
-                        }
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <button type="submit" class="btn btn-primary btn-sm w-100">Apply Filter</button>
+
+                <div class="row g-3 align-items-end mt-2">
+                    <div class="col-md-2">
+                        <label class="form-label small fw-bold">From</label>
+                        <input type="date" name="startDate" class="form-control form-control-sm" value="@Model.StartDate.ToString("yyyy-MM-dd")">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small fw-bold">To</label>
+                        <input type="date" name="endDate" class="form-control form-control-sm" value="@Model.EndDate.ToString("yyyy-MM-dd")">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small fw-bold">Filter Item (Package)</label>
+                        <select name="packageId" class="form-select form-select-sm">
+                            <option value="">All Items</option>
+                            @foreach(var pkg in Model.AvailablePackages)
+                            {
+                                <option value="@pkg.Id" selected="@(Model.SelectedPackageID == pkg.Id)">@pkg.Name</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small fw-bold">Search</label>
+                        <input type="text" name="search" class="form-control form-control-sm" placeholder="Customer or Package Name..." value="@Model.SearchTerm">
+                    </div>
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-primary btn-sm w-100">Filter Records</button>
+                    </div>
                 </div>
             </form>
         </div>
     </div>
 
-    <div class="row g-3 mb-4">
-        <div class="col-md-3 col-6">
-            <div class="card bg-primary text-white h-100">
-                <div class="card-body py-3">
-                    <h6 class="opacity-75">Total Revenue</h6>
-                    <h3 class="fw-bold mb-0">RM @Model.TotalRevenue.ToString("N0")</h3>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3 col-6">
-            <div class="card bg-white border-primary text-primary h-100 shadow-sm">
-                <div class="card-body py-3">
-                    <h6 class="text-muted">Total Transactions</h6>
-                    <h3 class="fw-bold mb-0">@Model.TotalBookings</h3>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3 col-6">
-            <div class="card bg-white h-100 shadow-sm">
-                <div class="card-body py-3 border-start border-4 border-success">
-                    <h6 class="text-muted">Completed</h6>
-                    <h4 class="fw-bold mb-0 text-success">@Model.CompletedBookings</h4>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3 col-6">
-            <div class="card bg-white h-100 shadow-sm">
-                <div class="card-body py-3 border-start border-4 border-warning">
-                    <h6 class="text-muted">Pending</h6>
-                    <h4 class="fw-bold mb-0 text-warning">@Model.PendingBookings</h4>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <div class="card shadow-sm">
-        <div class="card-header bg-white py-3 border-bottom">
-            <h5 class="mb-0 fw-bold">Transaction Details</h5>
-        </div>
         <div class="table-responsive">
-            <table class="table table-striped table-hover align-middle mb-0" id="salesTable">
+            <table class="table table-hover align-middle mb-0 report-table">
                 <thead class="table-light text-uppercase small fw-bold">
                     <tr>
                         <th>Date</th>
-                        <th>Trx ID</th>
+                        <th>Order ID</th>
                         <th>Customer</th>
-                        <th>Package</th>
-                        <th>Status</th>
-                        <th>Payment</th>
-                        <th class="text-end">Amount (RM)</th>
-                        <th class="text-end">Paid (RM)</th>
+                        <th>Product / Package</th>
+                        <th class="text-end">Qty</th>
+                        <th class="text-end">Subtotal (RM)</th>
                     </tr>
                 </thead>
                 <tbody>
                     @if (Model.Details.Any())
                     {
-                        @foreach (var item in Model.Details)
+                        foreach (var item in Model.Details)
                         {
                             <tr>
-                                <td class="small">@item.BookingDate.ToString("dd/MM/yyyy")</td>
-                                <td class="small text-muted">@item.TransactionID</td>
-                                <td>
-                                    <div class="fw-bold">@item.CustomerName</div>
-                                    <div class="small text-muted">@item.CustomerEmail</div>
-                                </td>
-                                <td class="small">@item.PackageName</td>
-                                <td>
-                                    @if (item.BookingStatus == "Completed")
-                                    {
-                                        <span class="badge bg-success">Completed</span>
-                                    }
-                                    else if (item.BookingStatus == "Pending")
-                                    {
-
-                                        <span class="badge bg-warning text-dark">Pending</span>
-                                    }
-                                    else
-                                    {
-
-                                        <span class="badge bg-danger">@item.BookingStatus</span>
-                                    }
-                                </td>
-                                <td>
-                                    <div class="small fw-bold">@item.PaymentMethod</div>
-                                    <div class="small text-muted">@item.PaymentStatus</div>
-                                </td>
-                                <td class="text-end fw-bold">@item.BookingAmount.ToString("N2")</td>
-                                <td class="text-end @(item.TotalPaid >= item.BookingAmount ? "text-success" : "text-danger")">
-                                    @item.TotalPaid.ToString("N2")
-                                </td>
+                                <td>@item.BookingDate.ToString("dd/MM/yyyy")</td>
+                                <td class="text-primary fw-bold">@item.TransactionID</td>
+                                <td>@item.CustomerName</td>
+                                <td>@item.PackageName</td>
+                                <td class="text-end">@item.Pax</td>
+                                <td class="text-end">@item.Amount.ToString("N2")</td>
                             </tr>
                         }
+                        <tr class="table-footer">
+                            <td colspan="4" class="text-end">GRAND TOTAL</td>
+                            <td class="text-end">@Model.GrandTotalPax</td>
+                            <td class="text-end">RM @Model.GrandTotalRevenue.ToString("N2")</td>
+                        </tr>
                     }
                     else
                     {
                         <tr>
-                            <td colspan="8" class="text-center py-5 text-muted">
-                                <i class="fas fa-folder-open fa-3x mb-3 opacity-50"></i>
-                                <p>No transactions found for this period.</p>
+                            <td colspan="6" class="text-center py-5 text-muted">
+                                <i class="fas fa-search fa-2x mb-3 opacity-50"></i>
+                                <p class="mb-0">No records found matching your filters.</p>
                             </td>
                         </tr>
                     }
@@ -282,4 +113,22 @@
             </table>
         </div>
     </div>
+
+    @if (Model.TotalPages > 1)
+    {
+        <div class="pagination-container">
+            @{
+                var queryParams = Context.Request.Query.ToDictionary(k => k.Key, v => v.Value.ToString());
+                queryParams["page"] = (Model.CurrentPage - 1).ToString();
+                var prevLink = Url.Action("SalesReport", queryParams);
+                
+                queryParams["page"] = (Model.CurrentPage + 1).ToString();
+                var nextLink = Url.Action("SalesReport", queryParams);
+            }
+            
+            <a href="@prevLink" class="page-link-custom @(!Model.HasPreviousPage ? "disabled" : "")">&larr; Prev</a>
+            <span class="page-info">Page @Model.CurrentPage of @Model.TotalPages</span>
+            <a href="@nextLink" class="page-link-custom @(!Model.HasNextPage ? "disabled" : "")">Next &rarr;</a>
+        </div>
+    }
 </div>
