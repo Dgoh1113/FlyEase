@@ -827,6 +827,33 @@ namespace FlyEase.Controllers
         }
 
         [HttpGet]
+        public async Task<IActionResult> Receipt(int bookingId, bool print = false)
+        {
+            var booking = await _context.Bookings
+                .Include(b => b.Package)
+                .Include(b => b.User)
+                .Include(b => b.Payments)
+                .FirstOrDefaultAsync(b => b.BookingID == bookingId);
+
+            if (booking == null) return RedirectToAction("Index", "Home");
+
+            if (User.Identity?.IsAuthenticated == true)
+            {
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (!string.IsNullOrEmpty(userIdClaim) && int.TryParse(userIdClaim, out int userId))
+                {
+                    if (booking.UserID != userId && !User.IsInRole("Admin") && !User.IsInRole("Staff"))
+                    {
+                        return RedirectToAction("Index", "Home");
+                    }
+                }
+            }
+
+            ViewBag.Print = print;
+            return View(booking);
+        }
+
+        [HttpGet]
         [Authorize]
         public async Task<IActionResult> BookingHistoryDetails(int id)
         {
