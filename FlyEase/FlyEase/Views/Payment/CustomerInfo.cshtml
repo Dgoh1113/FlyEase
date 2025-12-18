@@ -269,36 +269,42 @@
                 .catch(console.error);
             });
 
-            function updateUI(data) {
-                document.getElementById('inputBasePrice').value = data.basePrice;
-                document.getElementById('inputDiscountAmount').value = data.discountAmount;
-                document.getElementById('inputFinalAmount').value = data.finalAmount;
+                    function updateUI(data) {
+            document.getElementById('inputBasePrice').value = data.basePrice;
+            document.getElementById('inputDiscountAmount').value = data.discountAmount;
+            document.getElementById('inputFinalAmount').value = data.finalAmount;
 
-                document.getElementById('displayBasePrice').innerText = 'RM ' + data.basePrice.toLocaleString(undefined, {minimumFractionDigits: 2});
-                document.getElementById('displayFinalAmount').innerText = 'RM ' + data.finalAmount.toLocaleString(undefined, {minimumFractionDigits: 2});
+            document.getElementById('displayBasePrice').innerText = 'RM ' + data.basePrice.toLocaleString(undefined, {minimumFractionDigits: 2});
+            document.getElementById('displayFinalAmount').innerText = 'RM ' + data.finalAmount.toLocaleString(undefined, {minimumFractionDigits: 2});
 
-                const container = document.getElementById('discountContainer');
-                container.innerHTML = '';
+            const container = document.getElementById('discountContainer');
+            container.innerHTML = '';
 
-                if (data.discountAmount > 0 && data.breakdown) {
-                    data.breakdown.forEach(text => {
-                        const parts = text.split(':');
-                        container.innerHTML += `
-                            <div class="discount-badge animate-slide-down">
-                                <span><i class="fas fa-tag me-1"></i> ${parts[0]}</span>
-                                <strong>${parts[1]}</strong>
-                            </div>`;
-                    });
-                } else {
-                    container.innerHTML = '<div class="text-muted small text-center my-1">No eligible discounts found based on criteria.</div>';
-                }
+            if (data.discountAmount > 0 && data.breakdown && data.breakdown.length > 0) {
+                // Show applied discounts
+                data.breakdown.forEach(text => {
+                    container.innerHTML += `
+                        <div class="discount-badge animate-slide-down">
+                            <span><i class="fas fa-tag me-1"></i> ${text}</span>
+                        </div>`;
+                });
 
-                // Trigger Flash
-                const card = document.getElementById('priceCard');
-                card.classList.remove('price-update-flash');
-                void card.offsetWidth;
-                card.classList.add('price-update-flash');
+                // Show total discount
+                container.innerHTML += `
+                    <div class="row mt-2">
+                        <div class="col-6"><small>Total Discount:</small></div>
+                        <div class="col-6 text-end"><small class="text-success">-RM ${data.discountAmount.toLocaleString(undefined, {minimumFractionDigits: 2})}</small></div>
+                    </div>`;
+            } else {
+                container.innerHTML = '<div class="text-muted small text-center my-1">No eligible discounts found based on your criteria.</div>';
             }
+
+            // Trigger Flash
+            const card = document.getElementById('priceCard');
+            card.classList.remove('price-update-flash');
+            void card.offsetWidth;
+            card.classList.add('price-update-flash');
+        }
         });
     </script>
 }

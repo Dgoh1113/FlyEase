@@ -392,29 +392,47 @@
     <!-- JavaScript for PDF generation -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script>
-                function downloadAsPDF() {
+                        function downloadAsPDF() {
+            // Store current URL for restoration
+            const currentUrl = window.location.href;
+
             // Store original display values
-            const originalDisplay = {};
+            const originalDisplay = new Map();
             const noPrintElements = document.querySelectorAll('.no-print');
 
             // Hide non-printable elements
             noPrintElements.forEach(el => {
-                originalDisplay[el.id || Math.random()] = el.style.display;
+                originalDisplay.set(el, el.style.display);
                 el.style.display = 'none';
             });
 
-            // Use browser's print to PDF
+            // Open print dialog with Save as PDF option
             window.print();
 
-            // Restore display values after a delay
+            // Restore display after a short delay (when print dialog closes)
             setTimeout(() => {
                 noPrintElements.forEach(el => {
-                    const key = el.id || Object.keys(originalDisplay).find(k =>
-                        originalDisplay[k] === el.style.display);
-                    if (key && originalDisplay[key]) {
-                        el.style.display = originalDisplay[key];
+                    const original = originalDisplay.get(el);
+                    if (original !== undefined) {
+                        el.style.display = original;
+                    } else {
+                        el.style.display = ''; // Reset to default
                     }
                 });
+
+                // Update the info message
+                const infoAlert = document.querySelector('.alert-info.no-print');
+                if (infoAlert) {
+                    infoAlert.innerHTML = `
+                        <h6><i class="fas fa-info-circle me-2"></i>PDF Download Tips:</h6>
+                        <ol class="mb-0 small">
+                            <li><strong>Just printed?</strong> In the print dialog, select <strong>"Save as PDF"</strong> as printer</li>
+                            <li>Adjust margins to <strong>"None"</strong> or <strong>"Minimum"</strong></li>
+                            <li>Click <strong>Save</strong> to download</li>
+                            <li>Need to try again? Click the <strong>"Print Receipt"</strong> button</li>
+                        </ol>
+                    `;
+                }
             }, 1000);
         }
 
