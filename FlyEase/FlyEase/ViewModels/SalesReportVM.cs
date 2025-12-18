@@ -1,59 +1,59 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
 
 namespace FlyEase.ViewModels
 {
     public class SalesReportVM
     {
         // ========== FILTER PARAMETERS ==========
+        public string ViewMode { get; set; } = "custom"; // daily, monthly, custom
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
-        public string DateFilterType { get; set; }
-        public string PaymentMethodFilter { get; set; }
-        public string BookingStatusFilter { get; set; }
+        public string SearchTerm { get; set; }
+        public int? SelectedPackageID { get; set; }
 
-        // ========== REPORT METADATA ==========
-        public DateTime GeneratedAt { get; set; } = DateTime.Now;
-        public string GeneratedBy { get; set; } = "Admin";
+        // ========== PAGINATION ==========
+        public int CurrentPage { get; set; } = 1;
+        public int TotalPages { get; set; }
+        public int PageSize { get; set; } = 10;
+        public bool HasPreviousPage => CurrentPage > 1;
+        public bool HasNextPage => CurrentPage < TotalPages;
 
-        // ========== SUMMARY STATISTICS ==========
-        public int TotalBookings { get; set; }
-        public decimal TotalRevenue { get; set; }
+        // ========== SUMMARY STATS (Header/Footer) ==========
+        public int GrandTotalPax { get; set; }
+        public decimal GrandTotalRevenue { get; set; }
+        public int GrandTotalOrders { get; set; } // Added for Print View Summary Card
 
-        // Status Counts
-        public int CompletedBookings { get; set; }
-        public int PendingBookings { get; set; }
-        public int CancelledBookings { get; set; }
+        // ========== CHART DATA (For Printed Report) ==========
+        public List<string> ChartLabels { get; set; } = new List<string>();
+        public List<decimal> ChartValues { get; set; } = new List<decimal>();
 
-        // Financials
-        public decimal CompletedPayments { get; set; }
-        public decimal PendingPayments { get; set; }
-
-        // ========== DETAILED TRANSACTION LOG (The Real Report) ==========
+        // ========== DATA ==========
         public List<SalesReportDetailVM> Details { get; set; } = new List<SalesReportDetailVM>();
 
-        // ========== DROPDOWN OPTIONS ==========
-        public List<string> AvailablePaymentMethods { get; set; } = new List<string>();
-        public List<string> AvailableBookingStatuses { get; set; } = new List<string>();
+        // ========== DROPDOWNS ==========
+        public List<PackageSelectOption> AvailablePackages { get; set; } = new List<PackageSelectOption>();
+
+        // ========== METADATA ==========
+        public DateTime GeneratedAt { get; set; } = DateTime.Now;
+        public string GeneratedBy { get; set; }
     }
 
     public class SalesReportDetailVM
     {
         public int BookingID { get; set; }
-        public string TransactionID => $"TRX-{BookingID:D6}";
-        public string CustomerName { get; set; }
-        public string CustomerEmail { get; set; }
-        public string PackageName { get; set; }
+        public string TransactionID => $"#{BookingID}";
         public DateTime BookingDate { get; set; }
-        public DateTime TravelDate { get; set; }
-        public int NumberOfPeople { get; set; }
-        public decimal BookingAmount { get; set; }
-        public decimal TotalPaid { get; set; }
-        public decimal BalanceDue { get; set; }
-        public string BookingStatus { get; set; }
+        public string CustomerName { get; set; }
+        public string PackageName { get; set; }
+        public int Pax { get; set; }
+        public decimal Amount { get; set; }
         public string PaymentStatus { get; set; }
-        public string PaymentMethod { get; set; }
-        public DateTime? LastPaymentDate { get; set; }
+    }
+
+    public class PackageSelectOption
+    {
+        public int Id { get; set; }
+        public string Name { get; set; }
     }
 }

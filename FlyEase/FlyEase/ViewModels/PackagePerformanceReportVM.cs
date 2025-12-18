@@ -56,9 +56,5 @@ namespace FlyEase.ViewModels
         public string Status { get; set; }
     }
 
-    public class PackageSelectOption
-    {
-        public int Id { get; set; }
-        public string Name { get; set; }
-    }
+
 }

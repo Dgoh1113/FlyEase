@@ -212,101 +212,91 @@ namespace FlyEase.Controllers
             return RedirectToAction(nameof(Bookings));
         }
 
+        // ... inside UpdateBookingStatus method ...
+
         [HttpPost("UpdateBookingStatus")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> UpdateBookingStatus(BookingsPageVM model)
         {
             var input = model.CurrentBooking;
 
-            // Include Payments to process refunds
             var booking = await _context.Bookings
                 .Include(b => b.User)
                 .Include(b => b.Package)
                 .Include(b => b.Payments)
                 .FirstOrDefaultAsync(b => b.BookingID == input.BookingID);
 
-            if (booking != null)
+            if (booking == null)
             {
-                string oldStatus = booking.BookingStatus;
-                string newStatus = input.BookingStatus;
+                return Json(new { success = false, message = "Booking not found." });
+            }
 
-                // --- 1. PREVENT MANUALLY SETTING TO 'COMPLETED' ---
-                if (newStatus == "Completed")
+            string oldStatus = booking.BookingStatus;
+            string newStatus = input.BookingStatus;
+
+            // --- VALIDATION RULES ---
+
+            // 1. Confirmed -> Pending blocked
+            if (oldStatus == "Confirmed" && newStatus == "Pending")
+            {
+                return Json(new { success = false, message = "Action Denied: A 'Confirmed' booking cannot be reverted to 'Pending'." });
+            }
+
+            // 2. Editing Completed/Cancelled blocked
+            if (oldStatus == "Completed" || oldStatus == "Cancelled")
+            {
+                return Json(new { success = false, message = $"Cannot modify a booking that is already {oldStatus}." });
+            }
+
+            // [REMOVED THE BLOCK PREVENTING "COMPLETED" STATUS] 
+            // We now allow manual update to Completed as requested.
+
+            // --- PROCESS UPDATE ---
+            booking.BookingStatus = newStatus;
+
+            // If setting to Completed, ensure PaymentStatus is also completed/updated if necessary? 
+            // (Optional, but usually if a booking is completed, payment is assumed done. 
+            //  For now, we just update the status as requested).
+
+            await _context.SaveChangesAsync();
+
+            string successMsg = "Booking status updated successfully.";
+
+            // --- REFUND LOGIC (If cancelling a Paid/Confirmed booking) ---
+            if (newStatus == "Cancelled" && (oldStatus == "Confirmed" || oldStatus == "Deposit"))
+            {
+                try
                 {
-                    TempData["Error"] = "You cannot manually mark a booking as Completed. This is done automatically.";
-                    return RedirectToAction("Bookings");
-                }
-
-                // --- 2. PREVENT EDITING COMPLETED OR CANCELLED BOOKINGS ---
-                if (oldStatus == "Completed" || oldStatus == "Cancelled")
-                {
-                    TempData["Error"] = $"Cannot modify a booking that is already {oldStatus}.";
-                    return RedirectToAction("Bookings");
-                }
-
-                // --- 3. UPDATE STATUS ---
-                booking.BookingStatus = newStatus;
-                await _context.SaveChangesAsync();
-
-                // --- 4. LOGIC FOR CANCELLED -> REFUND & EMAIL ---
-                if (newStatus == "Cancelled" && oldStatus != "Cancelled")
-                {
-                    // Only auto-refund if confirmed/deposit
-                    if (oldStatus == "Confirmed" || oldStatus == "Deposit")
+                    var payment = booking.Payments.FirstOrDefault(p => p.PaymentStatus == "Completed");
+                    if (payment != null && !string.IsNullOrEmpty(payment.TransactionID))
                     {
-                        try
-                        {
-                            // Find a completed payment to refund
-                            var payment = booking.Payments.FirstOrDefault(p => p.PaymentStatus == "Completed");
+                        // Refund via Stripe
+                        await _stripeService.RefundPaymentAsync(payment.TransactionID);
 
-                            // Check if transaction ID exists (Implies Stripe/Online Payment)
-                            if (payment != null && !string.IsNullOrEmpty(payment.TransactionID))
-                            {
-                                // A. Process Refund via Stripe
-                                await _stripeService.RefundPaymentAsync(payment.TransactionID);
+                        payment.PaymentStatus = "Refunded";
+                        await _context.SaveChangesAsync();
 
-                                // B. Update Payment Record
-                                payment.PaymentStatus = "Refunded";
-                                await _context.SaveChangesAsync();
-
-                                // C. Send Refund Email
-                                await _emailService.SendRefundNotification(
-                                    booking.User.Email,
-                                    booking.User.FullName,
-                                    booking.Package.PackageName,
-                                    payment.AmountPaid
-                                );
-
-                                TempData["Success"] = "Booking Cancelled, Payment Refunded (Stripe), and Email Sent.";
-                            }
-                            else
-                            {
-                                // Cash or Manual Payment (No Transaction ID)
-                                TempData["Warning"] = "Booking Cancelled. Manual refund required (Cash/No Online Transaction Found).";
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            TempData["Error"] = "Error processing refund: " + ex.Message;
-                        }
+                        // Send Email
+                        await _emailService.SendRefundNotification(
+                            booking.User.Email,
+                            booking.User.FullName,
+                            booking.Package.PackageName,
+                            payment.AmountPaid
+                        );
+                        successMsg = "Booking Cancelled & Refunded successfully.";
                     }
                     else
                     {
-                        // e.g. "Pending" bookings don't get refunds
-                        TempData["Success"] = $"Booking Cancelled. No refund processed (Previous status was '{oldStatus}').";
+                        successMsg = "Booking Cancelled. Manual refund required (No Online Transaction found).";
                     }
                 }
-                // --- 5. LOGIC FOR CONFIRMED ---
-                else if (newStatus == "Confirmed")
+                catch (Exception ex)
                 {
-                    TempData["Success"] = "Booking Confirmed successfully.";
-                }
-                else
-                {
-                    TempData["Success"] = "Booking status updated successfully.";
+                    return Json(new { success = true, bookingId = booking.BookingID, newStatus = newStatus, message = "Booking Cancelled, but refund failed: " + ex.Message });
                 }
             }
-            return RedirectToAction("Bookings");
+
+            return Json(new { success = true, bookingId = booking.BookingID, newStatus = newStatus, message = successMsg });
         }
 
         [HttpPost("DeleteBooking")]
@@ -420,17 +410,26 @@ namespace FlyEase.Controllers
         [HttpPost("DeletePackage")]
         public async Task<IActionResult> DeletePackage(int id)
         {
-            var package = await _context.Packages.FindAsync(id);
+            // Include Bookings to enable cascade delete
+            var package = await _context.Packages
+                .Include(p => p.Bookings)
+                .FirstOrDefaultAsync(p => p.PackageID == id);
+
             if (package != null)
             {
-                if (await _context.Bookings.AnyAsync(b => b.PackageID == id))
-                    TempData["Error"] = "Cannot delete package: Active bookings exist.";
-                else
+                // Logic: If user confirmed via the 3-second alert, we assume they want to delete everything.
+                if (package.Bookings.Any())
                 {
-                    _context.Packages.Remove(package);
-                    await _context.SaveChangesAsync();
-                    TempData["Success"] = "Package deleted successfully.";
+                    _context.Bookings.RemoveRange(package.Bookings);
                 }
+
+                _context.Packages.Remove(package);
+                await _context.SaveChangesAsync();
+                TempData["Success"] = "Package and its associated bookings were deleted successfully.";
+            }
+            else
+            {
+                TempData["Error"] = "Package not found.";
             }
             return RedirectToAction(nameof(Packages));
         }
