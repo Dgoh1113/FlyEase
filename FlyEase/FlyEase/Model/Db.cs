@@ -269,6 +269,8 @@ namespace FlyEase.Data
         public string? AgeCriteria { get; set; }  // "Greater" (Senior) or "Less" (Junior)
         public int? EarlyBirdDays { get; set; }   // e.g. 30 days before booking
 
+        public DateTime? CreatedDate { get; set; }
+
         public ICollection<BookingDiscount> BookingDiscounts { get; set; } = new List<BookingDiscount>();
     }
     public class BookingDiscount

@@ -43,9 +43,12 @@ namespace FlyEase
 
         public static void ClearPaymentSession(this ISession session)
         {
-            session.Remove(CustomerInfoKey);
-            session.Remove(UserIdKey);
-            session.Remove(PaymentMethodKey);
+            // Keep customer info for potential retry, but clear other payment data
+            session.Remove("CurrentDiscountKey");
+            session.Remove("PaymentType");
+            session.Remove("PaymentMethod");
+            session.Remove("BookingDiscounts");
+            session.Remove("DiscountSourceKey");
         }
         // Add these to SessionExtensions.cs
         public static void SetStripePaymentIntentId(this ISession session, string paymentIntentId)
