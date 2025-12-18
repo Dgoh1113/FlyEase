@@ -210,7 +210,7 @@
                                 <strong class="text-danger">RM @balanceDue.ToString("N2")</strong>
                             </div>
                             <hr class="my-2">
-                            <a asp-controller="Payment" asp-action="PaymentMethod" class="btn btn-warning w-100 btn-sm fw-bold">
+                            <a asp-controller="Payment" asp-action="PayBalance" asp-route-bookingId="@Model.BookingID" class="btn btn-warning w-100 btn-sm fw-bold">
                                 Pay Balance Now
                             </a>
                         </div>
