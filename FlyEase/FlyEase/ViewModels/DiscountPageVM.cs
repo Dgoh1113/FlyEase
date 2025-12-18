@@ -1,17 +1,25 @@
 ﻿using System.Collections.Generic;
 using FlyEase.Data;
-using X.PagedList; // <--- VITAL: Add this using statement
+using X.PagedList;
 
 namespace FlyEase.ViewModels
 {
-    // Class name matches Controller: "DiscountPageVM" (Singular)
     public class DiscountPageVM
     {
-        // CHANGED: List -> IPagedList
-        public IPagedList<DiscountType> Discounts { get; set; }
+        // IPagedList is used for the pagination helper in the View
+        public IPagedList<DiscountType>? Discounts { get; set; }
 
+        // Used for binding when Creating/Editing a discount in a modal
         public DiscountType CurrentDiscount { get; set; } = new DiscountType();
 
         public string? SearchTerm { get; set; }
+    }
+    public class DiscountInfo
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Type { get; set; } = string.Empty;
+        public decimal? Rate { get; set; }
+        public decimal Amount { get; set; }
+        public int? DiscountId { get; set; }
     }
 }

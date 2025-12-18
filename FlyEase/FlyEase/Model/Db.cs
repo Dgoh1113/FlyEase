@@ -19,19 +19,15 @@ namespace FlyEase.Data
         public DbSet<Package> Packages { get; set; } = null!;
         public DbSet<PackageCategory> PackageCategories { get; set; } = null!;
         public DbSet<PackageInclusion> PackageInclusions { get; set; } = null!;
-
-        // === 1. NEW TABLE FOR ITINERARY ===
         public DbSet<PackageItinerary> PackageItineraries { get; set; } = null!;
-
         public DbSet<Payment> Payments { get; set; } = null!;
         public DbSet<DiscountType> DiscountTypes { get; set; } = null!;
         public DbSet<BookingDiscount> BookingDiscounts { get; set; } = null!;
         public DbSet<Feedback> Feedbacks { get; set; } = null!;
 
-
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            // User
+            // --- USER CONFIGURATION ---
             modelBuilder.Entity<User>()
                 .HasKey(u => u.UserID);
 
@@ -39,13 +35,17 @@ namespace FlyEase.Data
                 .HasIndex(u => u.Email)
                 .IsUnique();
 
-            // PackageCategory
+            // --- PACKAGE CATEGORY ---
             modelBuilder.Entity<PackageCategory>()
                 .HasKey(pc => pc.CategoryID);
 
-            // Package
+            // --- PACKAGE CONFIGURATION ---
             modelBuilder.Entity<Package>()
                 .HasKey(p => p.PackageID);
+
+            modelBuilder.Entity<Package>()
+                .Property(p => p.Price)
+                .HasColumnType("decimal(18,2)"); // Precision for currency
 
             modelBuilder.Entity<Package>()
                 .HasOne(p => p.Category)
@@ -53,7 +53,7 @@ namespace FlyEase.Data
                 .HasForeignKey(p => p.CategoryID)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // PackageInclusion
+            // --- PACKAGE INCLUSION ---
             modelBuilder.Entity<PackageInclusion>()
                 .HasKey(pi => pi.InclusionID);
 
@@ -63,7 +63,7 @@ namespace FlyEase.Data
                 .HasForeignKey(pi => pi.PackageID)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // === 2. CONFIGURATION FOR ITINERARY ===
+            // --- PACKAGE ITINERARY ---
             modelBuilder.Entity<PackageItinerary>()
                 .HasKey(pi => pi.ItineraryID);
 
@@ -72,11 +72,22 @@ namespace FlyEase.Data
                 .WithMany(p => p.Itinerary)
                 .HasForeignKey(pi => pi.PackageID)
                 .OnDelete(DeleteBehavior.Cascade);
-            // ======================================
 
-            // Booking
+            // --- BOOKING CONFIGURATION ---
             modelBuilder.Entity<Booking>()
                 .HasKey(b => b.BookingID);
+
+            modelBuilder.Entity<Booking>()
+                .Property(b => b.TotalBeforeDiscount)
+                .HasColumnType("decimal(18,2)");
+
+            modelBuilder.Entity<Booking>()
+                .Property(b => b.TotalDiscountAmount)
+                .HasColumnType("decimal(18,2)");
+
+            modelBuilder.Entity<Booking>()
+                .Property(b => b.FinalAmount)
+                .HasColumnType("decimal(18,2)");
 
             modelBuilder.Entity<Booking>()
                 .HasOne(b => b.User)
@@ -90,9 +101,13 @@ namespace FlyEase.Data
                 .HasForeignKey(b => b.PackageID)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // Payment
+            // --- PAYMENT CONFIGURATION ---
             modelBuilder.Entity<Payment>()
                 .HasKey(p => p.PaymentID);
+
+            modelBuilder.Entity<Payment>()
+                .Property(p => p.AmountPaid)
+                .HasColumnType("decimal(18,2)");
 
             modelBuilder.Entity<Payment>()
                 .HasOne(p => p.Booking)
@@ -100,13 +115,29 @@ namespace FlyEase.Data
                 .HasForeignKey(p => p.BookingID)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // DiscountType
+            // --- DISCOUNT TYPE CONFIGURATION ---
             modelBuilder.Entity<DiscountType>()
                 .HasKey(dt => dt.DiscountTypeID);
 
-            // BookingDiscount
+            modelBuilder.Entity<DiscountType>()
+                .Property(dt => dt.DiscountAmount)
+                .HasColumnType("decimal(18,2)");
+
+            modelBuilder.Entity<DiscountType>()
+                .Property(dt => dt.DiscountRate)
+                .HasColumnType("decimal(18,2)"); // Even though it's % (0.10), decimal is safer
+
+            modelBuilder.Entity<DiscountType>()
+                .Property(dt => dt.MinSpend)
+                .HasColumnType("decimal(18,2)");
+
+            // --- BOOKING DISCOUNT CONFIGURATION ---
             modelBuilder.Entity<BookingDiscount>()
                 .HasKey(bd => bd.BookingDiscountID);
+
+            modelBuilder.Entity<BookingDiscount>()
+                .Property(bd => bd.AppliedAmount)
+                .HasColumnType("decimal(18,2)");
 
             modelBuilder.Entity<BookingDiscount>()
                 .HasOne(bd => bd.Booking)
@@ -120,7 +151,7 @@ namespace FlyEase.Data
                 .HasForeignKey(bd => bd.DiscountTypeID)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // Feedback
+            // --- FEEDBACK CONFIGURATION ---
             modelBuilder.Entity<Feedback>()
                 .HasKey(f => f.FeedbackID);
 
@@ -129,10 +160,20 @@ namespace FlyEase.Data
                 .WithMany(b => b.Feedbacks)
                 .HasForeignKey(f => f.BookingID)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            // Explicitly map User to Feedback
+            modelBuilder.Entity<Feedback>()
+                .HasOne(f => f.User)
+                .WithMany(u => u.Feedbacks)
+                .HasForeignKey(f => f.UserID)
+                .OnDelete(DeleteBehavior.Restrict);
         }
     }
 
-    // ===== Entities =====
+    // ==========================================
+    // ENTITIES
+    // ==========================================
+
     public class User
     {
         public int TokenID { get; set; }
@@ -146,6 +187,7 @@ namespace FlyEase.Data
         public string Token { get; set; } = string.Empty;
         public DateTime ExpiryTime { get; set; }
         public DateTime CreatedDate { get; set; }
+
         public ICollection<Booking> Bookings { get; set; } = new List<Booking>();
         public ICollection<Feedback> Feedbacks { get; set; } = new List<Feedback>();
     }
@@ -171,29 +213,27 @@ namespace FlyEase.Data
         public int AvailableSlots { get; set; }
         public string? ImageURL { get; set; }
 
-        // === 3. NEW LOCATION FIELDS ===
+        // Location Fields
         public double Latitude { get; set; }
         public double Longitude { get; set; }
 
+        // NotMapped properties for UI logic
         [NotMapped]
         public double AverageRating { get; set; }
 
-        // Added this back to fix the compilation error
         [NotMapped]
         public int ReviewCount { get; set; }
 
         [NotMapped]
         public List<IFormFile>? ImageFiles { get; set; }
 
+        // Navigation Properties
         public PackageCategory Category { get; set; } = null!;
         public ICollection<PackageInclusion> PackageInclusions { get; set; } = new List<PackageInclusion>();
         public ICollection<Booking> Bookings { get; set; } = new List<Booking>();
-
-        // === 4. NEW ITINERARY RELATIONSHIP ===
         public ICollection<PackageItinerary> Itinerary { get; set; } = new List<PackageItinerary>();
     }
 
-    // === 5. NEW ITINERARY CLASS ===
     public class PackageItinerary
     {
         public int ItineraryID { get; set; }
@@ -221,9 +261,12 @@ namespace FlyEase.Data
         public DateTime BookingDate { get; set; }
         public DateTime TravelDate { get; set; }
         public int NumberOfPeople { get; set; }
+
+        // Money Fields
         public decimal TotalBeforeDiscount { get; set; }
         public decimal TotalDiscountAmount { get; set; }
         public decimal FinalAmount { get; set; }
+
         public string BookingStatus { get; set; } = null!;
 
         public User User { get; set; } = null!;
@@ -242,41 +285,46 @@ namespace FlyEase.Data
         public bool IsDeposit { get; set; }
         public DateTime PaymentDate { get; set; }
         public string PaymentStatus { get; set; } = null!;
-
-        // === NEW FIELD: To store Stripe PaymentIntentId or TNG ID ===
-        public string? TransactionID { get; set; }
+        public string? TransactionID { get; set; } // Stripe/Gateway ID
 
         public Booking Booking { get; set; } = null!;
     }
 
-    // Inside FlyEase/Model/Db.cs
+    // === UPDATED DISCOUNT MODEL ===
     public class DiscountType
     {
         public int DiscountTypeID { get; set; }
-        public string DiscountName { get; set; } = null!;
-        public decimal? DiscountRate { get; set; }
-        public decimal? DiscountAmount { get; set; }
 
-        // === EXISTING FIELDS ===
+        [Required]
+        public string DiscountName { get; set; } = null!; // Acts as Voucher Code
+
+        public decimal? DiscountRate { get; set; }    // e.g. 0.10
+        public decimal? DiscountAmount { get; set; }  // e.g. 50.00
+
+        // Criteria
         public int? MinPax { get; set; }
         public decimal? MinSpend { get; set; }
+
+        // Advanced Criteria
+        public int? AgeLimit { get; set; }        // e.g. 60
+        public string? AgeCriteria { get; set; }  // "Greater" or "Less"
+        public int? EarlyBirdDays { get; set; }   // e.g. 30
+
+        // Validity
         public DateTime? StartDate { get; set; }
         public DateTime? EndDate { get; set; }
         public bool IsActive { get; set; } = true;
 
-        // === NEW FIELDS FOR AGE & EARLY BIRD ===
-        public int? AgeLimit { get; set; }        // e.g. 60 or 12
-        public string? AgeCriteria { get; set; }  // "Greater" (Senior) or "Less" (Junior)
-        public int? EarlyBirdDays { get; set; }   // e.g. 30 days before booking
-
         public ICollection<BookingDiscount> BookingDiscounts { get; set; } = new List<BookingDiscount>();
     }
+
     public class BookingDiscount
     {
         public int BookingDiscountID { get; set; }
         public int BookingID { get; set; }
         public int DiscountTypeID { get; set; }
         public decimal AppliedAmount { get; set; }
+
         public Booking Booking { get; set; } = null!;
         public DiscountType DiscountType { get; set; } = null!;
     }
@@ -288,18 +336,22 @@ namespace FlyEase.Data
         public int UserID { get; set; }
         public int Rating { get; set; }
 
-        [Required(ErrorMessage = "Please tell us about your experience.")] 
+        [Required(ErrorMessage = "Please tell us about your experience.")]
         public string? Comment { get; set; }
-      
+
         public DateTime CreatedDate { get; set; }
-        public Booking Booking { get; set; } = null!;
-       public User User { get; set; } = null!;
-        
+
         [Required(ErrorMessage = "Please select an emotion that best matches your feeling.")]
         public string Emotion { get; set; }
+
+        public Booking Booking { get; set; } = null!;
+        public User User { get; set; } = null!;
     }
 
-    // --- VIEW MODELS ---
+    // ==========================================
+    // VIEW MODELS (Keep here if you prefer single file)
+    // ==========================================
+
     public class StaffBookingsViewModel
     {
         public string? SearchTerm { get; set; }

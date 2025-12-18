@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Stripe;
 using System.Globalization;
 using FlyEase.Model;
-
+using Microsoft.AspNetCore.StaticFiles; // 1. ADD THIS NAMESPACE
 var builder = WebApplication.CreateBuilder(args);
 
 // Add logging
@@ -100,7 +100,16 @@ var localizationOptions = new RequestLocalizationOptions
 // This enables Automatic switching via QueryString, Cookie, and Browser Header
 app.UseRequestLocalization(localizationOptions);
 
-app.UseStaticFiles();
+
+// === 3. CONFIGURE STATIC FILES FOR AVIF (Updated) ===
+var provider = new FileExtensionContentTypeProvider();
+provider.Mappings[".avif"] = "image/avif";
+
+app.UseStaticFiles(new StaticFileOptions
+{
+    ContentTypeProvider = provider
+});
+
 app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();

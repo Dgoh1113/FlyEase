@@ -52,8 +52,6 @@
         }
 
         /* --- AGGRESSIVE GOOGLE TRANSLATE BANNER HIDING --- */
-
-        /* 1. Hide the specific iframe classes Google uses (Old & New 2024/2025) */
         .goog-te-banner-frame,
         .goog-te-banner-frame.skiptranslate,
         iframe.goog-te-banner-frame,
@@ -66,14 +64,12 @@
             height: 0 !important;
         }
 
-        /* 2. Hide ANY iframe that is a direct child of the top .skiptranslate container */
         body > .skiptranslate > iframe {
             display: none !important;
             visibility: hidden !important;
             height: 0 !important;
         }
 
-        /* 3. Force body to top (Overwrites Google's inline style) */
         body {
             top: 0px !important;
             position: static !important;
@@ -120,27 +116,34 @@
             overflow: visible;
         }
 
+        /* --- UPDATED HEADER STYLING (Horizontal Layout to prevent size jumps) --- */
         header.sidebar-header {
             display: flex;
-            flex-flow: column;
-            justify-content: center;
-            gap: 0.5rem;
+            flex-direction: row-reverse; /* Puts Toggle on Right, Logo on Left */
+            align-items: center;
+            justify-content: center; /* Center toggle when collapsed */
+            height: 4rem; /* Fixed height so box size doesn't change */
             margin-bottom: 1rem;
+            padding: 0 0.25rem;
+            overflow: hidden;
+        }
+
+        .vertical-sidebar:has(:checked) header.sidebar-header {
+            justify-content: space-between; /* Spread Logo and Toggle when expanded */
         }
 
         .sidebar__toggle-container {
-            height: var(--item);
+            height: 100%;
             display: flex;
+            align-items: center;
             justify-content: center;
-        }
-
-        .vertical-sidebar:has(:checked) .sidebar__toggle-container {
-            justify-content: flex-end;
+            width: 3rem; /* Fixed width for button area */
+            flex-shrink: 0;
         }
 
         .nav__toggle {
-            height: 100%;
-            width: var(--item);
+            height: 3rem;
+            width: 3rem;
             background: none;
             transition: all 233ms ease-in;
             border-radius: var(--brad-inner);
@@ -168,39 +171,63 @@
             fill: currentColor;
         }
 
+        /* --- UPDATED LOGO STYLING (Smaller, Synchronized, Horizontal) --- */
         figure.sidebar-logo {
             display: flex;
-            flex-direction: column;
-            justify-content: center;
+            flex-direction: row;
             align-items: center;
-            overflow: hidden;
+            gap: 0.75rem; /* Space between icon and text */
             margin: 0;
             opacity: 0;
-            height: 0;
-            transition: opacity 300ms ease, height 300ms ease;
+            width: 0;
+            visibility: hidden;
+            overflow: hidden;
+            white-space: nowrap;
+            /* Synchronize animation with sidebar width (ease-out 300ms) */
+            transition: all 300ms ease-out;
         }
 
         .vertical-sidebar:has(:checked) figure.sidebar-logo {
             opacity: 1;
-            height: auto;
-            margin-bottom: 1rem;
+            width: 100%;
+            visibility: visible;
+            padding-left: 0.5rem;
+        }
+
+        /* Adjust Icon Container inside Logo */
+        figure.sidebar-logo .text-primary {
+            margin-bottom: 0 !important; /* Remove bottom margin to align horizontally */
+            display: flex;
+            align-items: center;
+        }
+
+        /* Make SVG Icon Smaller */
+        figure.sidebar-logo svg {
+            width: 24px;
+            height: 24px;
         }
 
         figcaption {
-            text-align: center;
-            white-space: nowrap;
+            text-align: left;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            line-height: 1.1;
         }
 
+        /* Make Brand Font Smaller */
         .user-id {
-            font-size: 1.25rem;
+            font-size: 1rem; /* Smaller than 1.25rem */
             font-weight: 700;
             color: var(--accent-primary);
+            margin: 0;
         }
 
         .user-role {
-            font-size: 0.875rem;
+            font-size: 0.7rem; /* Smaller subtext */
             font-weight: 500;
             color: var(--text-muted);
+            margin: 0;
         }
 
         .sidebar__wrapper {
@@ -370,9 +397,7 @@
             display: none;
         }
 
-        /* --- CUSTOM GOOGLE TRANSLATE STYLING (Light & Dark Mode) --- */
-
-        /* 1. Make the widget container transparent and borderless */
+        /* --- CUSTOM GOOGLE TRANSLATE STYLING --- */
         .goog-te-gadget-simple {
             background-color: transparent !important;
             border: none !important;
@@ -385,14 +410,12 @@
             height: 100%;
         }
 
-        /* 2. Hide Google Logo and special elements */
         .goog-te-gadget-icon,
         .goog-te-menu-value span:nth-child(3),
         .goog-te-menu-value span:nth-child(5) {
             display: none !important;
         }
 
-        /* 3. BASIC TEXT COLOR: Inherit from sidebar link (Works for Light Mode) */
         .goog-te-menu-value {
             color: inherit !important;
             margin: 0 !important;
@@ -407,10 +430,6 @@
                 font-size: 1rem !important;
             }
 
-        /* 4. DARK MODE OVERRIDE [UPDATED FOR ROBUSTNESS]
-                   Forces ALL text elements inside the widget to be WHITE when dark mode is active.
-                   Includes 'a', 'span', and 'font' tags to catch Google's dynamic injections.
-                */
         [data-bs-theme="dark"] .goog-te-gadget-simple,
         [data-bs-theme="dark"] .goog-te-gadget-simple > span,
         [data-bs-theme="dark"] .goog-te-gadget-simple > div,
@@ -422,14 +441,10 @@
             color: #ffffff !important;
         }
 
-        /* 5. HOVER STATE (Optional)
-                   Ensures text turns blue (accent) when hovering the sidebar item
-                */
         .sidebar__link:hover .goog-te-menu-value span {
             color: var(--accent--primary) !important;
         }
 
-        /* Hide text when collapsed */
         .vertical-sidebar:not(:has(:checked)) #google_translate_element {
             display: none;
         }
@@ -457,7 +472,7 @@
                         </label>
                     </div>
                     <figure class="sidebar-logo">
-                        <div class="text-primary mb-2">
+                        <div class="text-primary">
                             <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" fill="currentColor" class="bi bi-airplane-engines" viewBox="0 0 16 16">
                                 <path d="M15.964.686a.5.5 0 0 0-.65-.65L.767 5.855H.766l-.452.18a.5.5 0 0 0-.082.887l.41.26.001.002 4.995 3.178 3.178 4.995.002.002.26.41a.5.5 0 0 0 .886-.083l6-15Zm-1.833 1.89L6.637 10.07l-.215-.338a.5.5 0 0 0-.154-.154l-.338-.215 7.494-7.494 1.178-.471-.47 1.178Z" />
                             </svg>
@@ -597,9 +612,7 @@
         </aside>
 
         <div class="flex-grow-1 d-flex flex-column" style="min-width: 0;">
-
             <main class="flex-grow-1">
-                @* CONDITIONAL PADDING *@
                 @{
                     var isHomePage = ViewContext.RouteData.Values["controller"]?.ToString() == "Home" &&
                     ViewContext.RouteData.Values["action"]?.ToString() == "Index";
@@ -647,7 +660,6 @@
             const html = document.documentElement;
             const currentTheme = html.getAttribute('data-bs-theme');
         });
-
         function toggleTheme() {
             const html = document.documentElement;
             const currentTheme = html.getAttribute('data-bs-theme');
