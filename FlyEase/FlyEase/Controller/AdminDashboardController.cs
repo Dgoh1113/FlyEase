@@ -410,17 +410,26 @@ namespace FlyEase.Controllers
         [HttpPost("DeletePackage")]
         public async Task<IActionResult> DeletePackage(int id)
         {
-            var package = await _context.Packages.FindAsync(id);
+            // Include Bookings to enable cascade delete
+            var package = await _context.Packages
+                .Include(p => p.Bookings)
+                .FirstOrDefaultAsync(p => p.PackageID == id);
+
             if (package != null)
             {
-                if (await _context.Bookings.AnyAsync(b => b.PackageID == id))
-                    TempData["Error"] = "Cannot delete package: Active bookings exist.";
-                else
+                // Logic: If user confirmed via the 3-second alert, we assume they want to delete everything.
+                if (package.Bookings.Any())
                 {
-                    _context.Packages.Remove(package);
-                    await _context.SaveChangesAsync();
-                    TempData["Success"] = "Package deleted successfully.";
+                    _context.Bookings.RemoveRange(package.Bookings);
                 }
+
+                _context.Packages.Remove(package);
+                await _context.SaveChangesAsync();
+                TempData["Success"] = "Package and its associated bookings were deleted successfully.";
+            }
+            else
+            {
+                TempData["Error"] = "Package not found.";
             }
             return RedirectToAction(nameof(Packages));
         }
