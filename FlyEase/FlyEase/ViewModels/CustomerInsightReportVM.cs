@@ -1,33 +1,48 @@
 using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
 
 namespace FlyEase.ViewModels
 {
     public class CustomerInsightReportVM
     {
         // ========== FILTER PARAMETERS ==========
+        public string ViewMode { get; set; } = "custom"; // daily, monthly, custom
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
-        public string SortBy { get; set; } = "Spending";
+        public string SearchTerm { get; set; }
+        public string SortBy { get; set; } = "Spending"; // "Spending" or "Frequency"
 
-        // ========== REPORT METADATA ==========
-        public DateTime GeneratedAt { get; set; } = DateTime.Now;
-        public string GeneratedBy { get; set; } = "Admin";
+        // ========== PAGINATION ==========
+        public int CurrentPage { get; set; } = 1;
+        public int TotalPages { get; set; }
+        public int PageSize { get; set; } = 10;
+        public bool HasPreviousPage => CurrentPage > 1;
+        public bool HasNextPage => CurrentPage < TotalPages;
 
         // ========== SUMMARY STATISTICS ==========
         public int TotalCustomers { get; set; }
         public int TotalBookings { get; set; }
         public decimal TotalRevenue { get; set; }
-        public decimal AverageSpendingPerCustomer { get; set; }
-        public int ActiveCustomers { get; set; } // Customers who booked in this period
+        public decimal AverageSpendPerCustomer { get; set; }
 
-        // ========== CHART DATA (Top 5 Customers) ==========
-        public List<string> ChartLabels { get; set; } = new List<string>();
-        public List<decimal> ChartValues { get; set; } = new List<decimal>();
+        // Top Customer (For Summary Box)
+        public string TopCustomerName { get; set; } = "N/A";
+        public decimal TopCustomerValue { get; set; } // Spent amount
 
-        // ========== DETAILED CUSTOMER LEDGER ==========
+        // ========== CHART 1: SPENDING (Top 5 by $) ==========
+        public List<string> SpendingChartLabels { get; set; } = new List<string>();
+        public List<decimal> SpendingChartValues { get; set; } = new List<decimal>();
+
+        // ========== CHART 2: FREQUENCY (Top 5 by #) ==========
+        public List<string> FrequencyChartLabels { get; set; } = new List<string>();
+        public List<int> FrequencyChartValues { get; set; } = new List<int>();
+
+        // ========== DETAILED REPORT DATA ==========
         public List<CustomerInsightDetailVM> Details { get; set; } = new List<CustomerInsightDetailVM>();
+
+        // ========== METADATA ==========
+        public DateTime GeneratedAt { get; set; } = DateTime.Now;
+        public string GeneratedBy { get; set; } = "Admin";
     }
 
     public class CustomerInsightDetailVM
@@ -37,19 +52,9 @@ namespace FlyEase.ViewModels
         public string Email { get; set; }
         public string Phone { get; set; }
 
-        // Metrics
         public int TotalBookings { get; set; }
-        public int TotalPeople { get; set; }
         public decimal TotalSpent { get; set; }
-        public decimal AverageSpentPerBooking { get; set; }
-
-        // Dates
-        public DateTime FirstBookingDate { get; set; }
-        public DateTime LastBookingDate { get; set; }
-
-        // Loyalty
-        public string CustomerTier { get; set; } // VIP, Premium, Standard, New
-        public decimal AverageRating { get; set; }
-        public int ReviewsGiven { get; set; }
+        public DateTime? LastBookingDate { get; set; }
+        public decimal AverageRating { get; set; } // If they left feedback
     }
 }

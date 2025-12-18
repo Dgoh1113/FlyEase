@@ -1,193 +1,153 @@
 ﻿@model FlyEase.ViewModels.PackagePerformanceReportVM
 @{
-    ViewData["Title"] = "Package Performance Report";
-    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Package Performance";
+    Layout = "~/Views/Shared/_ReportLayout.cshtml";
 }
 
-<link rel="stylesheet" href="~/css/report.css" />
-<script src="~/js/report.js"></script>
+<div class="d-flex justify-content-between align-items-center mb-4 fade-in">
+    <div>
+        <h2 class="mb-0 text-primary">Package Performance</h2>
+        <p class="text-muted small mb-0">Analysis by Revenue or Sales Volume.</p>
+    </div> 
 
-<div class="container-fluid py-4">
+</div>
 
-    <partial name="_ReportNavigation" />
+<div class="card shadow-sm mb-4 border-0">
+    <div class="card-body">
+        <form method="GET" id="reportForm">
 
-    <div class="d-flex justify-content-end mb-3 no-print">
-        <div class="btn-group shadow-sm">
-            <a asp-action="ExportPackageExcel"
-               asp-route-startDate="@Model.StartDate.ToString("yyyy-MM-dd")"
-               asp-route-endDate="@Model.EndDate.ToString("yyyy-MM-dd")"
-               asp-route-categoryFilter="@Model.CategoryFilter"
-               asp-route-packageFilter="@Model.PackageFilter"
-               class="btn btn-success">
-                <i class="fas fa-file-excel me-2"></i> Export Excel
-            </a>
-            <button onclick="window.print()" class="btn btn-dark">
-                <i class="fas fa-print me-2"></i> Print / PDF
-            </button>
-        </div>
-    </div>
-
-    <div class="report-header text-center">
-        <h1>FlyEase Package Performance</h1>
-        <p>Generated on: @Model.GeneratedAt.ToString("dd MMM yyyy HH:mm") | By: @Model.GeneratedBy</p>
-        <p><strong>Period:</strong> @Model.StartDate.ToString("dd MMM yyyy") - @Model.EndDate.ToString("dd MMM yyyy")</p>
-    </div>
-
-    <div class="card shadow-sm mb-4 no-print">
-        <div class="card-body bg-light">
-            <form method="get" asp-action="PackagePerformanceReport" class="row g-3 align-items-end">
-                <div class="col-md-2">
-                    <label class="form-label fw-bold small">From</label>
-                    <input type="date" class="form-control form-control-sm" name="startDate" value="@Model.StartDate.ToString("yyyy-MM-dd")">
+            <input type="hidden" name="page" value="1" />
+           
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div class="d-flex gap-2">
+                    <span class="align-self-center text-muted small fw-bold text-uppercase me-2">Quick View:</span>
+                    <button type="submit" formaction="@Url.Action("PackagePerformanceReport")" name="viewMode" value="daily" class="preset-btn @(Model.ViewMode == "daily" ? "active" : "")">Today</button>
+                    <button type="submit" formaction="@Url.Action("PackagePerformanceReport")" name="viewMode" value="monthly" class="preset-btn @(Model.ViewMode == "monthly" ? "active" : "")">This Month</button>
+                    <button type="submit" formaction="@Url.Action("PackagePerformanceReport")" name="viewMode" value="custom" class="preset-btn @(Model.ViewMode == "custom" ? "active" : "")">Custom</button>
                 </div>
-                <div class="col-md-2">
-                    <label class="form-label fw-bold small">To</label>
-                    <input type="date" class="form-control form-control-sm" name="endDate" value="@Model.EndDate.ToString("yyyy-MM-dd")">
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label fw-bold small">Category</label>
-                    <select class="form-select form-select-sm" name="categoryFilter">
-                        <option value="All">All Categories</option>
-                        @foreach (var c in Model.AvailableCategories.Where(x => x != "All"))
-                        {
-                            <option value="@c" selected="@(Model.CategoryFilter == c)">@c</option>
-                        }
-                    </select>
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label fw-bold small">Specific Package</label>
-                    <select class="form-select form-select-sm" name="packageFilter">
-                        <option value="">All Packages</option>
-                        @foreach (var p in Model.AvailablePackages)
-                        {
-                            <option value="@p.Id" selected="@(Model.PackageFilter == p.Id)">@p.Name</option>
-                        }
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <button type="submit" class="btn btn-primary btn-sm w-100">
-                        <i class="fas fa-filter me-1"></i> Apply
+                <div class="btn-group">
+                    <button type="submit" formaction="@Url.Action("ExportPackageExcel")" class="btn btn-success btn-sm shadow-sm">
+                        <i class="fas fa-file-excel me-1"></i> Export Excel
+                    </button>
+                    <button type="submit" formaction="@Url.Action("PackagePerformancePrinted")" formtarget="_blank" class="btn btn-secondary btn-sm shadow-sm">
+                        <i class="fas fa-print me-1"></i> Generate / PDF
                     </button>
                 </div>
-            </form>
-        </div>
-    </div>
+            </div> 
+            
 
-    <div class="row g-3 mb-4">
-        <div class="col-md-3 col-6">
-            <div class="card bg-primary text-white h-100">
-                <div class="card-body py-3">
-                    <h6 class="opacity-75">Total Revenue</h6>
-                    <h3 class="fw-bold mb-0">RM @Model.TotalRevenue.ToString("N0")</h3>
+            <div class="row g-2 align-items-end">
+                <div class="col-md-2">
+                    <label class="form-label small fw-bold text-muted">From</label>
+                    <input type="date" name="startDate" class="form-control form-control-sm" value="@Model.StartDate.ToString("yyyy-MM-dd")">
                 </div>
-            </div>
-        </div>
-        <div class="col-md-3 col-6">
-            <div class="card bg-white border-primary text-primary h-100 shadow-sm">
-                <div class="card-body py-3">
-                    <h6 class="text-muted">Packages Active</h6>
-                    <h3 class="fw-bold mb-0">@Model.TotalPackages</h3>
+                <div class="col-md-2">
+                    <label class="form-label small fw-bold text-muted">To</label>
+                    <input type="date" name="endDate" class="form-control form-control-sm" value="@Model.EndDate.ToString("yyyy-MM-dd")">
                 </div>
-            </div>
-        </div>
-        <div class="col-md-3 col-6">
-            <div class="card bg-white h-100 shadow-sm">
-                <div class="card-body py-3 border-start border-4 border-success">
-                    <h6 class="text-muted">Total Bookings</h6>
-                    <h4 class="fw-bold mb-0 text-success">@Model.TotalBookings</h4>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3 col-6">
-            <div class="card bg-white h-100 shadow-sm">
-                <div class="card-body py-3 border-start border-4 border-warning">
-                    <h6 class="text-muted">Avg Rating</h6>
-                    <h4 class="fw-bold mb-0 text-warning">@Model.AverageRating.ToString("N1") ⭐</h4>
-                </div>
-            </div>
-        </div>
-    </div>
 
-    <div class="card shadow-sm mb-4">
-        <div class="card-header bg-white py-3 border-bottom">
-            <h5 class="mb-0 fw-bold">Top Performing Packages (By Revenue)</h5>
-        </div>
-        <div class="card-body">
-            <div style="height: 300px;">
-                <canvas id="revenueChart"
-                        data-labels='@Html.Raw(Json.Serialize(Model.ChartLabels))'
-                        data-values='@Html.Raw(Json.Serialize(Model.ChartValues))'>
-                </canvas>
-            </div>
-        </div>
-    </div>
-
-    <div class="card shadow-sm">
-        <div class="card-header bg-white py-3 border-bottom">
-            <h5 class="mb-0 fw-bold">Package Inventory & Performance</h5>
-        </div>
-        <div class="table-responsive">
-            <table class="table table-striped table-hover align-middle mb-0" id="packageTable">
-                <thead class="table-light text-uppercase small fw-bold">
-                    <tr>
-                        <th style="width: 25%">Package Name</th>
-                        <th>Category</th>
-                        <th>Price</th>
-                        <th class="text-center">Bookings</th>
-                        <th class="text-center">Pax Sold</th>
-                        <th class="text-end">Revenue</th>
-                        <th class="text-center">Rating</th>
-                        <th style="width: 15%">Occupancy</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @if (Model.Details.Any())
-                    {
-                        @foreach (var item in Model.Details.OrderByDescending(d => d.TotalRevenue))
+                <div class="col-md-2">
+                    <label class="form-label small fw-bold text-muted">Category</label>
+                    <select name="category" class="form-select form-select-sm">
+                        @foreach (var cat in Model.AvailableCategories)
                         {
-                            <tr>
-                                <td>
-                                    <div class="fw-bold">@item.PackageName</div>
-                                    <div class="small text-muted">@item.Destination</div>
-                                </td>
-                                <td><span class="badge bg-light text-dark border">@item.Category</span></td>
-                                <td>RM @item.Price.ToString("N0")</td>
-                                <td class="text-center fw-bold">@item.TotalBookings</td>
-                                <td class="text-center">@item.TotalPeople</td>
-                                <td class="text-end fw-bold text-success">RM @item.TotalRevenue.ToString("N0")</td>
-                                <td class="text-center">
-                                    @if (item.TotalReviews > 0)
-                                    {
-                                        <span class="text-warning fw-bold">@item.AverageRating.ToString("N1")</span>
-                                    }
-                                    else
-                                    {
-                                        <span class="text-muted small">-</span>
-                                    }
-                                </td>
-                                <td>
-                                    <div class="d-flex align-items-center">
-                                        <span class="me-2 small fw-bold">@item.OccupancyRate.ToString("N0")%</span>
-                                        <div class="progress flex-grow-1" style="height: 6px;">
-                                            <div class="progress-bar @(item.OccupancyRate > 80 ? "bg-success" : "bg-primary")"
-                                                 style="width: @item.OccupancyRate%"></div>
-                                        </div>
-                                    </div>
-                                </td>
-                            </tr>
+                            <option value="@cat" selected="@(Model.CategoryFilter == cat ? "selected" : null)">@cat</option>
                         }
-                    }
-                    else
-                    {
-                        <tr>
-                            <td colspan="8" class="text-center py-5 text-muted">
-                                <i class="fas fa-box-open fa-3x mb-3 opacity-50"></i>
-                                <p>No packages found matching criteria.</p>
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        </div>
+                    </select>
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-muted">Specific Package</label>
+                    <select name="packageId" class="form-select form-select-sm">
+                        <option value="">All Packages</option>
+                        @foreach (var pkg in Model.AvailablePackages)
+                        {
+                            <option value="@pkg.Id" selected="@(Model.PackageFilter == pkg.Id ? "selected" : null)">@pkg.Name</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="col-md-2">
+                    <label class="form-label small fw-bold text-muted">Sort By</label>
+                    <select name="sortBy" class="form-select form-select-sm fw-bold text-primary">
+                        <option value="Revenue" selected="@(Model.SortBy == "Revenue" ? "selected" : null)">Highest Revenue</option>
+                        <option value="Volume" selected="@(Model.SortBy == "Volume" ? "selected" : null)">Most Sold (Pax)</option>
+                    </select>
+                </div>
+
+                <div class="col-md-1">
+                    <button type="submit" formaction="@Url.Action("PackagePerformanceReport")" class="btn btn-primary btn-sm w-100 shadow-sm">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+            </div>
+        </form>
     </div>
 </div>
+
+<div class="card shadow border-0">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0 report-table">
+            <thead class="bg-light text-uppercase small fw-bold text-muted">
+                <tr>
+                    <th class="ps-4">Rank</th>
+                    <th>Package Name</th>
+                    <th>Category</th>
+                    <th class="text-end">Price</th>
+                    <th class="text-end">Bookings</th>
+                    <th class="text-end @(Model.SortBy == "Volume" ? "bg-warning bg-opacity-10 text-dark fw-bold" : "")">Pax Sold</th>
+                    <th class="text-end pe-4 @(Model.SortBy == "Revenue" ? "bg-success bg-opacity-10 text-success fw-bold" : "")">Revenue (RM)</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Details.Any())
+                {
+                    int rank = (Model.CurrentPage - 1) * Model.PageSize + 1;
+                    foreach (var item in Model.Details)
+                    {
+                        <tr>
+                            <td class="ps-4 text-muted small">#@rank</td>
+                            <td class="fw-bold text-dark">@item.PackageName</td>
+                            <td><span class="badge bg-light text-dark border">@item.Category</span></td>
+                            <td class="text-end">@item.Price.ToString("N2")</td>
+                            <td class="text-end">@item.TotalBookings</td>
+                            <td class="text-end @(Model.SortBy == "Volume" ? "fw-bold text-dark bg-warning bg-opacity-10" : "")">@item.TotalPax</td>
+                            <td class="text-end pe-4 @(Model.SortBy == "Revenue" ? "fw-bold text-success bg-success bg-opacity-10" : "")">@item.Revenue.ToString("N2")</td>
+                        </tr>
+                        rank++;
+                    }
+                    <tr class="table-footer">
+                        <td colspan="5" class="text-end text-uppercase small">Grand Total</td>
+                        <td class="text-end">@Model.TotalPackagesSold</td>
+                        <td class="text-end pe-4">RM @Model.TotalRevenue.ToString("N2")</td>
+                    </tr>
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="7" class="text-center py-5 text-muted">
+                            <i class="fas fa-box-open fa-3x mb-3 opacity-25"></i>
+                            <p class="mb-0">No active packages found for this period.</p>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@if (Model.TotalPages > 1)
+{
+    <div class="pagination-container mt-4">
+        @{
+            var queryParams = Context.Request.Query.ToDictionary(k => k.Key, v => v.Value.ToString());
+            queryParams["page"] = (Model.CurrentPage - 1).ToString();
+            var prevLink = Url.Action("PackagePerformanceReport", queryParams);
+            queryParams["page"] = (Model.CurrentPage + 1).ToString();
+            var nextLink = Url.Action("PackagePerformanceReport", queryParams);
+        }
+        <a href="@prevLink" class="page-link-custom shadow-sm @(!Model.HasPreviousPage ? "disabled" : "")"><i class="fas fa-chevron-left"></i></a>
+        <span class="page-info mx-3">Page @Model.CurrentPage of @Model.TotalPages</span>
+        <a href="@nextLink" class="page-link-custom shadow-sm @(!Model.HasNextPage ? "disabled" : "")"><i class="fas fa-chevron-right"></i></a>
+    </div>
+}
