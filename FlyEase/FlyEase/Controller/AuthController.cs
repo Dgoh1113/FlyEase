@@ -424,6 +424,7 @@ namespace FlyEase.Controllers
         {
             if (!ModelState.IsValid) return View(model);
 
+            // Verify Token in Cache
             if (!_cache.TryGetValue($"ResetToken_{model.Token}", out string cachedEmail) || cachedEmail != model.Email)
             {
                 TempData["ErrorMessage"] = "This reset link is invalid or has expired.";
@@ -437,9 +438,22 @@ namespace FlyEase.Controllers
                 return RedirectToAction("Login");
             }
 
+            // ============================================================
+            // NEW LOGIC: Prevent using the same password
+            // ============================================================
+            if (VerifyPassword(model.NewPassword, user.PasswordHash))
+            {
+                // Use TempData to display the error in the alert box defined in your View
+                TempData["ErrorMessage"] = "You cannot use your previous password. Please choose a new, more secure password.";
+                return View(model);
+            }
+            // ============================================================
+
             user.PasswordHash = HashPassword(model.NewPassword);
             _context.Users.Update(user);
             await _context.SaveChangesAsync();
+
+            // Clear token after successful reset
             _cache.Remove($"ResetToken_{model.Token}");
 
             TempData["SuccessMessage"] = "Password has been reset successfully. Please login.";
