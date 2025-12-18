@@ -20,14 +20,15 @@ namespace FlyEase.Controllers
     {
         private readonly FlyEaseDbContext _context;
         private readonly IWebHostEnvironment _environment;
-        private readonly EmailService _emailService; // 1. Add this field
+        private readonly EmailService _emailService;
+        private readonly StripeService _stripeService;
 
-        // 2. Inject EmailService in the constructor
-        public AdminDashboardController(FlyEaseDbContext context, IWebHostEnvironment environment, EmailService emailService)
+        public AdminDashboardController(FlyEaseDbContext context, IWebHostEnvironment environment, EmailService emailService, StripeService stripeService)
         {
             _context = context;
             _environment = environment;
-            _emailService = emailService; // 3. Assign it
+            _emailService = emailService;
+            _stripeService = stripeService;
         }
 
         // ==========================================
@@ -142,6 +143,23 @@ namespace FlyEase.Controllers
             return RedirectToAction(nameof(Users));
         }
 
+        [HttpPost("UnbanUser")]
+        public async Task<IActionResult> UnbanUser(int id)
+        {
+            var user = await _context.Users.FindAsync(id);
+            if (user != null)
+            {
+                user.Role = "User"; // Reset to default role
+                await _context.SaveChangesAsync();
+                TempData["Success"] = $"User {user.FullName} has been unbanned.";
+            }
+            else
+            {
+                TempData["Error"] = "User not found.";
+            }
+            return RedirectToAction(nameof(Users));
+        }
+
         // ==========================================
         // 3. BOOKINGS MANAGEMENT
         // ==========================================
@@ -186,7 +204,6 @@ namespace FlyEase.Controllers
             if (booking != null)
             {
                 booking.BookingStatus = input.BookingStatus;
-                booking.TravelDate = input.TravelDate;
                 await _context.SaveChangesAsync();
                 TempData["Success"] = "Booking updated!";
             }
@@ -198,34 +215,89 @@ namespace FlyEase.Controllers
         public async Task<IActionResult> UpdateBookingStatus(BookingsPageVM model)
         {
             var input = model.CurrentBooking;
-            var booking = await _context.Bookings.Include(b => b.User).Include(b => b.Package).FirstOrDefaultAsync(b => b.BookingID == input.BookingID);
+
+            // Include Payments to process refunds
+            var booking = await _context.Bookings
+                .Include(b => b.User)
+                .Include(b => b.Package)
+                .Include(b => b.Payments)
+                .FirstOrDefaultAsync(b => b.BookingID == input.BookingID);
 
             if (booking != null)
             {
-                bool isJustCompleted = (input.BookingStatus == "Completed" && booking.BookingStatus != "Completed");
-                booking.BookingStatus = input.BookingStatus;
+                string oldStatus = booking.BookingStatus;
+                string newStatus = input.BookingStatus;
+
+                // --- 1. PREVENT MANUALLY SETTING TO 'COMPLETED' ---
+                if (newStatus == "Completed")
+                {
+                    TempData["Error"] = "You cannot manually mark a booking as Completed. This is done automatically.";
+                    return RedirectToAction("Bookings");
+                }
+
+                // --- 2. PREVENT EDITING COMPLETED OR CANCELLED BOOKINGS ---
+                if (oldStatus == "Completed" || oldStatus == "Cancelled")
+                {
+                    TempData["Error"] = $"Cannot modify a booking that is already {oldStatus}.";
+                    return RedirectToAction("Bookings");
+                }
+
+                // --- 3. UPDATE STATUS ---
+                booking.BookingStatus = newStatus;
                 await _context.SaveChangesAsync();
 
-                if (isJustCompleted)
+                // --- 4. LOGIC FOR CANCELLED -> REFUND & EMAIL ---
+                if (newStatus == "Cancelled" && oldStatus != "Cancelled")
                 {
-                    try
+                    // Only auto-refund if confirmed/deposit
+                    if (oldStatus == "Confirmed" || oldStatus == "Deposit")
                     {
-                        string packageImage = booking.Package.ImageURL?.Split(';').FirstOrDefault() ?? "";
+                        try
+                        {
+                            // Find a completed payment to refund
+                            var payment = booking.Payments.FirstOrDefault(p => p.PaymentStatus == "Completed");
 
-                        // 4. Use the injected _emailService instead of 'new EmailService()'
-                        await _emailService.SendReviewInvitation(
-                            booking.User.Email,
-                            booking.User.FullName,
-                            booking.BookingID,
-                            booking.Package.PackageName,
-                            packageImage
-                        );
-                        TempData["Success"] = "Booking marked Completed & Review Email Sent!";
+                            // Check if transaction ID exists (Implies Stripe/Online Payment)
+                            if (payment != null && !string.IsNullOrEmpty(payment.TransactionID))
+                            {
+                                // A. Process Refund via Stripe
+                                await _stripeService.RefundPaymentAsync(payment.TransactionID);
+
+                                // B. Update Payment Record
+                                payment.PaymentStatus = "Refunded";
+                                await _context.SaveChangesAsync();
+
+                                // C. Send Refund Email
+                                await _emailService.SendRefundNotification(
+                                    booking.User.Email,
+                                    booking.User.FullName,
+                                    booking.Package.PackageName,
+                                    payment.AmountPaid
+                                );
+
+                                TempData["Success"] = "Booking Cancelled, Payment Refunded (Stripe), and Email Sent.";
+                            }
+                            else
+                            {
+                                // Cash or Manual Payment (No Transaction ID)
+                                TempData["Warning"] = "Booking Cancelled. Manual refund required (Cash/No Online Transaction Found).";
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            TempData["Error"] = "Error processing refund: " + ex.Message;
+                        }
                     }
-                    catch (Exception ex)
+                    else
                     {
-                        TempData["Warning"] = "Booking saved, but Email failed: " + ex.Message;
+                        // e.g. "Pending" bookings don't get refunds
+                        TempData["Success"] = $"Booking Cancelled. No refund processed (Previous status was '{oldStatus}').";
                     }
+                }
+                // --- 5. LOGIC FOR CONFIRMED ---
+                else if (newStatus == "Confirmed")
+                {
+                    TempData["Success"] = "Booking Confirmed successfully.";
                 }
                 else
                 {
@@ -388,18 +460,37 @@ namespace FlyEase.Controllers
         }
 
         // ==========================================
-        // 6. DISCOUNTS
+        // 6. DISCOUNTS MANAGEMENT
         // ==========================================
+
         [HttpGet("Discounts")]
         public async Task<IActionResult> Discounts(string? search = null, int? page = 1)
         {
-            int pageSize = 5;
+            int pageSize = 10;
             int pageNumber = page ?? 1;
+
             var query = _context.DiscountTypes.AsQueryable();
-            if (!string.IsNullOrEmpty(search)) query = query.Where(d => d.DiscountTypeID.ToString().Contains(search) || d.DiscountName.Contains(search));
+
+            if (!string.IsNullOrEmpty(search))
+            {
+                query = query.Where(d => d.DiscountName.Contains(search));
+            }
+
             var totalItems = await query.CountAsync();
-            var pagedData = await query.OrderBy(d => d.DiscountName).Skip((pageNumber - 1) * pageSize).Take(pageSize).ToListAsync();
-            var vm = new DiscountPageVM { Discounts = new StaticPagedList<DiscountType>(pagedData, pageNumber, pageSize, totalItems), SearchTerm = search };
+            var pagedData = await query
+                .OrderByDescending(d => d.IsActive)
+                .ThenBy(d => d.DiscountName)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            var vm = new DiscountPageVM
+            {
+                Discounts = new StaticPagedList<DiscountType>(pagedData, pageNumber, pageSize, totalItems),
+                SearchTerm = search,
+                CurrentDiscount = new DiscountType()
+            };
+
             return View(vm);
         }
 
@@ -407,22 +498,59 @@ namespace FlyEase.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> SaveDiscount(DiscountPageVM model)
         {
-            var input = model.CurrentDiscount;
-            if (string.IsNullOrEmpty(input.DiscountName)) { TempData["Error"] = "Discount Name is required."; return RedirectToAction(nameof(Discounts)); }
-            if (input.DiscountRate == null && input.DiscountAmount == null) { TempData["Error"] = "Please specify either a Discount Rate or a Fixed Amount."; return RedirectToAction(nameof(Discounts)); }
+            ModelState.Remove("Discounts");
+            ModelState.Remove("SearchTerm");
 
-            if (input.DiscountTypeID == 0) { _context.DiscountTypes.Add(input); TempData["Success"] = "Discount created successfully!"; }
+            var input = model.CurrentDiscount;
+
+            if (string.IsNullOrEmpty(input.DiscountName))
+                ModelState.AddModelError("CurrentDiscount.DiscountName", "Discount Name is required.");
+
+            if (input.DiscountRate == null && input.DiscountAmount == null)
+                ModelState.AddModelError("CurrentDiscount.DiscountAmount", "Please specify either a Percentage Rate or a Fixed Amount.");
+
+            if (!ModelState.IsValid)
+            {
+                var errors = string.Join("; ", ModelState.Values
+                                        .SelectMany(v => v.Errors)
+                                        .Select(e => e.ErrorMessage));
+
+                TempData["Error"] = "Unable to save: " + errors;
+                return RedirectToAction(nameof(Discounts));
+            }
+
+            if (input.DiscountTypeID == 0)
+            {
+                _context.DiscountTypes.Add(input);
+                TempData["Success"] = "Discount created successfully!";
+            }
             else
             {
                 var existing = await _context.DiscountTypes.FindAsync(input.DiscountTypeID);
                 if (existing != null)
                 {
-                    existing.DiscountName = input.DiscountName; existing.DiscountRate = input.DiscountRate; existing.DiscountAmount = input.DiscountAmount;
-                    existing.MinPax = input.MinPax; existing.MinSpend = input.MinSpend; existing.StartDate = input.StartDate; existing.EndDate = input.EndDate; existing.IsActive = input.IsActive;
-                    _context.DiscountTypes.Update(existing); TempData["Success"] = "Discount updated successfully!";
+                    existing.DiscountName = input.DiscountName;
+                    existing.DiscountRate = input.DiscountRate;
+                    existing.DiscountAmount = input.DiscountAmount;
+                    existing.MinPax = input.MinPax;
+                    existing.MinSpend = input.MinSpend;
+                    existing.StartDate = input.StartDate;
+                    existing.EndDate = input.EndDate;
+                    existing.IsActive = input.IsActive;
+
+                    existing.AgeLimit = input.AgeLimit;
+                    existing.AgeCriteria = input.AgeCriteria;
+                    existing.EarlyBirdDays = input.EarlyBirdDays;
+
+                    _context.DiscountTypes.Update(existing);
+                    TempData["Success"] = "Discount updated successfully!";
                 }
-                else TempData["Error"] = "Discount not found.";
+                else
+                {
+                    TempData["Error"] = "Discount not found.";
+                }
             }
+
             await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Discounts));
         }
@@ -434,8 +562,16 @@ namespace FlyEase.Controllers
             if (discount != null)
             {
                 bool isUsed = await _context.BookingDiscounts.AnyAsync(bd => bd.DiscountTypeID == id);
-                if (isUsed) TempData["Error"] = "Cannot delete this discount because it has been applied to existing bookings.";
-                else { _context.DiscountTypes.Remove(discount); await _context.SaveChangesAsync(); TempData["Success"] = "Discount deleted successfully."; }
+                if (isUsed)
+                {
+                    TempData["Error"] = "Cannot delete: Discount is used in existing bookings.";
+                }
+                else
+                {
+                    _context.DiscountTypes.Remove(discount);
+                    await _context.SaveChangesAsync();
+                    TempData["Success"] = "Discount deleted successfully.";
+                }
             }
             return RedirectToAction(nameof(Discounts));
         }

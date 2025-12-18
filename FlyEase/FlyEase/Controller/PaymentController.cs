@@ -109,6 +109,8 @@ namespace FlyEase.Controllers
             CalculateDiscounts(model);
 
             HttpContext.Session.SetCustomerInfo(model);
+            // Clear previous applied discounts (they'll be recalculated when user clicks "Check Discounts")
+            HttpContext.Session.Remove("AppliedDiscounts");
             return RedirectToAction("PaymentMethod");
         }
 
@@ -125,49 +127,159 @@ namespace FlyEase.Controllers
             decimal totalDiscount = 0;
             var discountDetails = new List<string>();
 
-            // 1. BULK DISCOUNT (> 3 People)
+            // List to track applied discounts for database storage
+            var appliedDiscounts = new List<DiscountInfo>();
+
+            // 1. BULK DISCOUNT (> 3 People) - Hardcoded logic
             if (request.People > 3)
             {
                 decimal bulkDisc = basePriceTotal * 0.10m;
                 totalDiscount += bulkDisc;
                 discountDetails.Add($"Bulk Group (>3 pax): -RM {bulkDisc:N2}");
+
+                appliedDiscounts.Add(new DiscountInfo
+                {
+                    Name = "Bulk Group Discount",
+                    Type = "Bulk",
+                    Rate = 0.10m,
+                    Amount = bulkDisc
+                });
             }
 
-            // 2. SENIOR DISCOUNT (60+)
+            // 2. SENIOR DISCOUNT (60+) - Hardcoded logic
             if (request.Seniors > 0)
             {
                 decimal seniorDiscAmount = (package.Price * 0.20m) * request.Seniors;
                 totalDiscount += seniorDiscAmount;
                 discountDetails.Add($"Senior Citizen ({request.Seniors}x): -RM {seniorDiscAmount:N2}");
+
+                appliedDiscounts.Add(new DiscountInfo
+                {
+                    Name = "Senior Citizen Discount",
+                    Type = "Senior",
+                    Rate = 0.20m,
+                    Amount = seniorDiscAmount
+                });
             }
 
-            // 3. JUNIOR DISCOUNT (<12)
+            // 3. JUNIOR DISCOUNT (<12) - Hardcoded logic
             if (request.Juniors > 0)
             {
                 decimal juniorDiscAmount = (package.Price * 0.15m) * request.Juniors;
                 totalDiscount += juniorDiscAmount;
                 discountDetails.Add($"Junior/Child ({request.Juniors}x): -RM {juniorDiscAmount:N2}");
+
+                appliedDiscounts.Add(new DiscountInfo
+                {
+                    Name = "Junior/Child Discount",
+                    Type = "Junior",
+                    Rate = 0.15m,
+                    Amount = juniorDiscAmount
+                });
             }
 
-            // 4. DATABASE DISCOUNTS
-            var dbDiscounts = await _context.DiscountTypes.ToListAsync();
+            // 4. DATABASE DISCOUNTS - Apply only if criteria match
+            var dbDiscounts = await _context.DiscountTypes
+                .Where(d => d.IsActive)
+                .ToListAsync();
+
+            var now = DateTime.Now;
+            var travelDate = request.TravelDate;
+            var daysUntilTravel = (travelDate - now).Days;
+
             foreach (var d in dbDiscounts)
             {
-                if (d.DiscountRate.HasValue && d.DiscountRate.Value > 0)
+                bool isEligible = true;
+                List<string> reasons = new List<string>();
+
+                // Check Min Pax criteria
+                if (d.MinPax.HasValue && request.People < d.MinPax.Value)
                 {
-                    decimal amount = basePriceTotal * d.DiscountRate.Value;
-                    totalDiscount += amount;
-                    discountDetails.Add($"{d.DiscountName} ({d.DiscountRate.Value * 100:0}%): -RM {amount:N2}");
+                    isEligible = false;
+                    reasons.Add($"Min {d.MinPax.Value} people required");
                 }
-                else if (d.DiscountAmount.HasValue && d.DiscountAmount.Value > 0)
+
+                // Check Min Spend criteria
+                if (d.MinSpend.HasValue && basePriceTotal < d.MinSpend.Value)
                 {
-                    totalDiscount += d.DiscountAmount.Value;
-                    discountDetails.Add($"{d.DiscountName}: -RM {d.DiscountAmount.Value:N2}");
+                    isEligible = false;
+                    reasons.Add($"Min spend RM {d.MinSpend.Value} required");
+                }
+
+                // Check Date Range
+                if (d.StartDate.HasValue && now < d.StartDate.Value)
+                {
+                    isEligible = false;
+                    reasons.Add($"Starts on {d.StartDate.Value:dd MMM yyyy}");
+                }
+
+                if (d.EndDate.HasValue && now > d.EndDate.Value)
+                {
+                    isEligible = false;
+                    reasons.Add($"Expired on {d.EndDate.Value:dd MMM yyyy}");
+                }
+
+                // Check Age-based discounts
+                if (d.AgeLimit.HasValue && !string.IsNullOrEmpty(d.AgeCriteria))
+                {
+                    if (d.AgeCriteria == "Greater" && request.Seniors == 0)
+                    {
+                        isEligible = false;
+                        reasons.Add($"Requires at least 1 senior (60+)");
+                    }
+                    else if (d.AgeCriteria == "Less" && request.Juniors == 0)
+                    {
+                        isEligible = false;
+                        reasons.Add($"Requires at least 1 junior (<12)");
+                    }
+                }
+
+                // Check Early Bird Discount
+                if (d.EarlyBirdDays.HasValue && daysUntilTravel < d.EarlyBirdDays.Value)
+                {
+                    isEligible = false;
+                    reasons.Add($"Book at least {d.EarlyBirdDays.Value} days in advance");
+                }
+
+                if (isEligible)
+                {
+                    decimal discountAmount = 0;
+
+                    if (d.DiscountRate.HasValue && d.DiscountRate.Value > 0)
+                    {
+                        discountAmount = basePriceTotal * d.DiscountRate.Value;
+                    }
+                    else if (d.DiscountAmount.HasValue && d.DiscountAmount.Value > 0)
+                    {
+                        discountAmount = d.DiscountAmount.Value;
+                    }
+
+                    if (discountAmount > 0)
+                    {
+                        totalDiscount += discountAmount;
+                        string discountText = d.DiscountRate.HasValue
+                            ? $"{d.DiscountName} ({d.DiscountRate.Value * 100:0}%): -RM {discountAmount:N2}"
+                            : $"{d.DiscountName}: -RM {discountAmount:N2}";
+
+                        discountDetails.Add(discountText);
+
+                        appliedDiscounts.Add(new DiscountInfo
+                        {
+                            Name = d.DiscountName,
+                            Type = d.DiscountTypeID.ToString(),
+                            Rate = d.DiscountRate,
+                            Amount = discountAmount,
+                            DiscountId = d.DiscountTypeID
+                        });
+                    }
                 }
             }
 
             if (totalDiscount > basePriceTotal) totalDiscount = basePriceTotal;
             decimal finalAmount = basePriceTotal - totalDiscount;
+
+            // Store applied discounts in session for later use when creating booking
+            HttpContext.Session.SetObject("AppliedDiscounts", appliedDiscounts);
 
             return Json(new
             {
@@ -175,8 +287,19 @@ namespace FlyEase.Controllers
                 basePrice = basePriceTotal,
                 discountAmount = totalDiscount,
                 finalAmount = finalAmount,
-                breakdown = discountDetails
+                breakdown = discountDetails,
+                appliedDiscounts = appliedDiscounts
             });
+        }
+
+        // Helper class for discount information
+        public class DiscountInfo
+        {
+            public string Name { get; set; } = string.Empty;
+            public string Type { get; set; } = string.Empty; // "Bulk", "Senior", "Junior", or DB DiscountTypeID
+            public decimal? Rate { get; set; }
+            public decimal Amount { get; set; }
+            public int? DiscountId { get; set; } // For database discounts only
         }
 
         // =========================================================
@@ -351,6 +474,10 @@ namespace FlyEase.Controllers
             string paymentType = HttpContext.Session.GetString("PaymentType") ?? "Full";
             bool isDeposit = (paymentType == "Deposit");
 
+            // Get applied discounts from session
+            var appliedDiscounts = HttpContext.Session.GetObject<List<DiscountInfo>>("AppliedDiscounts")
+                                   ?? new List<DiscountInfo>();
+
             if (customerInfo == null || userId == 0)
             {
                 TempData["Error"] = "Session expired";
@@ -382,7 +509,44 @@ namespace FlyEase.Controllers
             };
 
             _context.Bookings.Add(booking);
-            await _context.SaveChangesAsync();
+            await _context.SaveChangesAsync(); // Save to get BookingID
+
+            // Save discounts to BookingDiscount table
+            foreach (var discount in appliedDiscounts)
+            {
+                var bookingDiscount = new BookingDiscount
+                {
+                    BookingID = booking.BookingID,
+                    DiscountTypeID = discount.DiscountId ?? 0, // 0 for non-database discounts
+                    AppliedAmount = discount.Amount
+                };
+
+                // For non-database discounts (Bulk, Senior, Junior), 
+                // we need to find or create a DiscountType record
+                if (discount.DiscountId == null || discount.DiscountId == 0)
+                {
+                    // Check if a DiscountType exists for this type
+                    var discountType = await _context.DiscountTypes
+                        .FirstOrDefaultAsync(d => d.DiscountName == discount.Name);
+
+                    if (discountType == null)
+                    {
+                        // Create a new DiscountType for system discounts
+                        discountType = new DiscountType
+                        {
+                            DiscountName = discount.Name,
+                            DiscountRate = discount.Rate,
+                            IsActive = true
+                        };
+                        _context.DiscountTypes.Add(discountType);
+                        await _context.SaveChangesAsync();
+                    }
+
+                    bookingDiscount.DiscountTypeID = discountType.DiscountTypeID;
+                }
+
+                _context.BookingDiscounts.Add(bookingDiscount);
+            }
 
             decimal paidAmount = isDeposit ? (customerInfo.FinalAmount * 0.30m) : customerInfo.FinalAmount;
 

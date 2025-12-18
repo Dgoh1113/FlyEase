@@ -9,7 +9,7 @@
 <div class="package-card h-100 d-flex flex-column card shadow-sm">
 
     <div class="card-img-wrapper position-relative">
-        @* --- FIXED: Clickable Image --- *@
+        @* --- Clickable Image --- *@
         <a asp-controller="PackageDetails" asp-action="PackageDetails" asp-route-id="@Model.PackageID">
             <img src="@firstImg" class="card-img-top" alt="@Model.PackageName" style="height: 200px; object-fit: cover;">
         </a>
@@ -26,19 +26,21 @@
     </div>
 
     <div class="card-body d-flex flex-column flex-grow-1">
-        @* --- FIXED: Clickable Title --- *@
+        @* --- Clickable Title --- *@
         <a asp-controller="PackageDetails" asp-action="PackageDetails" asp-route-id="@Model.PackageID" class="text-decoration-none">
             <h5 class="card-title text-truncate text-dark" title="@Model.PackageName">@Model.PackageName</h5>
         </a>
 
         <div class="card-meta mb-2">
-            <small class="text-muted d-block text-truncate">
+            @* --- UPDATED: Added fw-bold for bolder text --- *@
+            <small class="text-muted d-block text-truncate fw-bold">
                 <i class="fas fa-map-marker-alt text-danger me-1"></i> @Model.Destination
             </small>
 
-            <small class="text-secondary d-block mt-1">
+            @* --- UPDATED: Added fw-bold and changed format to "dd MMM yyyy" --- *@
+            <small class="text-secondary d-block mt-1 fw-bold">
                 <i class="far fa-clock text-primary me-1"></i>
-                @duration Days (@Model.StartDate.ToString("dd MMM") - @Model.EndDate.ToString("dd MMM"))
+                @duration Days (@Model.StartDate.ToString("dd MMM yyyy") - @Model.EndDate.ToString("dd MMM yyyy"))
             </small>
         </div>
 
