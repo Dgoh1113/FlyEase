@@ -7,7 +7,6 @@ using Stripe;
 using System.Globalization;
 using FlyEase.Model;
 using Microsoft.AspNetCore.StaticFiles; // 1. ADD THIS NAMESPACE
-
 var builder = WebApplication.CreateBuilder(args);
 
 // Add logging
