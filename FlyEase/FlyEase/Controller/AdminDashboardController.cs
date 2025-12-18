@@ -37,7 +37,9 @@ namespace FlyEase.Controllers
         [HttpGet("AdminDashboard")]
         public async Task<IActionResult> AdminDashboard()
         {
-            var totalUsers = await _context.Users.CountAsync();
+            // [UPDATED] Only count users with Role == "User"
+            var totalUsers = await _context.Users.CountAsync(u => u.Role == "User");
+
             var totalBookings = await _context.Bookings.CountAsync();
             var pendingBookings = await _context.Bookings.CountAsync(b => b.BookingStatus == "Pending");
             var totalRevenue = await _context.Payments.Where(p => p.PaymentStatus == "Completed").SumAsync(p => p.AmountPaid);
