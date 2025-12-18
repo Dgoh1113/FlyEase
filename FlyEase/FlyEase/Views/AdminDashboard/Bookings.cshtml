@@ -54,7 +54,7 @@
                     {
                         foreach (var b in Model.Bookings)
                         {
-                            <tr>
+                            <tr id="row-@b.BookingID">
                                 <td class="ps-4">#@b.BookingID</td>
                                 <td>
                                     <div class="fw-bold">@b.User?.FullName</div>
@@ -64,8 +64,7 @@
                                 <td>@b.BookingDate.ToString("dd MMM yyyy")</td>
                                 <td>@b.TravelDate.ToString("dd MMM yyyy")</td>
                                 <td class="fw-bold text-success">RM @b.FinalAmount.ToString("N2")</td>
-                                <td>
-                                    @* --- UPDATED STATUS BADGE COLORS --- *@
+                                <td class="status-cell">
                                     @if (b.BookingStatus == "Completed")
                                     {
                                         <span class="badge bg-success">Completed</span>
@@ -87,9 +86,8 @@
                                         <span class="badge bg-secondary">@b.BookingStatus</span>
                                     }
                                 </td>
-                                <td class="text-end pe-4">
-                                    @* --- DISABLED EDIT BUTTON IF COMPLETED OR CANCELLED --- *@
-                                    <button class="btn btn-sm btn-outline-primary me-1"
+                                <td class="action-cell text-end pe-4">
+                                    <button class="btn btn-sm btn-outline-primary me-1 edit-btn"
                                             onclick="editBooking(@b.BookingID, '@b.BookingStatus')"
                                             @(b.BookingStatus == "Completed" || b.BookingStatus == "Cancelled" ? "disabled" : "")
                                             style="@(b.BookingStatus == "Cancelled" || b.BookingStatus == "Completed" ? "opacity: 0.5;" : "")">
@@ -131,42 +129,150 @@
 <div class="modal fade" id="bookingModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
-            <form asp-action="UpdateBookingStatus" method="post">
+            <form id="updateBookingForm">
+                @Html.AntiForgeryToken()
                 <div class="modal-header">
                     <h5 class="modal-title">Edit Booking</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
+                    <div id="modalAlert" class="alert alert-danger d-none"></div>
+
                     <input type="hidden" id="bookingId" name="CurrentBooking.BookingID" />
 
                     <div class="mb-3">
                         <label class="form-label">Booking Status</label>
-                        <select class="form-select" id="bookingStatus" name="CurrentBooking.BookingStatus">
-                            <option value="Pending">Pending</option>
-                            <option value="Confirmed">Confirmed</option>
-                            <option value="Cancelled">Cancelled</option>
-                        </select>
-                        <small class="text-muted d-block mt-2">
-                            <i class="fas fa-info-circle me-1"></i>
-                            "Completed" status is set automatically by the system.
-                            Selecting <strong>Cancelled</strong> will automatically refund the user (if applicable).
-                        </small>
+                        <select class="form-select" id="bookingStatus" name="CurrentBooking.BookingStatus"></select>
+
+                        <div class="form-text mt-2 text-primary" id="refundNotice" style="display:none;">
+                            <i class="fas fa-exclamation-circle me-1"></i>
+                            Setting status to <strong>Cancelled</strong> will automatically refund the user (if eligible).
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                    <button type="submit" class="btn btn-primary" id="saveBtn">Save Changes</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
 
+<script src="~/lib/jquery/dist/jquery.min.js"></script>
+
 <script>
     function editBooking(id, status) {
+        // 1. Reset Alert & Notice
+        $('#modalAlert').addClass('d-none').text('');
+        $('#refundNotice').hide();
+
+        // 2. Set ID
         document.getElementById('bookingId').value = id;
-        document.getElementById('bookingStatus').value = status;
+
+        var select = document.getElementById('bookingStatus');
+        select.innerHTML = ''; // Clear existing options
+
+        // 3. Configure Dropdown Options based on current Status
+        if (status === 'Pending') {
+            // Pending -> Confirmed OR Cancelled
+            select.add(new Option('Pending', 'Pending'));
+            select.add(new Option('Confirmed', 'Confirmed'));
+            select.add(new Option('Cancelled', 'Cancelled'));
+        }
+        else if (status === 'Confirmed') {
+            // Confirmed -> Completed OR Cancelled (Refund) -- Pending REMOVED
+            select.add(new Option('Confirmed', 'Confirmed'));
+            select.add(new Option('Completed', 'Completed'));
+            select.add(new Option('Cancelled', 'Cancelled'));
+        }
+        else {
+            // Fallback for Completed/Cancelled
+            select.add(new Option(status, status));
+        }
+
+        // Set selected value
+        select.value = status;
+
+        // Show Modal
         var modal = new bootstrap.Modal(document.getElementById('bookingModal'));
         modal.show();
+    }
+
+    // Toggle Refund Notice
+    $('#bookingStatus').change(function() {
+        if ($(this).val() === 'Cancelled') {
+            $('#refundNotice').slideDown();
+        } else {
+            $('#refundNotice').slideUp();
+        }
+    });
+
+    // AJAX Submission
+    $(document).ready(function () {
+        $('#updateBookingForm').submit(function (e) {
+            e.preventDefault();
+
+            var btn = $('#saveBtn');
+            var originalText = btn.text();
+            btn.prop('disabled', true).text('Saving...');
+
+            $.ajax({
+                url: '@Url.Action("UpdateBookingStatus", "AdminDashboard")',
+                type: 'POST',
+                data: $(this).serialize(),
+                success: function (response) {
+                    if (response.success) {
+                        // A. Close Modal
+                        var modalEl = document.getElementById('bookingModal');
+                        var modal = bootstrap.Modal.getInstance(modalEl);
+                        modal.hide();
+
+                        // B. Update Row UI
+                        updateRowUI(response.bookingId, response.newStatus);
+
+                        // C. Optional: Show alert if refund happened
+                        if(response.message && response.message.toLowerCase().includes("refund")) {
+                            alert(response.message);
+                        }
+                    } else {
+                        // Show Error in Modal
+                        $('#modalAlert').removeClass('d-none').text(response.message);
+                    }
+                },
+                error: function () {
+                    $('#modalAlert').removeClass('d-none').text("An error occurred while processing your request.");
+                },
+                complete: function () {
+                    btn.prop('disabled', false).text(originalText);
+                }
+            });
+        });
+    });
+
+    function updateRowUI(id, newStatus) {
+        var row = $('#row-' + id);
+        var statusCell = row.find('.status-cell');
+        var editBtn = row.find('.edit-btn');
+
+        // 1. Update Badge
+        var badge = '';
+        if (newStatus === 'Confirmed') badge = '<span class="badge bg-primary">Confirmed</span>';
+        else if (newStatus === 'Pending') badge = '<span class="badge bg-warning text-dark">Pending</span>';
+        else if (newStatus === 'Cancelled') badge = '<span class="badge bg-danger">Cancelled</span>';
+        else if (newStatus === 'Completed') badge = '<span class="badge bg-success">Completed</span>';
+
+        statusCell.html(badge);
+
+        // 2. Update Edit Button (Disable if finalized)
+        if (newStatus === 'Cancelled' || newStatus === 'Completed') {
+            editBtn.prop('disabled', true);
+            editBtn.css('opacity', '0.5');
+        } else {
+            editBtn.prop('disabled', false);
+            editBtn.css('opacity', '1');
+            // Update click handler for next edit
+            editBtn.attr('onclick', `editBooking(${id}, '${newStatus}')`);
+        }
     }
 </script>

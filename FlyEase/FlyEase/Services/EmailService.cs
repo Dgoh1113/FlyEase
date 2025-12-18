@@ -1,6 +1,8 @@
 ﻿using Microsoft.Extensions.Options;
 using System.Net;
 using System.Net.Mail;
+using FlyEase.Data; // Ensure you have this if EmailSettings is in Data or Models namespace
+// If EmailSettings is in a different namespace, add it here (e.g., using FlyEase.Models;)
 
 namespace FlyEase.Services
 {
@@ -8,18 +10,14 @@ namespace FlyEase.Services
     {
         private readonly EmailSettings _emailSettings;
 
-        // Inject the same settings used by ForgetEmailService
+        // Constructor for Dependency Injection (Loads settings from appsettings.json)
         public EmailService(IOptions<EmailSettings> emailSettings)
         {
             _emailSettings = emailSettings.Value;
         }
 
-        public EmailService()
-        {
-        }
-
         // ==========================================
-        // 1. SEND OTP EMAIL (New)
+        // 1. SEND OTP EMAIL
         // ==========================================
         public async Task SendOtpEmail(string toEmail, string otp)
         {
@@ -37,7 +35,52 @@ namespace FlyEase.Services
         }
 
         // ==========================================
-        // 2. INVITATION EMAIL
+        // 2. NEW: BOOKING CONFIRMATION EMAIL (Payment Success)
+        // ==========================================
+        public async Task SendBookingConfirmation(string toEmail, string userName, int bookingId, string packageName, decimal amountPaid, string status)
+        {
+            string subject = $"Booking Confirmed! #{bookingId} - FlyEase Travel ✈️";
+
+            // Simple styling for the email
+            string statusColor = status == "Confirmed" || status == "Completed" ? "#198754" : "#ffc107"; // Green or Yellow
+
+            string body = $@"
+                <div style='font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px;'>
+                    <h2 style='color: #0d6efd; text-align: center;'>Payment Successful!</h2>
+                    <p>Hi <strong>{userName}</strong>,</p>
+                    <p>Thank you for booking with FlyEase. Your payment has been received and your booking is confirmed.</p>
+                    
+                    <div style='background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0;'>
+                        <table style='width: 100%;'>
+                            <tr>
+                                <td style='padding: 5px; font-weight: bold;'>Booking ID:</td>
+                                <td style='padding: 5px;'>#{bookingId}</td>
+                            </tr>
+                            <tr>
+                                <td style='padding: 5px; font-weight: bold;'>Package:</td>
+                                <td style='padding: 5px;'>{packageName}</td>
+                            </tr>
+                            <tr>
+                                <td style='padding: 5px; font-weight: bold;'>Amount Paid:</td>
+                                <td style='padding: 5px;'>RM {amountPaid:N2}</td>
+                            </tr>
+                            <tr>
+                                <td style='padding: 5px; font-weight: bold;'>Status:</td>
+                                <td style='padding: 5px; color: {statusColor}; font-weight: bold;'>{status}</td>
+                            </tr>
+                        </table>
+                    </div>
+
+                    <p>You can view your full itinerary in your <a href='https://localhost:7068/Auth/Profile'>Profile Dashboard</a>.</p>
+                    <hr style='border: 0; border-top: 1px solid #eee; margin: 20px 0;'>
+                    <p style='text-align: center; color: #6c757d; font-size: 12px;'>FlyEase Travel & Tours</p>
+                </div>";
+
+            await SendEmailAsync(toEmail, subject, body);
+        }
+
+        // ==========================================
+        // 3. REVIEW INVITATION EMAIL
         // ==========================================
         public async Task SendReviewInvitation(string userEmail, string userName, int bookingId, string packageName, string packageImageUrl)
         {
@@ -58,14 +101,18 @@ namespace FlyEase.Services
             }
             else
             {
-                body = $"Hi {userName}, please rate your trip to {packageName}: {reviewLink}";
+                // Fallback if HTML template is missing
+                body = $@"
+                    <h3>Hi {userName},</h3>
+                    <p>We hope you enjoyed your trip to <strong>{packageName}</strong>!</p>
+                    <p><a href='{reviewLink}'>Click here to rate your experience</a></p>";
             }
 
             await SendEmailAsync(userEmail, $"How was your trip to {packageName}? ✈️", body);
         }
 
         // ==========================================
-        // 3. CONFIRMATION EMAIL
+        // 4. REVIEW CONFIRMATION (Feedback Response)
         // ==========================================
         public async Task SendReviewConfirmation(string userEmail, string userName, string packageName, int rating, string comment, string emotion)
         {
@@ -86,24 +133,25 @@ namespace FlyEase.Services
             string customMessage;
             string couponHtml = "";
 
+            // LOGIC: Check Rating
             if (rating <= 2)
             {
                 subject = "We're sorry to hear that... 😔";
-                customMessage = "We are truly sorry that your experience didn't meet your expectations.";
-                couponHtml = @"<div style='background-color: #fff3cd; border: 2px dashed #ffc107; border-radius: 10px; padding: 20px; margin: 20px 0;'>
+                customMessage = "We are truly sorry that your experience didn't meet your expectations. We appreciate your honesty and will work to improve.";
+                couponHtml = @"<div style='background-color: #fff3cd; border: 2px dashed #ffc107; border-radius: 10px; padding: 20px; margin: 20px 0; text-align: center;'>
                     <h2 style='color: #d39e00; margin: 0;'>SORRY50</h2>
-                    <p>Use this code to get RM50 off your next booking.</p>
+                    <p style='margin: 5px 0 0 0;'>Use this code to get RM50 off your next booking.</p>
                 </div>";
             }
             else if (rating == 3)
             {
                 subject = "Thanks for your feedback! 😐";
-                customMessage = "Thank you for your feedback. We are always looking to improve.";
+                customMessage = "Thank you for your feedback. We are always looking for ways to make our trips better.";
             }
             else
             {
                 subject = "We're glad you enjoyed it! 🤩";
-                customMessage = "Thank you for the great review! We are thrilled you had a good time.";
+                customMessage = "Thank you for the great review! We are thrilled you had a good time with us.";
             }
 
             string body = await GetTemplateHtml("Confirmation.html");
@@ -121,14 +169,20 @@ namespace FlyEase.Services
             }
             else
             {
-                body = $"{customMessage} <br/><br/> You rated: {stars}";
+                // Fallback
+                body = $@"
+                    <h3>Hi {userName},</h3>
+                    <p>{customMessage}</p>
+                    <p><strong>Your Rating:</strong> {stars}</p>
+                    <p><strong>Your Comment:</strong> {comment}</p>
+                    {couponHtml}";
             }
 
             await SendEmailAsync(userEmail, subject, body);
         }
 
         // ==========================================
-        // 4. REFUND NOTIFICATION
+        // 5. REFUND NOTIFICATION
         // ==========================================
         public async Task SendRefundNotification(string userEmail, string userName, string packageName, decimal refundAmount)
         {
@@ -137,9 +191,10 @@ namespace FlyEase.Services
                 <div style='font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px;'>
                     <h2 style='color: #dc3545;'>Booking Cancelled</h2>
                     <p>Dear <strong>{userName}</strong>,</p>
-                    <p>We regret to inform you that <strong>{packageName}</strong> has been cancelled.</p>
-                    <div style='background-color: #f8f9fa; padding: 15px; border-radius: 5px;'>
-                        <h3 style='margin-top:0; color: #198754;'>Refund: RM {refundAmount:N2}</h3>
+                    <p>We regret to inform you that your booking for <strong>{packageName}</strong> has been cancelled.</p>
+                    <div style='background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0;'>
+                        <h3 style='margin-top:0; color: #198754;'>Refund Processed: RM {refundAmount:N2}</h3>
+                        <p style='font-size: 13px; color: #666;'>Please allow 5-10 business days for the amount to reflect in your account.</p>
                     </div>
                     <p>Sincerely,<br><strong>FlyEase Support Team</strong></p>
                 </div>";
@@ -165,7 +220,7 @@ namespace FlyEase.Services
         {
             try
             {
-                // USE SETTINGS FROM APPSETTINGS.JSON (Like Forgot Password)
+                // Uses settings injected from appsettings.json
                 using (var client = new SmtpClient(_emailSettings.SmtpServer, _emailSettings.SmtpPort))
                 {
                     client.EnableSsl = true;
@@ -186,7 +241,7 @@ namespace FlyEase.Services
             }
             catch (Exception ex)
             {
-                // Log error locally if needed
+                // Log error (Console for now)
                 Console.WriteLine("Email Error: " + ex.Message);
             }
         }
