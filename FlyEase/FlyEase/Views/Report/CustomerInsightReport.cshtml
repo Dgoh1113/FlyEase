@@ -8,305 +8,182 @@
 <script src="~/js/report.js"></script>
 
 <div class="container-fluid py-4">
-    <div id="printable-area">
-        <!-- HEADER WITH REPORT TABS -->
-        <!-- HEADER -->
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <div>
-                <h2 class="fw-bold mb-2 text-primary">Reports</h2>
-                <!-- REPORT SWITCHER BUTTONS -->
-                <div class="btn-group" role="group" aria-label="Report Type">
-                    <a asp-controller="Report" asp-action="SalesReport" 
-                       class="btn @(ViewContext.RouteData.Values["Action"]?.ToString() == "SalesReport" ? "btn-primary active" : "btn-outline-primary")">
-                        <i class="fas fa-chart-line me-2"></i>Sales Report
-                    </a>
-                    <a asp-controller="Report" asp-action="PackagePerformanceReport" 
-                       class="btn @(ViewContext.RouteData.Values["Action"]?.ToString() == "PackagePerformanceReport" ? "btn-primary active" : "btn-outline-primary")">
-                        <i class="fas fa-box-open me-2"></i>Package Performance
-                    </a>
-                    <a asp-controller="Report" asp-action="CustomerInsightReport" 
-                       class="btn btn-primary @(ViewContext.RouteData.Values["Action"]?.ToString() == "CustomerInsightReport" ? "active" : "btn-outline-primary")">
-                        <i class="fas fa-users me-2"></i>Customer Insight
-                    </a>
-                </div>
-                <p class="text-muted mt-2">Comprehensive analysis of bookings and payments</p>
-            </div>
-            <div class="alert alert-info no-print">
-                <h6><i class="fas fa-info-circle me-2"></i>PDF Download Tips:</h6>
-                <ol class="mb-0">
-                    <li>Click <strong>Export PDF </strong> button</li>
-                    <li>In print dialog, select <strong>"Save as PDF"</strong> as printer</li>
-                    <li>Adjust margins to <strong>"None"</strong> or <strong>"Minimum"</strong></li>
-                    <li>Click <strong>Save</strong> to download</li>
-                </ol>
-            </div>
-            <div class="d-flex">
-                <button class="btn btn-danger" data-action="export-pdf">
-                    <i class="fas fa-file-pdf me-2"></i> Export PDF
-                </button>
-            </div>
+
+    <partial name="_ReportNavigation" />
+
+    <div class="d-flex justify-content-end mb-3 no-print">
+        <div class="btn-group shadow-sm">
+            <a asp-action="ExportCustomerExcel"
+               asp-route-startDate="@Model.StartDate.ToString("yyyy-MM-dd")"
+               asp-route-endDate="@Model.EndDate.ToString("yyyy-MM-dd")"
+               asp-route-sortBy="@Model.SortBy"
+               class="btn btn-success">
+                <i class="fas fa-file-excel me-2"></i> Export Excel
+            </a>
+            <button onclick="window.print()" class="btn btn-dark">
+                <i class="fas fa-print me-2"></i> Print / PDF
+            </button>
         </div>
+    </div>
 
-        <!-- FILTERS CARD -->
-        <div class="card shadow-sm mb-4 no-print">
-            <div class="card-header bg-white py-3">
-                <h5 class="mb-0 fw-bold">Report Filters</h5>
-            </div>
-            <div class="card-body">
-                <form method="get" asp-action="CustomerInsightReport" class="row g-3" id="reportFilterForm">
-                    <div class="col-md-3">
-                        <label class="form-label fw-bold">Start Date</label>
-                        <input type="date" class="form-control" name="startDate" value="@Model.StartDate.ToString("yyyy-MM-dd")" required>
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label fw-bold">End Date</label>
-                        <input type="date" class="form-control" name="endDate" value="@Model.EndDate.ToString("yyyy-MM-dd")" required>
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label fw-bold">Sort By</label>
-                        <select class="form-select" name="sortBy">
-                            <option value="Spending" selected="@(Model.SortBy == "Spending")">Total Spending</option>
-                            <option value="Frequency" selected="@(Model.SortBy == "Frequency")">Booking Frequency</option>
-                        </select>
-                    </div>
-                    <div class="col-md-3 d-flex align-items-end">
-                        <button type="submit" class="btn btn-primary w-100">
-                            <i class="fas fa-search me-2"></i>Generate Report
-                        </button>
-                    </div>
-                </form>
-            </div>
+    <div class="report-header text-center">
+        <h1>FlyEase Customer Ledger</h1>
+        <p>Generated on: @Model.GeneratedAt.ToString("dd MMM yyyy HH:mm") | By: @Model.GeneratedBy</p>
+        <p><strong>Period:</strong> @Model.StartDate.ToString("dd MMM yyyy") - @Model.EndDate.ToString("dd MMM yyyy")</p>
+    </div>
+
+    <div class="card shadow-sm mb-4 no-print">
+        <div class="card-body bg-light">
+            <form method="get" asp-action="CustomerInsightReport" class="row g-3 align-items-end">
+                <div class="col-md-2">
+                    <label class="form-label fw-bold small">From</label>
+                    <input type="date" class="form-control form-control-sm" name="startDate" value="@Model.StartDate.ToString("yyyy-MM-dd")">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label fw-bold small">To</label>
+                    <input type="date" class="form-control form-control-sm" name="endDate" value="@Model.EndDate.ToString("yyyy-MM-dd")">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-bold small">Sort By</label>
+                    <select class="form-select form-select-sm" name="sortBy">
+                        <option value="Spending" selected="@(Model.SortBy == "Spending")">Highest Spending</option>
+                        <option value="Frequency" selected="@(Model.SortBy == "Frequency")">Most Frequent</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary btn-sm w-100">
+                        <i class="fas fa-filter me-1"></i> Apply
+                    </button>
+                </div>
+            </form>
         </div>
+    </div>
 
-        <!-- SUMMARY STATISTICS -->
-        <div class="row mb-4 g-3">
-            <div class="col-md-3">
-                <div class="card border-0 shadow-sm h-100 summary-card" style="border-left: 5px solid #4e73df;">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <p class="text-muted mb-1">Total Customers</p>
-                                <h4 class="fw-bold mb-0">@Model.TotalCustomers</h4>
-                            </div>
-                            <i class="fas fa-users fa-2x text-muted opacity-50"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-md-3">
-                <div class="card border-0 shadow-sm h-100 summary-card" style="border-left: 5px solid #1cc88a;">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <p class="text-muted mb-1">Active Customers (30d)</p>
-                                <h4 class="fw-bold mb-0">@Model.ActiveCustomers</h4>
-                            </div>
-                            <i class="fas fa-user-check fa-2x text-muted opacity-50"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-md-3">
-                <div class="card border-0 shadow-sm h-100 summary-card" style="border-left: 5px solid #f6c23e;">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <p class="text-muted mb-1">Total Revenue</p>
-                                <h4 class="fw-bold mb-0">RM @Model.TotalRevenue.ToString("N0")</h4>
-                            </div>
-                            <i class="fas fa-dollar-sign fa-2x text-muted opacity-50"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-md-3">
-                <div class="card border-0 shadow-sm h-100 summary-card" style="border-left: 5px solid #36b9cc;">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <p class="text-muted mb-1">Avg Spending/Customer</p>
-                                <h4 class="fw-bold mb-0">RM @Model.AverageSpendingPerCustomer.ToString("N0")</h4>
-                            </div>
-                            <i class="fas fa-chart-bar fa-2x text-muted opacity-50"></i>
-                        </div>
-                    </div>
+    <div class="row g-3 mb-4">
+        <div class="col-md-3 col-6">
+            <div class="card bg-primary text-white h-100">
+                <div class="card-body py-3">
+                    <h6 class="opacity-75">Active Customers</h6>
+                    <h3 class="fw-bold mb-0">@Model.TotalCustomers</h3>
                 </div>
             </div>
         </div>
-
-        <!-- CHART -->
-        <div class="card shadow-sm mb-4">
-            <div class="card-header bg-white py-3">
-                <h5 class="mb-0 fw-bold">Top 10 Customers by @Model.SortBy</h5>
-            </div>
-            <div class="card-body">
-                <div style="height: 350px;">
-                    <canvas id="topCustomersChart"
-                            data-labels='@Html.Raw(Json.Serialize(Model.TopCustomerNames))'
-                            data-spending='@Html.Raw(Json.Serialize(Model.TopCustomerSpending))'
-                            data-bookings='@Html.Raw(Json.Serialize(Model.TopCustomerBookings))'
-                            data-colors='@Html.Raw(Json.Serialize(Model.ChartColors))'>
-                    </canvas>
+        <div class="col-md-3 col-6">
+            <div class="card bg-white border-primary text-primary h-100 shadow-sm">
+                <div class="card-body py-3">
+                    <h6 class="text-muted">Avg Spend/Pax</h6>
+                    <h3 class="fw-bold mb-0">RM @Model.AverageSpendingPerCustomer.ToString("N0")</h3>
                 </div>
             </div>
         </div>
-
-        <!-- DETAILED TABLE -->
-        <div class="card shadow-sm">
-            <div class="card-header bg-white py-3">
-                <div class="d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0 fw-bold">Customer Details</h5>
-                    <span class="badge bg-primary">@Model.Details.Count records</span>
+        <div class="col-md-3 col-6">
+            <div class="card bg-white h-100 shadow-sm">
+                <div class="card-body py-3 border-start border-4 border-success">
+                    <h6 class="text-muted">Total Revenue</h6>
+                    <h4 class="fw-bold mb-0 text-success">RM @Model.TotalRevenue.ToString("N0")</h4>
                 </div>
             </div>
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0" id="reportTable">
-                        <thead class="table-light">
-                            <tr>
-                                <th class="ps-4">Customer Name</th>
-                                <th>Email</th>
-                                <th>Phone</th>
-                                <th>Bookings</th>
-                                <th>Total Pax</th>
-                                <th>Total Spent</th>
-                                <th>Avg/Booking</th>
-                                <th>Avg Rating</th>
-                                <th>Reviews</th>
-                                <th>Member Since</th>
-                                <th>Last Booking</th>
-                                <th>Tier</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var detail in Model.Details)
-                            {
-                                <tr>
-                                    <td class="ps-4"><strong>@detail.CustomerName</strong></td>
-                                    <td><small>@detail.Email</small></td>
-                                    <td>@detail.Phone</td>
-                                    <td>@detail.TotalBookings</td>
-                                    <td>@detail.TotalPeople</td>
-                                    <td><strong>RM @detail.TotalSpent.ToString("N2")</strong></td>
-                                    <td>RM @detail.AverageSpentPerBooking.ToString("N2")</td>
-                                    <td>
-                                        @if (detail.AverageRating > 0)
-                                        {
-                                            <span class="text-warning">@detail.AverageRating.ToString("0.0") ⭐</span>
-                                        }
-                                        else
-                                        {
-                                            <span class="text-muted">—</span>
-                                        }
-                                    </td>
-                                    <td>@detail.ReviewsGiven</td>
-                                    <td>@detail.FirstBookingDate.ToString("dd MMM yyyy")</td>
-                                    <td>@detail.LastBookingDate.ToString("dd MMM yyyy")</td>
-                                    <td>
-                                        @{
-                                            var tierClass = detail.CustomerTier switch
-                                            {
-                                                "VIP" => "bg-danger",
-                                                "Premium" => "bg-warning text-dark",
-                                                "Standard" => "bg-info",
-                                                _ => "bg-secondary"
-                                            };
-                                        }
-                                        <span class="badge @tierClass">@detail.CustomerTier</span>
-                                    </td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="card bg-white h-100 shadow-sm">
+                <div class="card-body py-3 border-start border-4 border-info">
+                    <h6 class="text-muted">Recent Active</h6>
+                    <h4 class="fw-bold mb-0 text-info">@Model.ActiveCustomers</h4>
                 </div>
             </div>
         </div>
     </div>
-</div>
 
-@section Scripts {
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            initializeTopCustomersChart();
-            attachEventListeners();
-        });
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-white py-3 border-bottom">
+            <h5 class="mb-0 fw-bold">Top 5 Highest Spending Customers</h5>
+        </div>
+        <div class="card-body">
+            <div style="height: 300px;">
+                <canvas id="revenueChart"
+                        data-labels='@Html.Raw(Json.Serialize(Model.ChartLabels))'
+                        data-values='@Html.Raw(Json.Serialize(Model.ChartValues))'>
+                </canvas>
+            </div>
+        </div>
+    </div>
 
-        function initializeTopCustomersChart() {
-            const chartElement = document.getElementById('topCustomersChart');
-            if (!chartElement) return;
+    <div class="card shadow-sm">
+        <div class="card-header bg-white py-3 border-bottom">
+            <h5 class="mb-0 fw-bold">Customer Ledger</h5>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-striped table-hover align-middle mb-0" id="customerTable">
+                <thead class="table-light text-uppercase small fw-bold">
+                    <tr>
+                        <th>Customer</th>
+                        <th>Contact</th>
+                        <th>Tier</th>
+                        <th class="text-center">Bookings</th>
+                        <th class="text-end">Total Spent</th>
+                        <th class="text-end">Avg/Booking</th>
+                        <th>Last Seen</th>
+                        <th class="text-center">Rating</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.Details.Any())
+                    {
+                        @foreach (var item in Model.Details)
+                        {
+                            <tr>
+                                <td>
+                                    <div class="fw-bold">@item.CustomerName</div>
+                                    <div class="small text-muted">ID: @item.UserID</div>
+                                </td>
+                                <td>
+                                    <div class="small"><i class="fas fa-envelope me-1 text-muted"></i> @item.Email</div>
+                                    <div class="small"><i class="fas fa-phone me-1 text-muted"></i> @item.Phone</div>
+                                </td>
+                                <td>
+                                    @if (item.CustomerTier == "VIP")
+                                    {
+                                        <span class="badge bg-warning text-dark border border-warning"><i class="fas fa-crown me-1"></i> VIP</span>
+                                    }
+                                    else if (item.CustomerTier == "Premium")
+                                    {
 
-            const labelsAttr = chartElement.getAttribute('data-labels');
-            const spendingAttr = chartElement.getAttribute('data-spending');
-            const bookingsAttr = chartElement.getAttribute('data-bookings');
-            const colorsAttr = chartElement.getAttribute('data-colors');
+                                        <span class="badge bg-info text-dark border border-info">Premium</span>
+                                    }
+                                    else
+                                    {
 
-            if (!labelsAttr || !spendingAttr || !bookingsAttr || !colorsAttr) return;
-
-            try {
-                const labels = JSON.parse(labelsAttr);
-                const spending = JSON.parse(spendingAttr);
-                const bookings = JSON.parse(bookingsAttr);
-                const colors = JSON.parse(colorsAttr);
-
-                new Chart(chartElement, {
-                    type: 'bar',
-                    data: {
-                        labels: labels,
-                        datasets: [
-                            {
-                                label: 'Total Spending (RM)',
-                                data: spending,
-                                backgroundColor: colors,
-                                borderColor: '#fff',
-                                borderWidth: 2,
-                                yAxisID: 'y'
-                            },
-                            {
-                                label: 'Booking Count',
-                                data: bookings,
-                                backgroundColor: 'rgba(100, 150, 200, 0.5)',
-                                borderColor: '#fff',
-                                borderWidth: 2,
-                                yAxisID: 'y1'
-                            }
-                        ]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                position: 'top',
-                                labels: { font: { size: 12, weight: 'bold' } }
-                            }
-                        },
-                        scales: {
-                            y: {
-                                type: 'linear',
-                                position: 'left',
-                                ticks: { callback: function (value) { return 'RM ' + value.toLocaleString(); } }
-                            },
-                            y1: {
-                                type: 'linear',
-                                position: 'right',
-                                ticks: { callback: function (value) { return value + ' bookings'; } }
-                            }
+                                        <span class="badge bg-light text-dark border">@item.CustomerTier</span>
+                                    }
+                                </td>
+                                <td class="text-center fw-bold">@item.TotalBookings</td>
+                                <td class="text-end fw-bold text-success">RM @item.TotalSpent.ToString("N0")</td>
+                                <td class="text-end text-muted small">RM @item.AverageSpentPerBooking.ToString("N0")</td>
+                                <td class="small">@item.LastBookingDate.ToString("dd MMM yyyy")</td>
+                                <td class="text-center">
+                                    @if (item.ReviewsGiven > 0)
+                                    {
+                                        <span class="text-warning fw-bold">@item.AverageRating.ToString("N1")</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted small">-</span>
+                                    }
+                                </td>
+                            </tr>
                         }
                     }
-                });
-            } catch (error) {
-                console.error('Error initializing chart:', error);
-            }
-        }
-
-        function attachEventListeners() {
-            const exportPdfBtn = document.querySelector('[data-action="export-pdf"]');
-            if (exportPdfBtn) {
-                exportPdfBtn.addEventListener('click', function () { window.print(); });
-            }
-        }
-    </script>
-}
+                    else
+                    {
+                        <tr>
+                            <td colspan="8" class="text-center py-5 text-muted">
+                                <i class="fas fa-users fa-3x mb-3 opacity-50"></i>
+                                <p>No active customers found for this period.</p>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

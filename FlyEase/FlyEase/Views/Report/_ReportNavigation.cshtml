@@ -1,0 +1,25 @@
+﻿@{
+    var currentAction = ViewContext.RouteData.Values["Action"]?.ToString();
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4 no-print">
+    <div>
+        <h2 class="fw-bold text-primary">Reports Center</h2>
+        <p class="text-muted">Comprehensive analysis and data export</p>
+    </div>
+
+    <div class="btn-group shadow-sm" role="group" aria-label="Report Switching">
+        <a asp-controller="Report" asp-action="SalesReport"
+           class="btn @(currentAction == "SalesReport" ? "btn-primary active" : "btn-outline-primary")">
+            <i class="fas fa-file-invoice-dollar me-2"></i>Sales Transaction
+        </a>
+        <a asp-controller="Report" asp-action="PackagePerformanceReport"
+           class="btn @(currentAction == "PackagePerformanceReport" ? "btn-primary active" : "btn-outline-primary")">
+            <i class="fas fa-box-open me-2"></i>Package Inventory
+        </a>
+        <a asp-controller="Report" asp-action="CustomerInsightReport"
+           class="btn @(currentAction == "CustomerInsightReport" ? "btn-primary active" : "btn-outline-primary")">
+            <i class="fas fa-users me-2"></i>Customer Ledger
+        </a>
+    </div>
+</div>

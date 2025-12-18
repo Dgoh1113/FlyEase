@@ -1,306 +1,285 @@
 ﻿@model FlyEase.ViewModels.SalesReportVM
 @{
-    ViewData["Title"] = "Report Management";
+    ViewData["Title"] = "Sales Transaction Report";
     Layout = "~/Views/Shared/_AdminLayout.cshtml";
 }
 
 <link rel="stylesheet" href="~/css/report.css" />
-<script src="~/js/report.js"></script>
+
+<style>
+    @@media print {
+        .sidebar, .navbar, .no-print, .btn, form {
+            display: none !important;
+        }
+
+        .main-content {
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 100% !important;
+        }
+
+        .card {
+            border: none !important;
+            shadow: none !important;
+        }
+
+        .report-header {
+            display: block !important;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #000;
+            padding-bottom: 10px;
+        }
+
+        table {
+            width: 100% !important;
+            font-size: 10pt;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 5px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f8f9fa !important;
+            -webkit-print-color-adjust: exact;
+        }
+
+        .badge {
+            border: none;
+            background: none;
+            color: #000;
+            padding: 0;
+            font-weight: bold;
+        }
+    }
+
+    .report-header {
+        display: none;
+    }
+
+    @@media print {
+        .sidebar, .navbar, .no-print, .btn, form {
+            display: none !important;
+        }
+
+        .main-content {
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 100% !important;
+        }
+
+        .card {
+            border: none !important;
+            shadow: none !important;
+        }
+
+        .report-header {
+            display: block !important;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #000;
+            padding-bottom: 10px;
+        }
+
+        table {
+            width: 100% !important;
+            font-size: 10pt;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 5px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f8f9fa !important;
+            -webkit-print-color-adjust: exact;
+        }
+
+        .badge {
+            border: none;
+            background: none;
+            color: #000;
+            padding: 0;
+            font-weight: bold;
+        }
+    }
+
+    .report-header {
+        display: none;
+    }
+</style>
 
 <div class="container-fluid py-4">
-    <div id="printable-area">
-        <!-- HEADER -->
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <div>
-                <h2 class="fw-bold mb-2 text-primary">Reports</h2>
-                <!-- REPORT SWITCHER BUTTONS -->
-                <div class="btn-group" role="group" aria-label="Report Type">
-                    <a asp-controller="Report" asp-action="SalesReport"
-                       class="btn btn-primary @(ViewContext.RouteData.Values["Action"]?.ToString() == "SalesReport" ? "active" : "btn-outline-primary")">
-                        <i class="fas fa-chart-line me-2"></i>Sales Report
-                    </a>
-                    <a asp-controller="Report" asp-action="PackagePerformanceReport"
-                       class="btn @(ViewContext.RouteData.Values["Action"]?.ToString() == "PackagePerformanceReport" ? "btn-primary active" : "btn-outline-primary")">
-                        <i class="fas fa-box-open me-2"></i>Package Performance
-                    </a>
-                    <a asp-controller="Report" asp-action="CustomerInsightReport"
-                       class="btn @(ViewContext.RouteData.Values["Action"]?.ToString() == "CustomerInsightReport" ? "btn-primary active" : "btn-outline-primary")">
-                        <i class="fas fa-users me-2"></i>Customer Insight
-                    </a>
-                </div>
-                <p class="text-muted mt-2">Comprehensive analysis of bookings and payments</p>
-            </div>
-            <div class="alert alert-info no-print">
-                <h6><i class="fas fa-info-circle me-2"></i>PDF Download Tips:</h6>
-                <ol class="mb-0">
-                    <li>Click <strong>Export PDF </strong> button</li>
-                    <li>In print dialog, select <strong>"Save as PDF"</strong> as printer</li>
-                    <li>Adjust margins to <strong>"None"</strong> or <strong>"Minimum"</strong></li>
-                    <li>Click <strong>Save</strong> to download</li>
-                </ol>
-            </div>
-            <div class="d-flex">
-                <button class="btn btn-danger" data-action="export-pdf">
-                    <i class="fas fa-file-pdf me-2"></i> Export PDF
-                </button>
-            </div>
+
+    <partial name="_ReportNavigation" />
+
+    <div class="d-flex justify-content-end mb-3 no-print">
+        <div class="btn-group">
+            <a asp-action="ExportSalesExcel"
+               asp-route-startDate="@Model.StartDate.ToString("yyyy-MM-dd")"
+               asp-route-endDate="@Model.EndDate.ToString("yyyy-MM-dd")"
+               asp-route-dateFilterType="@Model.DateFilterType"
+               asp-route-paymentMethodFilter="@Model.PaymentMethodFilter"
+               asp-route-bookingStatusFilter="@Model.BookingStatusFilter"
+               class="btn btn-success">
+                <i class="fas fa-file-excel me-2"></i> Export Excel
+            </a>
+            <button onclick="window.print()" class="btn btn-dark">
+                <i class="fas fa-print me-2"></i> Print / PDF
+            </button>
         </div>
+    </div>
 
-        <!-- FILTERS CARD -->
-        <div class="card shadow-sm mb-4 no-print">
-            <div class="card-header bg-white py-3">
-                <h5 class="mb-0 fw-bold">Report Filters</h5>
-            </div>
-            <div class="card-body">
-                <form method="get" asp-action="SalesReport" class="row g-3" id="reportFilterForm">
-                    <!-- Date Range -->
-                    <div class="col-md-2">
-                        <label class="form-label fw-bold">Start Date</label>
-                        <input type="date" class="form-control" name="startDate" value="@Model.StartDate.ToString("yyyy-MM-dd")" required>
-                    </div>
-                    <div class="col-md-2">
-                        <label class="form-label fw-bold">End Date</label>
-                        <input type="date" class="form-control" name="endDate" value="@Model.EndDate.ToString("yyyy-MM-dd")" required>
-                    </div>
+    <div class="report-header text-center">
+        <h1>FlyEase Sales Report</h1>
+        <p>Generated on: @Model.GeneratedAt.ToString("dd MMM yyyy HH:mm") | By: @Model.GeneratedBy</p>
+        <p><strong>Period:</strong> @Model.StartDate.ToString("dd MMM yyyy") - @Model.EndDate.ToString("dd MMM yyyy")</p>
+    </div>
 
-                    <!-- Filter Type -->
-                    <div class="col-md-2">
-                        <label class="form-label fw-bold">Filter By</label>
-                        <select class="form-select" name="dateFilterType">
-                            <option value="booking" selected="@(Model.DateFilterType == "booking")">Booking Date</option>
-                            <option value="payment" selected="@(Model.DateFilterType == "payment")">Payment Date</option>
-                            <option value="travel" selected="@(Model.DateFilterType == "travel")">Travel Date</option>
-                        </select>
-                    </div>
-
-                    <!-- Payment Method -->
-                    <div class="col-md-2">
-                        <label class="form-label fw-bold">Payment Method</label>
-                        <select class="form-select" name="paymentMethodFilter">
-                            @foreach (var method in Model.AvailablePaymentMethods)
-                            {
-                                <option value="@method" selected="@(Model.PaymentMethodFilter == method)">@method</option>
-                            }
-                        </select>
-                    </div>
-
-                    <!-- Booking Status -->
-                    <div class="col-md-2">
-                        <label class="form-label fw-bold">Booking Status</label>
-                        <select class="form-select" name="bookingStatusFilter">
-                            @foreach (var status in Model.AvailableBookingStatuses)
-                            {
-                                <option value="@status" selected="@(Model.BookingStatusFilter == status)">@status</option>
-                            }
-                        </select>
-                    </div>
-
-                    <!-- Submit -->
-                    <div class="col-md-2 d-flex align-items-end">
-                        <button type="submit" class="btn btn-primary w-100">
-                            <i class="fas fa-search me-2"></i>Generate Report
-                        </button>
-                    </div>
-                </form>
-            </div>
+</div>
+    <div class="card shadow-sm mb-4 no-print">
+        <div class="card-body bg-light">
+            <form method="get" asp-action="SalesReport" class="row g-3 align-items-end">
+                <div class="col-md-2">
+                    <label class="form-label fw-bold small">From</label>
+                    <input type="date" class="form-control form-control-sm" name="startDate" value="@Model.StartDate.ToString("yyyy-MM-dd")">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label fw-bold small">To</label>
+                    <input type="date" class="form-control form-control-sm" name="endDate" value="@Model.EndDate.ToString("yyyy-MM-dd")">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label fw-bold small">Date Type</label>
+                    <select class="form-select form-select-sm" name="dateFilterType">
+                        <option value="booking" selected="@(Model.DateFilterType == "booking")">Booking Date</option>
+                        <option value="travel" selected="@(Model.DateFilterType == "travel")">Travel Date</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label fw-bold small">Status</label>
+                    <select class="form-select form-select-sm" name="bookingStatusFilter">
+                        @foreach (var s in Model.AvailableBookingStatuses)
+                        {
+                            <option value="@s" selected="@(Model.BookingStatusFilter == s)">@s</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary btn-sm w-100">Apply Filter</button>
+                </div>
+            </form>
         </div>
+    </div>
 
-        <!-- SUMMARY STATISTICS -->
-        <div class="row mb-4 g-3">
-            <div class="col-md-3">
-                <div class="card border-0 shadow-sm h-100 summary-card" style="border-left: 5px solid #4e73df;">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <p class="text-muted mb-1">Total Revenue</p>
-                                <h4 class="fw-bold mb-0">RM @Model.TotalRevenue.ToString("N0")</h4>
-                            </div>
-                            <i class="fas fa-dollar-sign fa-2x text-muted opacity-50"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-md-3">
-                <div class="card border-0 shadow-sm h-100 summary-card" style="border-left: 5px solid #1cc88a;">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <p class="text-muted mb-1">Total Bookings</p>
-                                <h4 class="fw-bold mb-0">@Model.TotalBookings</h4>
-                            </div>
-                            <i class="fas fa-calendar-check fa-2x text-muted opacity-50"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-md-3">
-                <div class="card border-0 shadow-sm h-100 summary-card" style="border-left: 5px solid #f6c23e;">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <p class="text-muted mb-1">Avg Booking Value</p>
-                                <h4 class="fw-bold mb-0">RM @Model.AverageBookingValue.ToString("N0")</h4>
-                            </div>
-                            <i class="fas fa-chart-bar fa-2x text-muted opacity-50"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-md-3">
-                <div class="card border-0 shadow-sm h-100 summary-card" style="border-left: 5px solid #36b9cc;">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <p class="text-muted mb-1">Payment Success Rate</p>
-                                <h4 class="fw-bold mb-0">@Model.PaymentSuccessRate.ToString("N1")%</h4>
-                            </div>
-                            <i class="fas fa-check-circle fa-2x text-muted opacity-50"></i>
-                        </div>
-                    </div>
+    <div class="row g-3 mb-4">
+        <div class="col-md-3 col-6">
+            <div class="card bg-primary text-white h-100">
+                <div class="card-body py-3">
+                    <h6 class="opacity-75">Total Revenue</h6>
+                    <h3 class="fw-bold mb-0">RM @Model.TotalRevenue.ToString("N0")</h3>
                 </div>
             </div>
         </div>
-
-        <!-- BOOKING & PAYMENT STATUS BREAKDOWN -->
-        <div class="row mb-4 g-3">
-            <div class="col-md-6">
-                <div class="card shadow-sm">
-                    <div class="card-header bg-white py-3">
-                        <h5 class="mb-0 fw-bold">Booking Status Breakdown</h5>
-                    </div>
-                    <div class="card-body">
-                        <div style="height: 300px;">
-                            <canvas id="bookingStatusChart"
-                                    data-labels='@Html.Raw(Json.Serialize(Model.BookingStatusLabels))'
-                                    data-values='@Html.Raw(Json.Serialize(Model.BookingStatusValues))'>
-                            </canvas>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-md-6">
-                <div class="card shadow-sm">
-                    <div class="card-header bg-white py-3">
-                        <h5 class="mb-0 fw-bold">Payment Method Distribution</h5>
-                    </div>
-                    <div class="card-body">
-                        <div style="height: 300px;">
-                            <canvas id="paymentMethodChart"
-                                    data-labels='@Html.Raw(Json.Serialize(Model.PaymentMethodLabels))'
-                                    data-values='@Html.Raw(Json.Serialize(Model.PaymentMethodValues))'
-                                    data-colors='@Html.Raw(Json.Serialize(Model.PaymentMethodColors))'>
-                            </canvas>
-                        </div>
-                    </div>
+        <div class="col-md-3 col-6">
+            <div class="card bg-white border-primary text-primary h-100 shadow-sm">
+                <div class="card-body py-3">
+                    <h6 class="text-muted">Total Transactions</h6>
+                    <h3 class="fw-bold mb-0">@Model.TotalBookings</h3>
                 </div>
             </div>
         </div>
-
-        <!-- REVENUE CHART -->
-        <div class="card shadow-sm mb-4">
-            <div class="card-header bg-white py-3">
-                <h5 class="mb-0 fw-bold">Daily Revenue Trend</h5>
-            </div>
-            <div class="card-body">
-                <div style="height: 350px;">
-                    <canvas id="revenueChart"
-                            data-dates='@Html.Raw(Json.Serialize(Model.RevenueChartDates))'
-                            data-values='@Html.Raw(Json.Serialize(Model.RevenueChartValues))'>
-                    </canvas>
+        <div class="col-md-3 col-6">
+            <div class="card bg-white h-100 shadow-sm">
+                <div class="card-body py-3 border-start border-4 border-success">
+                    <h6 class="text-muted">Completed</h6>
+                    <h4 class="fw-bold mb-0 text-success">@Model.CompletedBookings</h4>
                 </div>
             </div>
         </div>
-
-        <!-- DETAILED TABLE -->
-        <div class="card shadow-sm">
-            <div class="card-header bg-white py-3">
-                <div class="d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0 fw-bold">Detailed Bookings & Payments</h5>
-                    <span class="badge bg-primary">@Model.Details.Count records</span>
+        <div class="col-md-3 col-6">
+            <div class="card bg-white h-100 shadow-sm">
+                <div class="card-body py-3 border-start border-4 border-warning">
+                    <h6 class="text-muted">Pending</h6>
+                    <h4 class="fw-bold mb-0 text-warning">@Model.PendingBookings</h4>
                 </div>
             </div>
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0" id="reportTable">
-                        <thead class="table-light">
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-header bg-white py-3 border-bottom">
+            <h5 class="mb-0 fw-bold">Transaction Details</h5>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-striped table-hover align-middle mb-0" id="salesTable">
+                <thead class="table-light text-uppercase small fw-bold">
+                    <tr>
+                        <th>Date</th>
+                        <th>Trx ID</th>
+                        <th>Customer</th>
+                        <th>Package</th>
+                        <th>Status</th>
+                        <th>Payment</th>
+                        <th class="text-end">Amount (RM)</th>
+                        <th class="text-end">Paid (RM)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.Details.Any())
+                    {
+                        @foreach (var item in Model.Details)
+                        {
                             <tr>
-                                <th class="ps-4">Booking ID</th>
-                                <th>Customer</th>
-                                <th>Package</th>
-                                <th>Booking Date</th>
-                                <th>Travel Date</th>
-                                <th>Pax</th>
-                                <th>Booking Amount</th>
-                                <th>Total Paid</th>
-                                <th>Balance</th>
-                                <th>Booking Status</th>
-                                <th>Payment Status</th>
-                                <th>Payment Method</th>
+                                <td class="small">@item.BookingDate.ToString("dd/MM/yyyy")</td>
+                                <td class="small text-muted">@item.TransactionID</td>
+                                <td>
+                                    <div class="fw-bold">@item.CustomerName</div>
+                                    <div class="small text-muted">@item.CustomerEmail</div>
+                                </td>
+                                <td class="small">@item.PackageName</td>
+                                <td>
+                                    @if (item.BookingStatus == "Completed")
+                                    {
+                                        <span class="badge bg-success">Completed</span>
+                                    }
+                                    else if (item.BookingStatus == "Pending")
+                                    {
+
+                                        <span class="badge bg-warning text-dark">Pending</span>
+                                    }
+                                    else
+                                    {
+
+                                        <span class="badge bg-danger">@item.BookingStatus</span>
+                                    }
+                                </td>
+                                <td>
+                                    <div class="small fw-bold">@item.PaymentMethod</div>
+                                    <div class="small text-muted">@item.PaymentStatus</div>
+                                </td>
+                                <td class="text-end fw-bold">@item.BookingAmount.ToString("N2")</td>
+                                <td class="text-end @(item.TotalPaid >= item.BookingAmount ? "text-success" : "text-danger")">
+                                    @item.TotalPaid.ToString("N2")
+                                </td>
                             </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var detail in Model.Details)
-                            {
-                                <tr>
-                                    <td class="ps-4"><strong>#@detail.BookingID</strong></td>
-                                    <td>
-                                        <div>
-                                            <p class="fw-bold mb-0">@detail.CustomerName</p>
-                                            <small class="text-muted">@detail.CustomerEmail</small>
-                                        </div>
-                                    </td>
-                                    <td>@detail.PackageName</td>
-                                    <td>@detail.BookingDate.ToString("dd MMM yyyy")</td>
-                                    <td>@detail.TravelDate.ToString("dd MMM yyyy")</td>
-                                    <td>@detail.NumberOfPeople</td>
-                                    <td><strong>RM @detail.BookingAmount.ToString("N2")</strong></td>
-                                    <td><span class="text-success fw-bold">RM @detail.TotalPaid.ToString("N2")</span></td>
-                                    <td>
-                                        @if (detail.BalanceDue > 0)
-                                        {
-                                            <span class="text-danger fw-bold">RM @detail.BalanceDue.ToString("N2")</span>
-                                        }
-                                        else
-                                        {
-                                            <span class="text-muted">—</span>
-                                        }
-                                    </td>
-                                    <td>
-                                        @{
-                                            var statusClass = detail.BookingStatus switch
-                                            {
-                                                "Completed" => "bg-success",
-                                                "Pending" => "bg-warning text-dark",
-                                                "Cancelled" => "bg-danger",
-                                                _ => "bg-secondary"
-                                            };
-                                        }
-                                        <span class="badge @statusClass">@detail.BookingStatus</span>
-                                    </td>
-                                    <td>
-                                        @{
-                                            var paymentClass = detail.PaymentStatus switch
-                                            {
-                                                "Fully Paid" => "bg-success",
-                                                "Partial" => "bg-info",
-                                                "Unpaid" => "bg-danger",
-                                                "Free" => "bg-secondary",
-                                                _ => "bg-muted"
-                                            };
-                                        }
-                                        <span class="badge @paymentClass">@detail.PaymentStatus</span>
-                                    </td>
-                                    <td><small>@detail.PaymentMethod</small></td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="8" class="text-center py-5 text-muted">
+                                <i class="fas fa-folder-open fa-3x mb-3 opacity-50"></i>
+                                <p>No transactions found for this period.</p>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
         </div>
     </div>
 </div>
