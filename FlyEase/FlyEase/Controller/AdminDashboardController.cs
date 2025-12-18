@@ -435,29 +435,98 @@ namespace FlyEase.Controllers
         }
 
         // ==========================================
-        // 5. ANALYTICS
+        // 2. ANALYTICS (ADDED THIS METHOD)
         // ==========================================
         [HttpGet("Analytics")]
         public async Task<IActionResult> Analytics()
         {
-            var allFeedback = await _context.Feedbacks.Include(f => f.User).Include(f => f.Booking).ThenInclude(b => b.Package).OrderByDescending(f => f.CreatedDate).ToListAsync();
-            if (!allFeedback.Any()) return View(new FeedbackAnalyticsViewModel());
+            // 1. Fetch All Feedbacks
+            var allFeedbacks = await _context.Feedbacks
+                .Include(f => f.Booking).ThenInclude(b => b.Package)
+                .Include(f => f.User)
+                .ToListAsync();
 
-            var totalReviews = allFeedback.Count;
-            var averageRating = allFeedback.Average(f => f.Rating);
-            var positiveCount = allFeedback.Count(f => f.Rating >= 4);
-            var positivePercentage = totalReviews > 0 ? (double)positiveCount / totalReviews * 100 : 0;
+            var vm = new FeedbackAnalyticsViewModel();
 
-            var packageStats = allFeedback.GroupBy(f => f.Booking.Package.PackageName)
-                .Select(g => new PopularPackageViewModel { PackageName = g.Key, AverageRating = g.Average(f => f.Rating), ReviewCount = g.Count() }).ToList();
+            if (allFeedbacks.Any())
+            {
+                // Basic Stats
+                vm.TotalReviews = allFeedbacks.Count;
+                vm.AverageRating = allFeedbacks.Average(f => f.Rating);
+                vm.PositivePercentage = (double)allFeedbacks.Count(f => f.Rating >= 4) / vm.TotalReviews * 100;
+                vm.RatingCounts = allFeedbacks.GroupBy(f => f.Rating).ToDictionary(g => g.Key, g => g.Count());
 
-            var mostPopular = packageStats.OrderByDescending(p => p.AverageRating).ThenByDescending(p => p.ReviewCount).FirstOrDefault();
-            var leastPopular = packageStats.OrderBy(p => p.AverageRating).ThenByDescending(p => p.ReviewCount).FirstOrDefault();
+                // Popular Packages Logic
+                var packageStats = allFeedbacks.GroupBy(f => f.Booking.Package.PackageName)
+                    .Select(g => new { Name = g.Key, Rating = g.Average(f => f.Rating), Count = g.Count() }).ToList();
 
-            var ratingCounts = new Dictionary<int, int> { { 5, allFeedback.Count(f => f.Rating == 5) }, { 4, allFeedback.Count(f => f.Rating == 4) }, { 3, allFeedback.Count(f => f.Rating == 3) }, { 2, allFeedback.Count(f => f.Rating == 2) }, { 1, allFeedback.Count(f => f.Rating == 1) } };
+                var best = packageStats.OrderByDescending(p => p.Rating).FirstOrDefault();
+                var worst = packageStats.OrderBy(p => p.Rating).FirstOrDefault();
 
-            var viewModel = new FeedbackAnalyticsViewModel { AverageRating = averageRating, TotalReviews = totalReviews, PositivePercentage = positivePercentage, RatingCounts = ratingCounts, RecentReviews = allFeedback.Take(10).ToList(), MostPopularPackage = mostPopular, LeastPopularPackage = leastPopular };
-            return View(viewModel);
+                if (best != null) vm.MostPopularPackage = new PopularPackageViewModel { PackageName = best.Name, AverageRating = best.Rating, ReviewCount = best.Count };
+                if (worst != null) vm.LeastPopularPackage = new PopularPackageViewModel { PackageName = worst.Name, AverageRating = worst.Rating, ReviewCount = worst.Count };
+
+                // --- CATEGORY LOGIC (Parses [Tag] from Comment) ---
+                var categoryData = new List<(string Cat, int Rating)>();
+
+                foreach (var f in allFeedbacks)
+                {
+                    string cat = "General";
+                    string text = f.Comment?.ToLower() ?? "";
+
+                    // Extract tag: "[Food] Comment..."
+                    if (f.Comment != null && f.Comment.StartsWith("[") && f.Comment.Contains("]"))
+                    {
+                        int end = f.Comment.IndexOf("]");
+                        cat = f.Comment.Substring(1, end - 1);
+                    }
+                    else
+                    {
+                        // Fallback Keywords
+                        if (text.Contains("food") || text.Contains("meal")) cat = "Food";
+                        else if (text.Contains("service") || text.Contains("staff")) cat = "Service";
+                        else if (text.Contains("view") || text.Contains("room")) cat = "Environment";
+                    }
+                    categoryData.Add((cat, f.Rating));
+                }
+
+                var catGroups = categoryData.GroupBy(x => x.Cat);
+                foreach (var grp in catGroups)
+                {
+                    vm.CategoryRatings.Add(grp.Key, grp.Average(x => x.Rating));
+                    vm.CategoryCounts.Add(grp.Key, grp.Count());
+                }
+
+                // Recent Reviews (Clean comments for display)
+                vm.RecentReviews = allFeedbacks.OrderByDescending(f => f.CreatedDate).Take(5).Select(f => {
+                    if (f.Comment != null && f.Comment.StartsWith("["))
+                    {
+                        int end = f.Comment.IndexOf("]");
+                        if (end > 0) f.Comment = f.Comment.Substring(end + 1).Trim();
+                    }
+                    return f;
+                }).ToList();
+            }
+
+            // --- UNRATED USERS LOGIC ---
+            // 1. Get Completed Bookings
+            var completedBookings = await _context.Bookings
+                .Include(b => b.User).Include(b => b.Package)
+                .Where(b => b.BookingStatus == "Completed" || b.BookingStatus == "Confirmed")
+                .ToListAsync();
+
+            // 2. Filter out those who already rated
+            var ratedBookingIds = allFeedbacks.Select(f => f.BookingID).ToHashSet();
+
+            var unratedList = completedBookings
+                .Where(b => !ratedBookingIds.Contains(b.BookingID) && b.TravelDate < DateTime.Now)
+                .OrderByDescending(b => b.TravelDate)
+                .ToList();
+
+            vm.UnratedCount = unratedList.Count;
+            vm.UnratedBookings = unratedList.Take(10).ToList();
+
+            return View(vm);
         }
 
         // ==========================================

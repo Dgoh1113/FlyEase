@@ -1,16 +1,17 @@
 ﻿using FlyEase.Data;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace FlyEase.ViewModels
 {
     public class FeedbackAnalyticsViewModel
     {
-        // --- 1. Stats ---
+        // --- 1. Existing Stats ---
         public double AverageRating { get; set; }
         public int TotalReviews { get; set; }
         public double PositivePercentage { get; set; }
 
-        // --- 2. New: Popular Packages (Restored) ---
+        // --- 2. Popular Packages ---
         public PopularPackageViewModel? MostPopularPackage { get; set; }
         public PopularPackageViewModel? LeastPopularPackage { get; set; }
 
@@ -20,20 +21,20 @@ namespace FlyEase.ViewModels
         // --- 4. Sidebar List ---
         public List<Feedback> RecentReviews { get; set; } = new List<Feedback>();
 
-        // --- NEW: Unrated Bookings Analysis ---
+        // --- 5. NEW: Unrated Bookings Analysis (REQUIRED) ---
         public int UnratedCount { get; set; }
         public List<Booking> UnratedBookings { get; set; } = new List<Booking>();
 
-        // --- NEW: Category Analysis (Calculated in Memory) ---
+        // --- 6. NEW: Category Analysis (REQUIRED) ---
         public Dictionary<string, double> CategoryRatings { get; set; } = new Dictionary<string, double>();
         public Dictionary<string, int> CategoryCounts { get; set; } = new Dictionary<string, int>();
-}
+    }
 
-    // Helper class for the Top/Bottom cards
     public class PopularPackageViewModel
     {
         public string PackageName { get; set; } = string.Empty;
         public double AverageRating { get; set; }
         public int ReviewCount { get; set; }
     }
+
 }

@@ -178,9 +178,7 @@
         await Html.RenderPartialAsync("_ValidationScriptsPartial");
     }
     <script>
-        // === UPDATED DATA STRUCTURE: Nested by Rating -> Category ===
         const tagsData = {
-            // 1-2 Stars (Bad)
             bad: {
                 General: ["Poor Environment", "Weak Wifi", "Dirty Facilities", "Bad View", "Slow Service", "Noisy", "Overpriced"],
                 Food: ["Stale Food", "Bland Taste", "Cold Meal", "Small Portions", "Limited Options", "Overcooked"],
@@ -189,7 +187,6 @@
                 Value: ["Overpriced", "Hidden Costs", "Not Worth It", "Expensive Add-ons"],
                 Transportation: ["Late Pickup", "Unsafe Driving", "Old Vehicle", "No AC", "Uncomfortable Seats"]
             },
-            // 3 Stars (Neutral)
             neutral: {
                 General: ["Average Facilities", "Okay View", "Standard Service", "Fair Price", "Acceptable Wifi"],
                 Food: ["Average Taste", "Edible", "Standard Buffet", "Okay Portion"],
@@ -198,7 +195,6 @@
                 Value: ["Fair Price", "Average Value", "Standard Market Rate"],
                 Transportation: ["On Time", "Okay Comfort", "Average Ride"]
             },
-            // 4-5 Stars (Good)
             good: {
                 General: ["Excellent Service", "Stunning View", "Strong Wifi", "High Privacy", "Great Value", "Clean & Comfortable"],
                 Food: ["Delicious", "Fresh Ingredients", "Great Variety", "Authentic Taste", "Generous Portions", "Best Meal"],
@@ -214,40 +210,28 @@
         const ratingText = document.getElementById('ratingText');
         const tagContainer = document.getElementById('tagContainer');
         const commentBox = document.getElementById('comment');
-        const categorySelect = document.getElementById('categorySelect'); // Get Dropdown
+        const categorySelect = document.getElementById('categorySelect');
         const messages = ["Terrible", "Bad", "Okay", "Good", "Excellent!"];
 
-        // Initialize
         document.addEventListener("DOMContentLoaded", function() { setRating(5); });
 
         function setRating(value) {
-            // 1. Set Rating State
             ratingInput.value = value;
             ratingText.innerText = messages[value - 1];
-
-            // 2. Update Star Visuals
             stars.forEach(star => {
                 const starValue = parseInt(star.getAttribute('data-value'));
                 if (starValue <= value) { star.classList.remove('far', 'text-muted'); star.classList.add('fas', 'text-warning'); }
                 else { star.classList.remove('fas', 'text-warning'); star.classList.add('far', 'text-muted'); }
             });
-
-            // 3. Update Tags (Now checks both Rating AND Category)
             updateTags();
         }
 
         function updateTags() {
-            // Get Current Rating & Selected Category
             const rating = parseInt(ratingInput.value);
             const category = categorySelect.value;
-
-            // Determine Rating Level (Bad/Neutral/Good)
             let ratingLevel = (rating <= 2) ? 'bad' : (rating == 3) ? 'neutral' : 'good';
-
-            // Select the list based on Level -> Category (Fallback to General if empty)
             let selectedTags = tagsData[ratingLevel][category] || tagsData[ratingLevel]['General'];
 
-            // Render Tags
             tagContainer.innerHTML = "";
             selectedTags.forEach(text => {
                 const tag = document.createElement("div");
