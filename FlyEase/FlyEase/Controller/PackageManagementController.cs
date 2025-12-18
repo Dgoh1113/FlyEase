@@ -1,6 +1,5 @@
 ﻿using FlyEase.Controllers;
 using FlyEase.Data;
-using FlyEase.Migrations;
 using FlyEase.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
