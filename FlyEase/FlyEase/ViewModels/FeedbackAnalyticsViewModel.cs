@@ -19,7 +19,15 @@ namespace FlyEase.ViewModels
 
         // --- 4. Sidebar List ---
         public List<Feedback> RecentReviews { get; set; } = new List<Feedback>();
-    }
+
+        // --- NEW: Unrated Bookings Analysis ---
+        public int UnratedCount { get; set; }
+        public List<Booking> UnratedBookings { get; set; } = new List<Booking>();
+
+        // --- NEW: Category Analysis (Calculated in Memory) ---
+        public Dictionary<string, double> CategoryRatings { get; set; } = new Dictionary<string, double>();
+        public Dictionary<string, int> CategoryCounts { get; set; } = new Dictionary<string, int>();
+}
 
     // Helper class for the Top/Bottom cards
     public class PopularPackageViewModel

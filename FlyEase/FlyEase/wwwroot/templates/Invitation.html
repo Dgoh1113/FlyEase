@@ -3,23 +3,23 @@
 <head>
     <style>
         body {
-            font-family: 'Segoe UI', Arial, sans-serif;
-            background-color: #f4f4f4;
+            font-family: 'Poppins', 'Segoe UI', Arial, sans-serif;
+            background-color: #eef2f7; /* Consistent Soft Blue-Grey */
             margin: 0;
             padding: 0;
         }
 
         .container {
             max-width: 600px;
-            margin: 30px auto;
+            margin: 40px auto;
             background: #ffffff;
-            border-radius: 12px;
+            border-radius: 16px;
             overflow: hidden;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
         }
 
         .header {
-            background: linear-gradient(135deg, #0066a1 0%, #00a3e0 100%);
+            background: linear-gradient(135deg, #0d6efd 0%, #00a3e0 100%);
             padding: 30px;
             text-align: center;
         }
@@ -28,12 +28,13 @@
                 margin: 0;
                 color: #ffffff;
                 font-size: 28px;
+                font-weight: 700;
                 letter-spacing: 1px;
             }
 
         .hero-image {
             width: 100%;
-            height: 220px;
+            height: 240px;
             object-fit: cover;
             display: block;
         }
@@ -41,46 +42,48 @@
         .content {
             padding: 40px 30px;
             text-align: center;
-            color: #333;
+            color: #4a5568;
         }
 
         .greeting {
-            font-size: 22px;
-            font-weight: 700;
-            color: #2c3e50;
+            font-size: 24px;
+            font-weight: 600;
+            color: #2d3748;
             margin-bottom: 15px;
         }
 
         .text {
             font-size: 16px;
             line-height: 1.6;
-            color: #555;
-            margin-bottom: 25px;
+            color: #718096;
+            margin-bottom: 30px;
         }
 
         .btn {
             display: inline-block;
-            padding: 14px 30px;
-            background-color: #ff9f43;
+            padding: 16px 40px;
+            background: linear-gradient(90deg, #ff9f43, #ff7e5f); /* Vibrant Action Button */
             color: white;
             text-decoration: none;
             border-radius: 50px;
-            font-weight: bold;
+            font-weight: 600;
             font-size: 16px;
-            transition: background 0.3s;
+            box-shadow: 0 4px 15px rgba(255, 126, 95, 0.4);
+            transition: transform 0.2s;
         }
 
             .btn:hover {
-                background-color: #ff8c1a;
+                transform: translateY(-2px);
+                box-shadow: 0 6px 20px rgba(255, 126, 95, 0.6);
             }
 
         .footer {
             background-color: #f8f9fa;
             padding: 20px;
             text-align: center;
-            font-size: 12px;
-            color: #999;
-            border-top: 1px solid #eee;
+            font-size: 13px;
+            color: #a0aec0;
+            border-top: 1px solid #e2e8f0;
         }
     </style>
 </head>
@@ -89,18 +92,23 @@
         <div class="header">
             <h1>✈️ FlyEase</h1>
         </div>
+
         <img src="{{Image}}" alt="{{PackageName}}" class="hero-image" />
+
         <div class="content">
             <div class="greeting">Welcome Home, {{UserName}}!</div>
             <p class="text">
-                We hope your trip to <strong>{{PackageName}}</strong> was filled with unforgettable moments.
+                We hope your trip to <strong>{{PackageName}}</strong> was filled with unforgettable moments and joy.
                 <br><br>
-                At FlyEase, we are dedicated to crafting perfect journeys. We would love to hear about your experience to help us improve.
+                At FlyEase, we are dedicated to crafting the perfect journeys. We would love to hear about your experience!
             </p>
+
             <a href="{{Link}}" class="btn">Rate Your Trip ★</a>
         </div>
+
         <div class="footer">
-            <p>&copy; {{Year}} FlyEase. All rights reserved.<br>Making your travel dreams take flight.</p>
+            &copy; {{Year}} FlyEase Travel & Tours.<br>
+            We hope to see you again soon!
         </div>
     </div>
 </body>
