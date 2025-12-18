@@ -1,60 +1,71 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
 
 namespace FlyEase.ViewModels
 {
     public class PackagePerformanceReportVM
     {
         // ========== FILTER PARAMETERS ==========
+        public string ViewMode { get; set; } = "custom"; // daily, monthly, custom
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
-        public string CategoryFilter { get; set; } = "All";
+        public string CategoryFilter { get; set; }
         public int? PackageFilter { get; set; }
+        public string SortBy { get; set; } = "Revenue"; // "Revenue" or "Volume"
 
-        // ========== REPORT METADATA ==========
-        public DateTime GeneratedAt { get; set; } = DateTime.Now;
-        public string GeneratedBy { get; set; } = "Admin";
+        // ========== PAGINATION ==========
+        public int CurrentPage { get; set; } = 1;
+        public int TotalPages { get; set; }
+        public int PageSize { get; set; } = 10;
+        public bool HasPreviousPage => CurrentPage > 1;
+        public bool HasNextPage => CurrentPage < TotalPages;
 
         // ========== SUMMARY STATISTICS ==========
-        public int TotalPackages { get; set; }
-        public int TotalBookings { get; set; }
+        public int TotalPackagesSold { get; set; } // Total Qty
         public decimal TotalRevenue { get; set; }
-        public decimal AverageRevenuePerPackage { get; set; }
-        public decimal AverageRating { get; set; }
+        public double AverageRating { get; set; }
 
-        // ========== CHART DATA (Re-added) ==========
-        public List<string> ChartLabels { get; set; } = new List<string>();
-        public List<decimal> ChartValues { get; set; } = new List<decimal>();
+        // Most Sold Package (For Summary Box)
+        public string TopPackageName { get; set; } = "N/A";
+        public int TopPackageCount { get; set; }
 
-        // ========== DETAILED DATA ==========
+        // ========== CHART 1: REVENUE (Top 5 by $) ==========
+        public List<string> RevenueChartLabels { get; set; } = new List<string>();
+        public List<decimal> RevenueChartValues { get; set; } = new List<decimal>();
+
+        // ========== CHART 2: PAX (Top 5 by Qty) ==========
+        public List<string> PaxChartLabels { get; set; } = new List<string>();
+        public List<int> PaxChartValues { get; set; } = new List<int>();
+
+        // ========== DETAILED REPORT DATA ==========
         public List<PackagePerformanceDetailVM> Details { get; set; } = new List<PackagePerformanceDetailVM>();
 
-        // ========== DROPDOWN OPTIONS ==========
+        // ========== DROPDOWNS ==========
         public List<string> AvailableCategories { get; set; } = new List<string>();
-        public List<PackageSelectOption> AvailablePackages { get; set; } = new List<PackageSelectOption>();
+        public List<PackageFilterOption> AvailablePackages { get; set; } = new List<PackageFilterOption>();
+
+        // ========== METADATA ==========
+        public DateTime GeneratedAt { get; set; } = DateTime.Now;
+        public string GeneratedBy { get; set; } = "Admin";
     }
 
     public class PackagePerformanceDetailVM
     {
         public int PackageID { get; set; }
         public string PackageName { get; set; }
-        public string Destination { get; set; }
         public string Category { get; set; }
         public decimal Price { get; set; }
 
-        // Performance Metrics
         public int TotalBookings { get; set; }
-        public int TotalPeople { get; set; }
-        public decimal TotalRevenue { get; set; }
-        public double AverageRating { get; set; }
-        public int TotalReviews { get; set; }
-
-        // Capacity Metrics
-        public int AvailableSlots { get; set; }
-        public decimal OccupancyRate { get; set; }
-        public string Status { get; set; }
+        public int TotalPax { get; set; } // Quantity sold
+        public decimal Revenue { get; set; }
+        public double Rating { get; set; }
     }
 
-
+    // Helper class specific to this report to prevent conflicts
+    public class PackageFilterOption
+    {
+        public int Id { get; set; }
+        public string Name { get; set; }
+    }
 }

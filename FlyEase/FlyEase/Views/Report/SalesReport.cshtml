@@ -1,6 +1,6 @@
 ﻿@model FlyEase.ViewModels.SalesReportVM
 @{
-    ViewData["Title"] = "Vendor Sales Report";
+    ViewData["Title"] = "Sales Report";
     Layout = "~/Views/Shared/_ReportLayout.cshtml";
 }
 
@@ -13,27 +13,31 @@
             <h2 class="mb-0">Sales Report</h2>
             <p class="text-muted small">Detailed transactional ledger</p>
         </div>
-        <div>
-             <a href="@Url.Action("ExportSalesExcel", Context.Request.Query)" class="btn btn-success btn-sm">
-                <i class="fas fa-file-excel me-1"></i> Export Excel
-            </a>
-            
-            <a href="@Url.Action("SalesReportPrinted", Context.Request.Query)" target="_blank" class="btn btn-secondary btn-sm">
-                <i class="fas fa-print me-1"></i> Generate / PDF
-            </a>
-        </div>
+
     </div>
 
     <div class="card shadow-sm mb-4">
-        <div class="card-body bg-light">
+        <div class="card-body">
             <form method="GET" action="@Url.Action("SalesReport")">
                 <input type="hidden" name="page" value="1" />
                 
+                <div class="d-flex justify-content-between align-items-center mb-3">
                 <div class="quick-filter-wrapper">
                     <span class="filter-label">Quick View:</span>
                     <button type="submit" name="viewMode" value="daily" class="preset-btn @(Model.ViewMode == "daily" ? "active" : "")">Today</button>
                     <button type="submit" name="viewMode" value="monthly" class="preset-btn @(Model.ViewMode == "monthly" ? "active" : "")">This Month</button>
                     <button type="submit" name="viewMode" value="custom" class="preset-btn @(Model.ViewMode == "custom" ? "active" : "")">Custom</button>
+                </div>
+                <div class="btn-group">
+                    <a href="@Url.Action("ExportSalesExcel", Context.Request.Query)" class="btn btn-success btn-sm">
+                        <i class="fas fa-file-excel me-1"></i> Export Excel
+                    </a>
+
+                    <a href="@Url.Action("SalesReportPrinted", Context.Request.Query)" target="_blank" class="btn btn-secondary btn-sm">
+                        <i class="fas fa-print me-1"></i> Generate / PDF
+                    </a>
+                </div>
+
                 </div>
 
                 <div class="row g-3 align-items-end mt-2">
@@ -60,8 +64,10 @@
                         <input type="text" name="search" class="form-control form-control-sm" placeholder="Customer or Package Name..." value="@Model.SearchTerm">
                     </div>
                     <div class="col-md-2">
-                        <button type="submit" class="btn btn-primary btn-sm w-100">Filter Records</button>
+                        <button type="submit" class="btn btn-primary btn-sm w-100"><i class="fas fa-search"></i> Filter</button>
                     </div>
+
+
                 </div>
             </form>
         </div>
