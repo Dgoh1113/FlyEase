@@ -7,6 +7,7 @@ namespace FlyEase.ViewModels
         [Required(ErrorMessage = "Full name is required")]
         [StringLength(100)]
         [Display(Name = "Full Name")]
+
         public string FullName { get; set; } = null!;
 
         [Required(ErrorMessage = "Email is required")]

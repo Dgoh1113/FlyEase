@@ -8,321 +8,186 @@
 <script src="~/js/report.js"></script>
 
 <div class="container-fluid py-4">
-    <div id="printable-area">
-        <!-- HEADER -->
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <div>
-                <h2 class="fw-bold mb-2 text-primary">Reports</h2>
-                <!-- REPORT SWITCHER BUTTONS -->
-                <div class="btn-group" role="group" aria-label="Report Type">
-                    <a asp-controller="Report" asp-action="SalesReport" 
-                       class="btn @(ViewContext.RouteData.Values["Action"]?.ToString() == "SalesReport" ? "btn-primary active" : "btn-outline-primary")">
-                        <i class="fas fa-chart-line me-2"></i>Sales Report
-                    </a>
-                    <a asp-controller="Report" asp-action="PackagePerformanceReport" 
-                       class="btn btn-primary @(ViewContext.RouteData.Values["Action"]?.ToString() == "PackagePerformanceReport" ? "active" : "btn-outline-primary")">
-                        <i class="fas fa-box-open me-2"></i>Package Performance
-                    </a>
-                    <a asp-controller="Report" asp-action="CustomerInsightReport" 
-                       class="btn @(ViewContext.RouteData.Values["Action"]?.ToString() == "CustomerInsightReport" ? "btn-primary active" : "btn-outline-primary")">
-                        <i class="fas fa-users me-2"></i>Customer Insight
-                    </a>
-                </div>
-                <p class="text-muted mt-2">Comprehensive analysis of bookings and payments</p>
-            </div>
-            <div class="alert alert-info no-print">
-                <h6><i class="fas fa-info-circle me-2"></i>PDF Download Tips:</h6>
-                <ol class="mb-0">
-                    <li>Click <strong>Export PDF </strong> button</li>
-                    <li>In print dialog, select <strong>"Save as PDF"</strong> as printer</li>
-                    <li>Adjust margins to <strong>"None"</strong> or <strong>"Minimum"</strong></li>
-                    <li>Click <strong>Save</strong> to download</li>
-                </ol>
-            </div>
-            <div class="d-flex">
-                <button class="btn btn-danger" data-action="export-pdf">
-                    <i class="fas fa-file-pdf me-2"></i> Export PDF
-                </button>
-            </div>
+
+    <partial name="_ReportNavigation" />
+
+    <div class="d-flex justify-content-end mb-3 no-print">
+        <div class="btn-group shadow-sm">
+            <a asp-action="ExportPackageExcel"
+               asp-route-startDate="@Model.StartDate.ToString("yyyy-MM-dd")"
+               asp-route-endDate="@Model.EndDate.ToString("yyyy-MM-dd")"
+               asp-route-categoryFilter="@Model.CategoryFilter"
+               asp-route-packageFilter="@Model.PackageFilter"
+               class="btn btn-success">
+                <i class="fas fa-file-excel me-2"></i> Export Excel
+            </a>
+            <button onclick="window.print()" class="btn btn-dark">
+                <i class="fas fa-print me-2"></i> Print / PDF
+            </button>
         </div>
-        <!-- FILTERS CARD -->
-        <div class="card shadow-sm mb-4 no-print">
-            <div class="card-header bg-white py-3">
-                <h5 class="mb-0 fw-bold">Report Filters</h5>
-            </div>
-            <div class="card-body">
-                <form method="get" asp-action="PackagePerformanceReport" class="row g-3" id="reportFilterForm">
-                    <!-- Date Range -->
-                    <div class="col-md-3">
-                        <label class="form-label fw-bold">Start Date</label>
-                        <input type="date" class="form-control" name="startDate" value="@Model.StartDate.ToString("yyyy-MM-dd")" required>
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label fw-bold">End Date</label>
-                        <input type="date" class="form-control" name="endDate" value="@Model.EndDate.ToString("yyyy-MM-dd")" required>
-                    </div>
+    </div>
 
-                    <!-- Category Filter -->
-                    <div class="col-md-4">
-                        <label class="form-label fw-bold">Category</label>
-                        <select class="form-select" name="categoryFilter">
-                            @foreach (var category in Model.AvailableCategories)
-                            {
-                                <option value="@category" selected="@(Model.CategoryFilter == category)">@category</option>
-                            }
-                        </select>
-                    </div>
+    <div class="report-header text-center">
+        <h1>FlyEase Package Performance</h1>
+        <p>Generated on: @Model.GeneratedAt.ToString("dd MMM yyyy HH:mm") | By: @Model.GeneratedBy</p>
+        <p><strong>Period:</strong> @Model.StartDate.ToString("dd MMM yyyy") - @Model.EndDate.ToString("dd MMM yyyy")</p>
+    </div>
 
-                    <!-- Submit -->
-                    <div class="col-md-2 d-flex align-items-end">
-                        <button type="submit" class="btn btn-primary w-100">
-                            <i class="fas fa-search me-2"></i>Generate Report
-                        </button>
-                    </div>
-                </form>
-            </div>
+    <div class="card shadow-sm mb-4 no-print">
+        <div class="card-body bg-light">
+            <form method="get" asp-action="PackagePerformanceReport" class="row g-3 align-items-end">
+                <div class="col-md-2">
+                    <label class="form-label fw-bold small">From</label>
+                    <input type="date" class="form-control form-control-sm" name="startDate" value="@Model.StartDate.ToString("yyyy-MM-dd")">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label fw-bold small">To</label>
+                    <input type="date" class="form-control form-control-sm" name="endDate" value="@Model.EndDate.ToString("yyyy-MM-dd")">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-bold small">Category</label>
+                    <select class="form-select form-select-sm" name="categoryFilter">
+                        <option value="All">All Categories</option>
+                        @foreach (var c in Model.AvailableCategories.Where(x => x != "All"))
+                        {
+                            <option value="@c" selected="@(Model.CategoryFilter == c)">@c</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-bold small">Specific Package</label>
+                    <select class="form-select form-select-sm" name="packageFilter">
+                        <option value="">All Packages</option>
+                        @foreach (var p in Model.AvailablePackages)
+                        {
+                            <option value="@p.Id" selected="@(Model.PackageFilter == p.Id)">@p.Name</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary btn-sm w-100">
+                        <i class="fas fa-filter me-1"></i> Apply
+                    </button>
+                </div>
+            </form>
         </div>
+    </div>
 
-        <!-- SUMMARY STATISTICS -->
-        <div class="row mb-4 g-3">
-            <div class="col-md-3">
-                <div class="card border-0 shadow-sm h-100 summary-card" style="border-left: 5px solid #4e73df;">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <p class="text-muted mb-1">Total Packages</p>
-                                <h4 class="fw-bold mb-0">@Model.TotalPackages</h4>
-                            </div>
-                            <i class="fas fa-box-open fa-2x text-muted opacity-50"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-md-3">
-                <div class="card border-0 shadow-sm h-100 summary-card" style="border-left: 5px solid #1cc88a;">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <p class="text-muted mb-1">Total Bookings</p>
-                                <h4 class="fw-bold mb-0">@Model.TotalBookings</h4>
-                            </div>
-                            <i class="fas fa-calendar-check fa-2x text-muted opacity-50"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-md-3">
-                <div class="card border-0 shadow-sm h-100 summary-card" style="border-left: 5px solid #f6c23e;">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <p class="text-muted mb-1">Total Revenue</p>
-                                <h4 class="fw-bold mb-0">RM @Model.TotalRevenue.ToString("N0")</h4>
-                            </div>
-                            <i class="fas fa-dollar-sign fa-2x text-muted opacity-50"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-md-3">
-                <div class="card border-0 shadow-sm h-100 summary-card" style="border-left: 5px solid #36b9cc;">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <p class="text-muted mb-1">Average Rating</p>
-                                <h4 class="fw-bold mb-0">@Model.AverageRating.ToString("N1") ⭐</h4>
-                            </div>
-                            <i class="fas fa-star fa-2x text-muted opacity-50"></i>
-                        </div>
-                    </div>
+    <div class="row g-3 mb-4">
+        <div class="col-md-3 col-6">
+            <div class="card bg-primary text-white h-100">
+                <div class="card-body py-3">
+                    <h6 class="opacity-75">Total Revenue</h6>
+                    <h3 class="fw-bold mb-0">RM @Model.TotalRevenue.ToString("N0")</h3>
                 </div>
             </div>
         </div>
-
-        <!-- TOP & BOTTOM PERFORMERS -->
-        <div class="row mb-4 g-3">
-            <div class="col-md-6">
-                <div class="card shadow-sm">
-                    <div class="card-header bg-white py-3">
-                        <h5 class="mb-0 fw-bold"><i class="fas fa-trophy text-success me-2"></i>Top 5 Performers (By Bookings)</h5>
-                    </div>
-                    <div class="card-body p-0">
-                        <div class="table-responsive">
-                            <table class="table table-sm mb-0">
-                                <tbody>
-                                    @if (Model.TopPerformers.Any())
-                                    {
-                                        @foreach (var pkg in Model.TopPerformers)
-                                        {
-                                            <tr>
-                                                <td class="ps-3 fw-bold">@pkg.PackageName</td>
-                                                <td class="text-end pe-3"><span class="badge bg-success">@pkg.TotalBookings bookings</span></td>
-                                            </tr>
-                                        }
-                                    }
-                                    else
-                                    {
-                                        <tr><td colspan="2" class="text-center text-muted py-3">No data available</td></tr>
-                                    }
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-md-6">
-                <div class="card shadow-sm">
-                    <div class="card-header bg-white py-3">
-                        <h5 class="mb-0 fw-bold"><i class="fas fa-arrow-down text-danger me-2"></i>Bottom 5 Performers (By Bookings)</h5>
-                    </div>
-                    <div class="card-body p-0">
-                        <div class="table-responsive">
-                            <table class="table table-sm mb-0">
-                                <tbody>
-                                    @if (Model.BottomPerformers.Any())
-                                    {
-                                        @foreach (var pkg in Model.BottomPerformers)
-                                        {
-                                            <tr>
-                                                <td class="ps-3 fw-bold">@pkg.PackageName</td>
-                                                <td class="text-end pe-3"><span class="badge bg-danger">@pkg.TotalBookings bookings</span></td>
-                                            </tr>
-                                        }
-                                    }
-                                    else
-                                    {
-                                        <tr><td colspan="2" class="text-center text-muted py-3">No data available</td></tr>
-                                    }
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
+        <div class="col-md-3 col-6">
+            <div class="card bg-white border-primary text-primary h-100 shadow-sm">
+                <div class="card-body py-3">
+                    <h6 class="text-muted">Packages Active</h6>
+                    <h3 class="fw-bold mb-0">@Model.TotalPackages</h3>
                 </div>
             </div>
         </div>
-
-        <!-- CHARTS -->
-        <div class="row mb-4 g-3">
-            <div class="col-md-6">
-                <div class="card shadow-sm">
-                    <div class="card-header bg-white py-3">
-                        <h5 class="mb-0 fw-bold">Top 10 Packages by Bookings</h5>
-                    </div>
-                    <div class="card-body">
-                        <div style="height: 300px;">
-                            <canvas id="bookingsChart"
-                                    data-labels='@Html.Raw(Json.Serialize(Model.PackageNames))'
-                                    data-values='@Html.Raw(Json.Serialize(Model.BookingCounts))'
-                                    data-colors='@Html.Raw(Json.Serialize(Model.TopPackageColors))'>
-                            </canvas>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-md-6">
-                <div class="card shadow-sm">
-                    <div class="card-header bg-white py-3">
-                        <h5 class="mb-0 fw-bold">Top 10 Packages by Revenue</h5>
-                    </div>
-                    <div class="card-body">
-                        <div style="height: 300px;">
-                            <canvas id="revenueChart"
-                                    data-labels='@Html.Raw(Json.Serialize(Model.RevenuePackageNames))'
-                                    data-values='@Html.Raw(Json.Serialize(Model.RevenueValues))'>
-                            </canvas>
-                        </div>
-                    </div>
+        <div class="col-md-3 col-6">
+            <div class="card bg-white h-100 shadow-sm">
+                <div class="card-body py-3 border-start border-4 border-success">
+                    <h6 class="text-muted">Total Bookings</h6>
+                    <h4 class="fw-bold mb-0 text-success">@Model.TotalBookings</h4>
                 </div>
             </div>
         </div>
-
-        <!-- RATING CHART -->
-        <div class="card shadow-sm mb-4">
-            <div class="card-header bg-white py-3">
-                <h5 class="mb-0 fw-bold">Top 10 Packages by Rating</h5>
-            </div>
-            <div class="card-body">
-                <div style="height: 300px;">
-                    <canvas id="ratingChart"
-                            data-labels='@Html.Raw(Json.Serialize(Model.RatingPackageNames))'
-                            data-values='@Html.Raw(Json.Serialize(Model.RatingValues))'>
-                    </canvas>
-                </div>
-            </div>
-        </div>
-
-        <!-- DETAILED TABLE -->
-        <div class="card shadow-sm">
-            <div class="card-header bg-white py-3">
-                <div class="d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0 fw-bold">All Packages Performance</h5>
-                    <span class="badge bg-primary">@Model.Details.Count packages</span>
-                </div>
-            </div>
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0" id="reportTable">
-                        <thead class="table-light">
-                            <tr>
-                                <th class="ps-4">Package Name</th>
-                                <th>Destination</th>
-                                <th>Category</th>
-                                <th>Price</th>
-                                <th>Bookings</th>
-                                <th>People</th>
-                                <th>Revenue</th>
-                                <th>Revenue/Booking</th>
-                                <th>Rating</th>
-                                <th>Reviews</th>
-                                <th>Occupancy</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var detail in Model.Details.OrderByDescending(d => d.TotalBookings))
-                            {
-                                <tr>
-                                    <td class="ps-4"><strong>@detail.PackageName</strong></td>
-                                    <td>@detail.Destination</td>
-                                    <td><span class="badge bg-info">@detail.Category</span></td>
-                                    <td>RM @detail.Price.ToString("N0")</td>
-                                    <td><strong>@detail.TotalBookings</strong></td>
-                                    <td>@detail.TotalPeople</td>
-                                    <td><strong class="text-success">RM @detail.TotalRevenue.ToString("N0")</strong></td>
-                                    <td>RM @detail.AverageRevenuePerBooking.ToString("N0")</td>
-                                    <td>
-                                        @if (detail.TotalReviews > 0)
-                                        {
-                                            <span class="text-warning fw-bold">@detail.AverageRating.ToString("N1") ⭐</span>
-                                        }
-                                        else
-                                        {
-                                            <span class="text-muted">—</span>
-                                        }
-                                    </td>
-                                    <td>@detail.TotalReviews</td>
-                                    <td>
-                                        <div class="progress" style="height: 20px;">
-                                            <div class="progress-bar @(detail.OccupancyRate >= 80 ? "bg-success" : detail.OccupancyRate >= 50 ? "bg-warning" : "bg-danger")"
-                                                 style="width: @(Math.Min(detail.OccupancyRate, 100))%">
-                                                @detail.OccupancyRate.ToString("N0")%
-                                            </div>
-                                        </div>
-                                    </td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
+        <div class="col-md-3 col-6">
+            <div class="card bg-white h-100 shadow-sm">
+                <div class="card-body py-3 border-start border-4 border-warning">
+                    <h6 class="text-muted">Avg Rating</h6>
+                    <h4 class="fw-bold mb-0 text-warning">@Model.AverageRating.ToString("N1") ⭐</h4>
                 </div>
             </div>
         </div>
     </div>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-white py-3 border-bottom">
+            <h5 class="mb-0 fw-bold">Top Performing Packages (By Revenue)</h5>
+        </div>
+        <div class="card-body">
+            <div style="height: 300px;">
+                <canvas id="revenueChart"
+                        data-labels='@Html.Raw(Json.Serialize(Model.ChartLabels))'
+                        data-values='@Html.Raw(Json.Serialize(Model.ChartValues))'>
+                </canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-header bg-white py-3 border-bottom">
+            <h5 class="mb-0 fw-bold">Package Inventory & Performance</h5>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-striped table-hover align-middle mb-0" id="packageTable">
+                <thead class="table-light text-uppercase small fw-bold">
+                    <tr>
+                        <th style="width: 25%">Package Name</th>
+                        <th>Category</th>
+                        <th>Price</th>
+                        <th class="text-center">Bookings</th>
+                        <th class="text-center">Pax Sold</th>
+                        <th class="text-end">Revenue</th>
+                        <th class="text-center">Rating</th>
+                        <th style="width: 15%">Occupancy</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.Details.Any())
+                    {
+                        @foreach (var item in Model.Details.OrderByDescending(d => d.TotalRevenue))
+                        {
+                            <tr>
+                                <td>
+                                    <div class="fw-bold">@item.PackageName</div>
+                                    <div class="small text-muted">@item.Destination</div>
+                                </td>
+                                <td><span class="badge bg-light text-dark border">@item.Category</span></td>
+                                <td>RM @item.Price.ToString("N0")</td>
+                                <td class="text-center fw-bold">@item.TotalBookings</td>
+                                <td class="text-center">@item.TotalPeople</td>
+                                <td class="text-end fw-bold text-success">RM @item.TotalRevenue.ToString("N0")</td>
+                                <td class="text-center">
+                                    @if (item.TotalReviews > 0)
+                                    {
+                                        <span class="text-warning fw-bold">@item.AverageRating.ToString("N1")</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted small">-</span>
+                                    }
+                                </td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <span class="me-2 small fw-bold">@item.OccupancyRate.ToString("N0")%</span>
+                                        <div class="progress flex-grow-1" style="height: 6px;">
+                                            <div class="progress-bar @(item.OccupancyRate > 80 ? "bg-success" : "bg-primary")"
+                                                 style="width: @item.OccupancyRate%"></div>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="8" class="text-center py-5 text-muted">
+                                <i class="fas fa-box-open fa-3x mb-3 opacity-50"></i>
+                                <p>No packages found matching criteria.</p>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
 </div>
-
-
-<!-- Report Script -->
-<script src="~/js/report.js"></script>

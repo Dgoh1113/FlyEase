@@ -45,8 +45,21 @@
             justify-content: space-between;
             align-items: center;
         }
-        .mb-0{
-            color:black;
+
+        /* Unavailable Style - RED */
+        .btn-voucher-unavailable {
+            background-color: #f8d7da !important;
+            color: #842029 !important;
+            border-color: #f5c2c7 !important;
+            cursor: not-allowed;
+            opacity: 0.8;
+        }
+
+        /* Active/Selected Style */
+        .btn-voucher-active {
+            background-color: #198754 !important;
+            color: white !important;
+            border: 2px solid #0f5132 !important;
         }
     </style>
 }
@@ -71,11 +84,14 @@
                         @Html.AntiForgeryToken()
                         <input type="hidden" asp-for="PackageID" id="hiddenPackageId" />
                         <input type="hidden" asp-for="PackageName" />
-                        <input type="hidden" asp-for="PackagePrice" />
+
+                        <input type="hidden" asp-for="PackagePrice" id="inputPackagePrice" />
 
                         <input type="hidden" asp-for="BasePrice" id="inputBasePrice" />
                         <input type="hidden" asp-for="DiscountAmount" id="inputDiscountAmount" />
                         <input type="hidden" asp-for="FinalAmount" id="inputFinalAmount" />
+
+                        <input type="hidden" asp-for="VoucherCode" id="hiddenVoucherCode" />
 
                         <div class="row">
                             <div class="col-md-6 mb-3">
@@ -109,24 +125,39 @@
                         </div>
 
                         <hr class="my-4" />
-                        <h6 class="fw-bold mb-3">Traveler Details (For Discounts)</h6>
-
+                        <h6 class="fw-bold mb-3">Traveler Details</h6>
                         <div class="row">
                             <div class="col-md-4 mb-3">
                                 <label asp-for="NumberOfPeople" class="form-label">Total People</label>
                                 <input asp-for="NumberOfPeople" type="number" class="form-control" id="numPeople" min="1" max="20" readonly>
                                 <span asp-validation-for="NumberOfPeople" class="text-danger small"></span>
                             </div>
-                            <div class="col-md-4 mb-3">
-                                <label asp-for="NumberOfSeniors" class="form-label">Seniors (60+)</label>
-                                <input asp-for="NumberOfSeniors" type="number" class="form-control" id="numSeniors" min="0" value="0">
-                                <div class="form-text small">20% Discount per senior</div>
-                            </div>
-                            <div class="col-md-4 mb-3">
-                                <label asp-for="NumberOfJuniors" class="form-label">Juniors (<12)</label>
-                                <input asp-for="NumberOfJuniors" type="number" class="form-control" id="numJuniors" min="0" value="0">
-                                <div class="form-text small">15% Discount per child</div>
-                            </div>
+
+                            @if (ViewBag.HasSeniorParams == true)
+                            {
+                                <div class="col-md-4 mb-3">
+                                    <label asp-for="NumberOfSeniors" class="form-label">Seniors (60+)</label>
+                                    <input asp-for="NumberOfSeniors" type="number" class="form-control" id="numSeniors" min="0">
+                                    <div class="form-text small text-success"><i class="fas fa-tag"></i> Senior Rate Applied</div>
+                                </div>
+                            }
+                            else
+                            {
+                                <input type="hidden" asp-for="NumberOfSeniors" id="numSeniors" />
+                            }
+
+                            @if (ViewBag.HasJuniorParams == true)
+                            {
+                                <div class="col-md-4 mb-3">
+                                    <label asp-for="NumberOfJuniors" class="form-label">Juniors </label>
+                                    <input asp-for="NumberOfJuniors" type="number" class="form-control" id="numJuniors" min="0">
+                                    <div class="form-text small text-success"><i class="fas fa-tag"></i> Junior Rate Applied</div>
+                                </div>
+                            }
+                            else
+                            {
+                                <input type="hidden" asp-for="NumberOfJuniors" id="numJuniors" />
+                            }
                         </div>
 
                         <div class="mb-3">
@@ -141,7 +172,7 @@
 
                         <div class="mb-3">
                             <button type="button" id="btnCheckVouchers" class="btn btn-voucher w-100 py-2 fw-bold">
-                                <i class="fas fa-ticket-alt me-2"></i> Check & Apply Discounts
+                                <i class="fas fa-ticket-alt me-2"></i> Select Vouchers
                             </button>
                             <div id="voucherMessage" class="text-center mt-2 small text-muted"></div>
                         </div>
@@ -153,8 +184,7 @@
                                     <div class="col-6"><small>Base Price:</small></div>
                                     <div class="col-6 text-end"><small id="displayBasePrice">RM @Model.BasePrice.ToString("N2")</small></div>
                                 </div>
-                                <div id="discountContainer" class="mt-2">
-                                </div>
+                                <div id="discountContainer" class="mt-2"></div>
                                 <hr class="my-2">
                                 <div class="row">
                                     <div class="col-6"><strong>Total Amount:</strong></div>
@@ -178,11 +208,15 @@
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header bg-success text-white">
-                <h5 class="modal-title"><i class="fas fa-tags me-2"></i>Available Discounts</h5>
+                <h5 class="modal-title"><i class="fas fa-tags me-2"></i>Available Vouchers</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
+                <div class="text-muted small mb-3">Click to select/deselect multiple vouchers.</div>
                 <div id="modalDiscountList" class="list-group list-group-flush"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Done</button>
             </div>
         </div>
     </div>
@@ -195,56 +229,157 @@
             const btnVoucher = document.getElementById('btnCheckVouchers');
             const dateInput = document.getElementById('TravelDate');
             const packageId = document.getElementById('hiddenPackageId').value;
+            const hiddenVoucherCode = document.getElementById('hiddenVoucherCode');
             const discountModal = new bootstrap.Modal(document.getElementById('discountModal'));
 
             // Inputs
             const elPeople = document.getElementById('numPeople');
             const elSeniors = document.getElementById('numSeniors');
             const elJuniors = document.getElementById('numJuniors');
+            const elPrice = document.getElementById('inputPackagePrice'); // Raw package price
 
-            // Load Discount List for Modal
+            // Store active codes as an array
+            let activeCodes = [];
+
+            // Initialize active codes from hidden input (if returning from server)
+            if (hiddenVoucherCode.value) {
+                activeCodes = hiddenVoucherCode.value.split(',').filter(c => c.trim() !== "");
+            }
+
             function loadAllDiscounts() {
                 const list = document.getElementById('modalDiscountList');
                 list.innerHTML = '<div class="text-center py-3"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
+
+                // GATHER CURRENT STATE FOR VALIDATION
+                const currentPax = parseInt(elPeople.value) || 1;
+                const unitPrice = parseFloat(elPrice.value) || 0;
+                const currentSpend = currentPax * unitPrice;
+                const travelDateVal = dateInput.value ? new Date(dateInput.value) : null;
+                const today = new Date();
+                today.setHours(0,0,0,0);
 
                 fetch('/Payment/GetDiscounts')
                     .then(res => res.json())
                     .then(data => {
                         list.innerHTML = '';
+                        if (data.length === 0) {
+                            list.innerHTML = '<div class="text-center text-muted p-3">No vouchers available.</div>';
+                            return;
+                        }
+
                         data.forEach(d => {
                             let valueText = d.rate ? (d.rate * 100) + '% OFF' : 'RM ' + d.amount + ' OFF';
-                            list.innerHTML += `
-                                <div class="list-group-item d-flex justify-content-between align-items-center">
-                                    <span><i class="fas fa-tag text-success me-2"></i> ${d.name}</span>
-                                    <span class="badge bg-success rounded-pill">${valueText}</span>
-                                </div>`;
+
+                            // === FRONTEND VALIDATION ===
+                            let isAvailable = true;
+                            let unavailableReason = "Unavailable";
+
+                            if (d.minPax && currentPax < d.minPax) {
+                                isAvailable = false;
+                                unavailableReason = `Min ${d.minPax} Pax`;
+                            }
+                            if (d.minSpend && currentSpend < d.minSpend) {
+                                isAvailable = false;
+                                unavailableReason = `Min Spend RM${d.minSpend}`;
+                            }
+                            if (d.startDate && new Date(d.startDate) > today) {
+                                isAvailable = false;
+                                unavailableReason = "Not Started Yet";
+                            }
+                            if (d.endDate && new Date(d.endDate) < today) {
+                                isAvailable = false;
+                                unavailableReason = "Expired";
+                            }
+
+                            // CHECK IF ACTIVE
+                            const isActive = activeCodes.includes(d.name);
+                            const activeClass = isActive ? 'btn-voucher-active' : '';
+                            const checkIcon = isActive ? '<i class="fas fa-check-circle me-1"></i>' : '';
+
+                            if (isAvailable) {
+                                // RENDER GREEN (CLICKABLE)
+                                list.innerHTML += `
+                                    <button type="button" id="vbtn-${d.name}"
+                                        class="list-group-item list-group-item-action d-flex justify-content-between align-items-center ${activeClass}"
+                                        onclick="toggleDiscount('${d.name}')">
+                                        <span>${checkIcon}<i class="fas fa-tag me-2"></i> ${d.name}</span>
+                                        <span class="badge bg-success rounded-pill">${valueText}</span>
+                                    </button>`;
+                            } else {
+                                // RENDER RED (DISABLED)
+                                list.innerHTML += `
+                                    <button type="button" class="list-group-item d-flex justify-content-between align-items-center btn-voucher-unavailable" disabled>
+                                        <span><i class="fas fa-ban me-2"></i> ${d.name} <small>(${unavailableReason})</small></span>
+                                        <span class="badge bg-secondary rounded-pill">Unavailable</span>
+                                    </button>`;
+                            }
                         });
                     });
             }
 
-            btnVoucher.addEventListener('click', function() {
-                const dateVal = dateInput.value;
-                if (!dateVal) {
-                    alert("Please select a Travel Date first.");
-                    return;
+            // TOGGLE SELECTION FUNCTION
+            window.toggleDiscount = function(code) {
+                const idx = activeCodes.indexOf(code);
+                const btn = document.getElementById(`vbtn-${code}`);
+
+                if (idx > -1) {
+                    // Remove
+                    activeCodes.splice(idx, 1);
+                    if(btn) {
+                        btn.classList.remove('btn-voucher-active');
+                        btn.querySelector('span').innerHTML = `<span><i class="fas fa-tag me-2"></i> ${code}</span>`; // Remove check icon
+                    }
+                } else {
+                    // Add
+                    activeCodes.push(code);
+                    if(btn) {
+                        btn.classList.add('btn-voucher-active');
+                         btn.querySelector('span').innerHTML = `<i class="fas fa-check-circle me-1"></i><i class="fas fa-tag me-2"></i> ${code}`;
+                    }
                 }
 
-                // Show Modal
+                // Update hidden input
+                hiddenVoucherCode.value = activeCodes.join(',');
+
+                // Recalculate immediately
+                calculatePrice();
+            };
+
+            // Modal Hide Event -> just ensure calc is fresh
+            document.getElementById('discountModal').addEventListener('hidden.bs.modal', function () {
+                calculatePrice();
+            });
+
+            btnVoucher.addEventListener('click', function() {
+                const dateVal = dateInput.value;
+                if (!dateVal) { alert("Please select a Travel Date first."); return; }
                 discountModal.show();
                 loadAllDiscounts();
+            });
 
-                // Calculate Price in Background
+            if(elPeople) elPeople.addEventListener('change', calculatePrice);
+            if(elSeniors && elSeniors.type !== 'hidden') elSeniors.addEventListener('change', calculatePrice);
+            if(elJuniors && elJuniors.type !== 'hidden') elJuniors.addEventListener('change', calculatePrice);
+
+            // Auto-calc if data exists (back button)
+            if (hiddenVoucherCode.value || (elSeniors && elSeniors.value > 0) || (elJuniors && elJuniors.value > 0)) {
+                calculatePrice();
+            }
+
+            function calculatePrice() {
+                const dateVal = dateInput.value;
+                if(!dateVal) return;
+
                 const people = parseInt(elPeople.value) || 1;
                 const seniors = parseInt(elSeniors.value) || 0;
                 const juniors = parseInt(elJuniors.value) || 0;
+                const voucherStr = hiddenVoucherCode.value || "";
 
-                // Simple client-side validation
                 if (seniors + juniors > people) {
-                    alert("Error: Seniors + Juniors cannot exceed Total People!");
+                    alert("Total Seniors and Juniors cannot exceed total people.");
                     return;
                 }
 
-                // Call Backend
                 fetch('/Payment/CalculatePrice', {
                     method: 'POST',
                     headers: {
@@ -256,55 +391,61 @@
                         people: people,
                         seniors: seniors,
                         juniors: juniors,
-                        travelDate: dateVal
+                        travelDate: dateVal,
+                        voucherCode: voucherStr // Sends "Code1,Code2"
                     })
                 })
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
                         updateUI(data);
-                        document.getElementById('voucherMessage').innerHTML = '<span class="text-success"><i class="fas fa-check-circle"></i> Discounts applied!</span>';
+
+                        // Update button text to reflect count
+                        const count = activeCodes.length;
+                        const msgDiv = document.getElementById('voucherMessage');
+
+                        if(count > 0) {
+                             btnVoucher.innerHTML = `<i class="fas fa-check-circle me-2"></i> ${count} Voucher(s) Selected`;
+                             btnVoucher.classList.add('btn-voucher-active');
+                             msgDiv.innerHTML = `<span class="text-success fw-bold">Applied: ${activeCodes.join(', ')}</span>`;
+                        } else {
+                             btnVoucher.innerHTML = `<i class="fas fa-ticket-alt me-2"></i> Select Vouchers`;
+                             btnVoucher.classList.remove('btn-voucher-active');
+                             msgDiv.innerHTML = '';
+                        }
                     }
                 })
                 .catch(console.error);
-            });
-
-                    function updateUI(data) {
-            document.getElementById('inputBasePrice').value = data.basePrice;
-            document.getElementById('inputDiscountAmount').value = data.discountAmount;
-            document.getElementById('inputFinalAmount').value = data.finalAmount;
-
-            document.getElementById('displayBasePrice').innerText = 'RM ' + data.basePrice.toLocaleString(undefined, {minimumFractionDigits: 2});
-            document.getElementById('displayFinalAmount').innerText = 'RM ' + data.finalAmount.toLocaleString(undefined, {minimumFractionDigits: 2});
-
-            const container = document.getElementById('discountContainer');
-            container.innerHTML = '';
-
-            if (data.discountAmount > 0 && data.breakdown && data.breakdown.length > 0) {
-                // Show applied discounts
-                data.breakdown.forEach(text => {
-                    container.innerHTML += `
-                        <div class="discount-badge animate-slide-down">
-                            <span><i class="fas fa-tag me-1"></i> ${text}</span>
-                        </div>`;
-                });
-
-                // Show total discount
-                container.innerHTML += `
-                    <div class="row mt-2">
-                        <div class="col-6"><small>Total Discount:</small></div>
-                        <div class="col-6 text-end"><small class="text-success">-RM ${data.discountAmount.toLocaleString(undefined, {minimumFractionDigits: 2})}</small></div>
-                    </div>`;
-            } else {
-                container.innerHTML = '<div class="text-muted small text-center my-1">No eligible discounts found based on your criteria.</div>';
             }
 
-            // Trigger Flash
-            const card = document.getElementById('priceCard');
-            card.classList.remove('price-update-flash');
-            void card.offsetWidth;
-            card.classList.add('price-update-flash');
-        }
+            function updateUI(data) {
+                document.getElementById('inputBasePrice').value = data.basePrice;
+                document.getElementById('inputDiscountAmount').value = data.discountAmount;
+                document.getElementById('inputFinalAmount').value = data.finalAmount;
+
+                document.getElementById('displayBasePrice').innerText = 'RM ' + data.basePrice.toLocaleString(undefined, {minimumFractionDigits: 2});
+                document.getElementById('displayFinalAmount').innerText = 'RM ' + data.finalAmount.toLocaleString(undefined, {minimumFractionDigits: 2});
+
+                const container = document.getElementById('discountContainer');
+                container.innerHTML = '';
+                if (data.discountAmount > 0 && data.breakdown && data.breakdown.length > 0) {
+                    data.breakdown.forEach(text => {
+                        container.innerHTML += `<div class="discount-badge animate-slide-down"><span><i class="fas fa-tag me-1"></i> ${text}</span></div>`;
+                    });
+                    container.innerHTML += `
+                        <div class="row mt-2">
+                            <div class="col-6"><small>Total Discount:</small></div>
+                            <div class="col-6 text-end"><small class="text-success">-RM ${data.discountAmount.toLocaleString(undefined, {minimumFractionDigits: 2})}</small></div>
+                        </div>`;
+                } else {
+                    container.innerHTML = '<div class="text-muted small text-center my-1">No additional discounts applied.</div>';
+                }
+
+                const card = document.getElementById('priceCard');
+                card.classList.remove('price-update-flash');
+                void card.offsetWidth;
+                card.classList.add('price-update-flash');
+            }
         });
     </script>
 }

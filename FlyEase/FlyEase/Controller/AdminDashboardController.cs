@@ -37,7 +37,9 @@ namespace FlyEase.Controllers
         [HttpGet("AdminDashboard")]
         public async Task<IActionResult> AdminDashboard()
         {
-            var totalUsers = await _context.Users.CountAsync();
+            // [UPDATED] Only count users with Role == "User"
+            var totalUsers = await _context.Users.CountAsync(u => u.Role == "User");
+
             var totalBookings = await _context.Bookings.CountAsync();
             var pendingBookings = await _context.Bookings.CountAsync(b => b.BookingStatus == "Pending");
             var totalRevenue = await _context.Payments.Where(p => p.PaymentStatus == "Completed").SumAsync(p => p.AmountPaid);
@@ -210,101 +212,91 @@ namespace FlyEase.Controllers
             return RedirectToAction(nameof(Bookings));
         }
 
+        // ... inside UpdateBookingStatus method ...
+
         [HttpPost("UpdateBookingStatus")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> UpdateBookingStatus(BookingsPageVM model)
         {
             var input = model.CurrentBooking;
 
-            // Include Payments to process refunds
             var booking = await _context.Bookings
                 .Include(b => b.User)
                 .Include(b => b.Package)
                 .Include(b => b.Payments)
                 .FirstOrDefaultAsync(b => b.BookingID == input.BookingID);
 
-            if (booking != null)
+            if (booking == null)
             {
-                string oldStatus = booking.BookingStatus;
-                string newStatus = input.BookingStatus;
+                return Json(new { success = false, message = "Booking not found." });
+            }
 
-                // --- 1. PREVENT MANUALLY SETTING TO 'COMPLETED' ---
-                if (newStatus == "Completed")
+            string oldStatus = booking.BookingStatus;
+            string newStatus = input.BookingStatus;
+
+            // --- VALIDATION RULES ---
+
+            // 1. Confirmed -> Pending blocked
+            if (oldStatus == "Confirmed" && newStatus == "Pending")
+            {
+                return Json(new { success = false, message = "Action Denied: A 'Confirmed' booking cannot be reverted to 'Pending'." });
+            }
+
+            // 2. Editing Completed/Cancelled blocked
+            if (oldStatus == "Completed" || oldStatus == "Cancelled")
+            {
+                return Json(new { success = false, message = $"Cannot modify a booking that is already {oldStatus}." });
+            }
+
+            // [REMOVED THE BLOCK PREVENTING "COMPLETED" STATUS] 
+            // We now allow manual update to Completed as requested.
+
+            // --- PROCESS UPDATE ---
+            booking.BookingStatus = newStatus;
+
+            // If setting to Completed, ensure PaymentStatus is also completed/updated if necessary? 
+            // (Optional, but usually if a booking is completed, payment is assumed done. 
+            //  For now, we just update the status as requested).
+
+            await _context.SaveChangesAsync();
+
+            string successMsg = "Booking status updated successfully.";
+
+            // --- REFUND LOGIC (If cancelling a Paid/Confirmed booking) ---
+            if (newStatus == "Cancelled" && (oldStatus == "Confirmed" || oldStatus == "Deposit"))
+            {
+                try
                 {
-                    TempData["Error"] = "You cannot manually mark a booking as Completed. This is done automatically.";
-                    return RedirectToAction("Bookings");
-                }
-
-                // --- 2. PREVENT EDITING COMPLETED OR CANCELLED BOOKINGS ---
-                if (oldStatus == "Completed" || oldStatus == "Cancelled")
-                {
-                    TempData["Error"] = $"Cannot modify a booking that is already {oldStatus}.";
-                    return RedirectToAction("Bookings");
-                }
-
-                // --- 3. UPDATE STATUS ---
-                booking.BookingStatus = newStatus;
-                await _context.SaveChangesAsync();
-
-                // --- 4. LOGIC FOR CANCELLED -> REFUND & EMAIL ---
-                if (newStatus == "Cancelled" && oldStatus != "Cancelled")
-                {
-                    // Only auto-refund if confirmed/deposit
-                    if (oldStatus == "Confirmed" || oldStatus == "Deposit")
+                    var payment = booking.Payments.FirstOrDefault(p => p.PaymentStatus == "Completed");
+                    if (payment != null && !string.IsNullOrEmpty(payment.TransactionID))
                     {
-                        try
-                        {
-                            // Find a completed payment to refund
-                            var payment = booking.Payments.FirstOrDefault(p => p.PaymentStatus == "Completed");
+                        // Refund via Stripe
+                        await _stripeService.RefundPaymentAsync(payment.TransactionID);
 
-                            // Check if transaction ID exists (Implies Stripe/Online Payment)
-                            if (payment != null && !string.IsNullOrEmpty(payment.TransactionID))
-                            {
-                                // A. Process Refund via Stripe
-                                await _stripeService.RefundPaymentAsync(payment.TransactionID);
+                        payment.PaymentStatus = "Refunded";
+                        await _context.SaveChangesAsync();
 
-                                // B. Update Payment Record
-                                payment.PaymentStatus = "Refunded";
-                                await _context.SaveChangesAsync();
-
-                                // C. Send Refund Email
-                                await _emailService.SendRefundNotification(
-                                    booking.User.Email,
-                                    booking.User.FullName,
-                                    booking.Package.PackageName,
-                                    payment.AmountPaid
-                                );
-
-                                TempData["Success"] = "Booking Cancelled, Payment Refunded (Stripe), and Email Sent.";
-                            }
-                            else
-                            {
-                                // Cash or Manual Payment (No Transaction ID)
-                                TempData["Warning"] = "Booking Cancelled. Manual refund required (Cash/No Online Transaction Found).";
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            TempData["Error"] = "Error processing refund: " + ex.Message;
-                        }
+                        // Send Email
+                        await _emailService.SendRefundNotification(
+                            booking.User.Email,
+                            booking.User.FullName,
+                            booking.Package.PackageName,
+                            payment.AmountPaid
+                        );
+                        successMsg = "Booking Cancelled & Refunded successfully.";
                     }
                     else
                     {
-                        // e.g. "Pending" bookings don't get refunds
-                        TempData["Success"] = $"Booking Cancelled. No refund processed (Previous status was '{oldStatus}').";
+                        successMsg = "Booking Cancelled. Manual refund required (No Online Transaction found).";
                     }
                 }
-                // --- 5. LOGIC FOR CONFIRMED ---
-                else if (newStatus == "Confirmed")
+                catch (Exception ex)
                 {
-                    TempData["Success"] = "Booking Confirmed successfully.";
-                }
-                else
-                {
-                    TempData["Success"] = "Booking status updated successfully.";
+                    return Json(new { success = true, bookingId = booking.BookingID, newStatus = newStatus, message = "Booking Cancelled, but refund failed: " + ex.Message });
                 }
             }
-            return RedirectToAction("Bookings");
+
+            return Json(new { success = true, bookingId = booking.BookingID, newStatus = newStatus, message = successMsg });
         }
 
         [HttpPost("DeleteBooking")]
@@ -418,45 +410,123 @@ namespace FlyEase.Controllers
         [HttpPost("DeletePackage")]
         public async Task<IActionResult> DeletePackage(int id)
         {
-            var package = await _context.Packages.FindAsync(id);
+            // Include Bookings to enable cascade delete
+            var package = await _context.Packages
+                .Include(p => p.Bookings)
+                .FirstOrDefaultAsync(p => p.PackageID == id);
+
             if (package != null)
             {
-                if (await _context.Bookings.AnyAsync(b => b.PackageID == id))
-                    TempData["Error"] = "Cannot delete package: Active bookings exist.";
-                else
+                // Logic: If user confirmed via the 3-second alert, we assume they want to delete everything.
+                if (package.Bookings.Any())
                 {
-                    _context.Packages.Remove(package);
-                    await _context.SaveChangesAsync();
-                    TempData["Success"] = "Package deleted successfully.";
+                    _context.Bookings.RemoveRange(package.Bookings);
                 }
+
+                _context.Packages.Remove(package);
+                await _context.SaveChangesAsync();
+                TempData["Success"] = "Package and its associated bookings were deleted successfully.";
+            }
+            else
+            {
+                TempData["Error"] = "Package not found.";
             }
             return RedirectToAction(nameof(Packages));
         }
 
         // ==========================================
-        // 5. ANALYTICS
+        // 5. ANALYTICS (ADDED THIS METHOD)
         // ==========================================
         [HttpGet("Analytics")]
         public async Task<IActionResult> Analytics()
         {
-            var allFeedback = await _context.Feedbacks.Include(f => f.User).Include(f => f.Booking).ThenInclude(b => b.Package).OrderByDescending(f => f.CreatedDate).ToListAsync();
-            if (!allFeedback.Any()) return View(new FeedbackAnalyticsViewModel());
+            // 1. Fetch All Feedbacks
+            var allFeedbacks = await _context.Feedbacks
+                .Include(f => f.Booking).ThenInclude(b => b.Package)
+                .Include(f => f.User)
+                .ToListAsync();
 
-            var totalReviews = allFeedback.Count;
-            var averageRating = allFeedback.Average(f => f.Rating);
-            var positiveCount = allFeedback.Count(f => f.Rating >= 4);
-            var positivePercentage = totalReviews > 0 ? (double)positiveCount / totalReviews * 100 : 0;
+            var vm = new FeedbackAnalyticsViewModel();
 
-            var packageStats = allFeedback.GroupBy(f => f.Booking.Package.PackageName)
-                .Select(g => new PopularPackageViewModel { PackageName = g.Key, AverageRating = g.Average(f => f.Rating), ReviewCount = g.Count() }).ToList();
+            if (allFeedbacks.Any())
+            {
+                // Basic Stats
+                vm.TotalReviews = allFeedbacks.Count;
+                vm.AverageRating = allFeedbacks.Average(f => f.Rating);
+                vm.PositivePercentage = (double)allFeedbacks.Count(f => f.Rating >= 4) / vm.TotalReviews * 100;
+                vm.RatingCounts = allFeedbacks.GroupBy(f => f.Rating).ToDictionary(g => g.Key, g => g.Count());
 
-            var mostPopular = packageStats.OrderByDescending(p => p.AverageRating).ThenByDescending(p => p.ReviewCount).FirstOrDefault();
-            var leastPopular = packageStats.OrderBy(p => p.AverageRating).ThenByDescending(p => p.ReviewCount).FirstOrDefault();
+                // Popular Packages Logic
+                var packageStats = allFeedbacks.GroupBy(f => f.Booking.Package.PackageName)
+                    .Select(g => new { Name = g.Key, Rating = g.Average(f => f.Rating), Count = g.Count() }).ToList();
 
-            var ratingCounts = new Dictionary<int, int> { { 5, allFeedback.Count(f => f.Rating == 5) }, { 4, allFeedback.Count(f => f.Rating == 4) }, { 3, allFeedback.Count(f => f.Rating == 3) }, { 2, allFeedback.Count(f => f.Rating == 2) }, { 1, allFeedback.Count(f => f.Rating == 1) } };
+                var best = packageStats.OrderByDescending(p => p.Rating).FirstOrDefault();
+                var worst = packageStats.OrderBy(p => p.Rating).FirstOrDefault();
 
-            var viewModel = new FeedbackAnalyticsViewModel { AverageRating = averageRating, TotalReviews = totalReviews, PositivePercentage = positivePercentage, RatingCounts = ratingCounts, RecentReviews = allFeedback.Take(10).ToList(), MostPopularPackage = mostPopular, LeastPopularPackage = leastPopular };
-            return View(viewModel);
+                if (best != null) vm.MostPopularPackage = new PopularPackageViewModel { PackageName = best.Name, AverageRating = best.Rating, ReviewCount = best.Count };
+                if (worst != null) vm.LeastPopularPackage = new PopularPackageViewModel { PackageName = worst.Name, AverageRating = worst.Rating, ReviewCount = worst.Count };
+
+                // --- CATEGORY LOGIC (Parses [Tag] from Comment) ---
+                var categoryData = new List<(string Cat, int Rating)>();
+
+                foreach (var f in allFeedbacks)
+                {
+                    string cat = "General";
+                    string text = f.Comment?.ToLower() ?? "";
+
+                    // Extract tag: "[Food] Comment..."
+                    if (f.Comment != null && f.Comment.StartsWith("[") && f.Comment.Contains("]"))
+                    {
+                        int end = f.Comment.IndexOf("]");
+                        cat = f.Comment.Substring(1, end - 1);
+                    }
+                    else
+                    {
+                        // Fallback Keywords
+                        if (text.Contains("food") || text.Contains("meal")) cat = "Food";
+                        else if (text.Contains("service") || text.Contains("staff")) cat = "Service";
+                        else if (text.Contains("view") || text.Contains("room")) cat = "Environment";
+                    }
+                    categoryData.Add((cat, f.Rating));
+                }
+
+                var catGroups = categoryData.GroupBy(x => x.Cat);
+                foreach (var grp in catGroups)
+                {
+                    vm.CategoryRatings.Add(grp.Key, grp.Average(x => x.Rating));
+                    vm.CategoryCounts.Add(grp.Key, grp.Count());
+                }
+
+                // Recent Reviews (Clean comments for display)
+                vm.RecentReviews = allFeedbacks.OrderByDescending(f => f.CreatedDate).Take(5).Select(f => {
+                    if (f.Comment != null && f.Comment.StartsWith("["))
+                    {
+                        int end = f.Comment.IndexOf("]");
+                        if (end > 0) f.Comment = f.Comment.Substring(end + 1).Trim();
+                    }
+                    return f;
+                }).ToList();
+            }
+
+            // --- UNRATED USERS LOGIC ---
+            // 1. Get Completed Bookings
+            var completedBookings = await _context.Bookings
+                .Include(b => b.User).Include(b => b.Package)
+                .Where(b => b.BookingStatus == "Completed" || b.BookingStatus == "Confirmed")
+                .ToListAsync();
+
+            // 2. Filter out those who already rated
+            var ratedBookingIds = allFeedbacks.Select(f => f.BookingID).ToHashSet();
+
+            var unratedList = completedBookings
+                .Where(b => !ratedBookingIds.Contains(b.BookingID) && b.TravelDate < DateTime.Now)
+                .OrderByDescending(b => b.TravelDate)
+                .ToList();
+
+            vm.UnratedCount = unratedList.Count;
+            vm.UnratedBookings = unratedList.Take(10).ToList();
+
+            return View(vm);
         }
 
         // ==========================================

@@ -34,12 +34,15 @@ namespace FlyEase.ViewModels
         [Display(Name = "Total People")]
         public int NumberOfPeople { get; set; } = 1;
 
-        // === NEW FIELDS FOR AGE DISCOUNTS ===
+        // === AGE DISCOUNTS ===
         [Range(0, 10, ErrorMessage = "Invalid number")]
-        public int NumberOfSeniors { get; set; } = 0; // Eligible for Senior Discount
+        public int NumberOfSeniors { get; set; } = 0;
 
         [Range(0, 10, ErrorMessage = "Invalid number")]
-        public int NumberOfJuniors { get; set; } = 0; // Eligible for Junior Discount
+        public int NumberOfJuniors { get; set; } = 0;
+
+        // === VOUCHER (New Field to Persist Selection) ===
+        public string? VoucherCode { get; set; }
 
         [Display(Name = "Special Requests")]
         public string? SpecialRequests { get; set; }

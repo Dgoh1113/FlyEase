@@ -4,36 +4,51 @@
     ViewData["Title"] = "Booking Details";
     Layout = "~/Views/Shared/_Layout.cshtml";
 
-    // Status Badge Logic
+    // --- 1. Status Badge Logic ---
     string statusBadge = "bg-secondary";
     if (Model.BookingStatus == "Completed") { statusBadge = "bg-success"; }
+    else if (Model.BookingStatus == "Confirmed") { statusBadge = "bg-primary"; }
     else if (Model.BookingStatus == "Deposit") { statusBadge = "bg-warning text-dark"; }
     else if (Model.BookingStatus == "Cancelled") { statusBadge = "bg-danger"; }
     else if (Model.BookingStatus == "Pending") { statusBadge = "bg-info text-dark"; }
 
+    // --- 2. Data Preparation ---
     bool canCancel = ViewBag.CanCancel ?? false;
     decimal balanceDue = ViewBag.BalanceDue ?? 0;
+    string imagePath = Model.Package.ImageURL?.Split(';').FirstOrDefault() ?? "/img/default-package.jpg";
 }
 
 <div class="container mt-5 mb-5">
 
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <a asp-controller="Auth" asp-action="Profile" class="btn btn-outline-secondary btn-sm">
-            <i class="fas fa-arrow-left me-2"></i>Back to Profile
-        </a>
-        <span class="badge @statusBadge fs-6 px-3 py-2 rounded-pill">@Model.BookingStatus</span>
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+        <div class="d-flex align-items-center gap-3">
+            <a asp-controller="Auth" asp-action="Profile" class="btn btn-outline-secondary btn-sm">
+                <i class="fas fa-arrow-left me-2"></i>Back to Profile
+            </a>
+            <h4 class="mb-0 fw-bold">Booking #@Model.BookingID</h4>
+            <span class="badge @statusBadge fs-6 px-3 py-2 rounded-pill">@Model.BookingStatus</span>
+        </div>
+
+        <div>
+            @if (Model.BookingStatus == "Confirmed" || Model.BookingStatus == "Completed" || Model.BookingStatus == "Deposit")
+            {
+                <a asp-action="Receipt" asp-controller="Payment" asp-route-bookingId="@Model.BookingID" target="_blank" class="btn btn-outline-primary btn-sm">
+                    <i class="fas fa-file-invoice me-2"></i>View Receipt
+                </a>
+            }
+        </div>
     </div>
 
     @if (TempData["Success"] != null)
     {
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
             <i class="fas fa-check-circle me-2"></i>@TempData["Success"]
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     }
     @if (TempData["Error"] != null)
     {
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
             <i class="fas fa-exclamation-circle me-2"></i>@TempData["Error"]
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
@@ -41,33 +56,33 @@
 
     <div class="row g-4">
         <div class="col-lg-8">
-            <div class="card shadow-sm border-0 mb-4">
-                <div class="card-header bg-white py-3">
-                    <h5 class="mb-0 fw-bold text-primary">Booking Reference: #@Model.BookingID</h5>
+
+            <div class="card shadow-sm border-0 mb-4 overflow-hidden">
+                <div class="card-header bg-white py-3 border-bottom">
+                    <h5 class="mb-0 fw-bold text-primary"><i class="fas fa-suitcase-rolling me-2"></i>Trip Details</h5>
                 </div>
                 <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-4 mb-3 mb-md-0">
-                            <img src="@(Model.Package.ImageURL?.Split(';').FirstOrDefault() ?? "/img/default-package.jpg")"
-                                 class="img-fluid rounded shadow-sm" alt="@Model.Package.PackageName"
-                                 style="width:100%; height:150px; object-fit:cover;">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <img src="@imagePath" class="img-fluid rounded shadow-sm w-100"
+                                 style="height:160px; object-fit:cover;" alt="@Model.Package.PackageName">
                         </div>
                         <div class="col-md-8">
-                            <h4 class="fw-bold">@Model.Package.PackageName</h4>
-                            <p class="text-muted mb-2"><i class="fas fa-map-marker-alt me-2 text-danger"></i>@Model.Package.Destination</p>
+                            <h4 class="fw-bold mb-1">@Model.Package.PackageName</h4>
+                            <p class="text-muted mb-3"><i class="fas fa-map-marker-alt me-2 text-danger"></i>@Model.Package.Destination</p>
 
-                            <div class="d-flex flex-wrap gap-3 mt-3">
-                                <div class="bg-light p-2 rounded">
-                                    <small class="text-muted d-block">Travel Date</small>
-                                    <strong>@Model.TravelDate.ToString("dd MMM yyyy")</strong>
+                            <div class="d-flex flex-wrap gap-2">
+                                <div class="bg-light px-3 py-2 rounded border">
+                                    <small class="text-muted d-block text-uppercase" style="font-size:0.7rem;">Travel Date</small>
+                                    <strong class="text-dark">@Model.TravelDate.ToString("dd MMM yyyy")</strong>
                                 </div>
-                                <div class="bg-light p-2 rounded">
-                                    <small class="text-muted d-block">Duration</small>
-                                    <strong>@((Model.Package.EndDate - Model.Package.StartDate).Days + 1) Days</strong>
+                                <div class="bg-light px-3 py-2 rounded border">
+                                    <small class="text-muted d-block text-uppercase" style="font-size:0.7rem;">Duration</small>
+                                    <strong class="text-dark">@((Model.Package.EndDate - Model.Package.StartDate).Days + 1) Days</strong>
                                 </div>
-                                <div class="bg-light p-2 rounded">
-                                    <small class="text-muted d-block">Travelers</small>
-                                    <strong>@Model.NumberOfPeople Pax</strong>
+                                <div class="bg-light px-3 py-2 rounded border">
+                                    <small class="text-muted d-block text-uppercase" style="font-size:0.7rem;">Travelers</small>
+                                    <strong class="text-dark">@Model.NumberOfPeople Pax</strong>
                                 </div>
                             </div>
                         </div>
@@ -76,13 +91,13 @@
             </div>
 
             <div class="card shadow-sm border-0">
-                <div class="card-header bg-white py-3">
-                    <h5 class="mb-0 fw-bold">Payment History</h5>
+                <div class="card-header bg-white py-3 border-bottom">
+                    <h5 class="mb-0 fw-bold"><i class="fas fa-history me-2"></i>Payment History</h5>
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
                         <table class="table table-hover mb-0 align-middle">
-                            <thead class="bg-light">
+                            <thead class="bg-light text-muted small text-uppercase">
                                 <tr>
                                     <th class="ps-4">Date</th>
                                     <th>Method</th>
@@ -92,60 +107,59 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach (var pay in Model.Payments.OrderByDescending(p => p.PaymentDate))
+                                @if (Model.Payments != null && Model.Payments.Any())
+                                {
+                                    @foreach (var pay in Model.Payments.OrderByDescending(p => p.PaymentDate))
+                                    {
+                                        <tr>
+                                            <td class="ps-4 text-muted small">@pay.PaymentDate.ToString("dd MMM yyyy, HH:mm")</td>
+                                            <td>
+                                                @if (pay.PaymentMethod.Contains("Credit") || pay.PaymentMethod.Contains("Card") || pay.PaymentMethod.Contains("Stripe"))
+                                                {
+                                                    <span class="badge bg-light text-primary border"><i class="fab fa-stripe me-1"></i> Card</span>
+                                                }
+                                                else if (pay.PaymentMethod.Contains("Touch"))
+                                                {
+                                                    <span class="badge bg-primary text-white" style="background-color:#005EB8 !important">TNG eWallet</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-light text-dark border">@pay.PaymentMethod</span>
+                                                }
+                                            </td>
+                                            <td>
+                                                @if (pay.IsDeposit)
+                                                {
+                                                    <span class="badge bg-info text-dark">Deposit (30%)</span>
+                                                }
+                                                else
+                                                {
+
+                                                    <span class="badge bg-secondary">Full Payment</span>
+                                                }
+                                            </td>
+                                            <td>
+                                                @if (pay.PaymentStatus == "Refunded")
+                                                {
+                                                    <span class="badge bg-danger-subtle text-danger"><i class="fas fa-undo me-1"></i> Refunded</span>
+                                                }
+                                                else if (pay.PaymentStatus == "Completed")
+                                                {
+                                                    <span class="badge bg-success-subtle text-success"><i class="fas fa-check me-1"></i> Paid</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-warning-subtle text-warning text-dark">@pay.PaymentStatus</span>
+                                                }
+                                            </td>
+                                            <td class="text-end pe-4 fw-bold">RM @pay.AmountPaid.ToString("N2")</td>
+                                        </tr>
+                                    }
+                                }
+                                else
                                 {
                                     <tr>
-                                        <td class="ps-4">@pay.PaymentDate.ToString("dd/MM/yyyy HH:mm")</td>
-                                        <td>
-                                            @if (pay.PaymentMethod.Contains("Credit") || pay.PaymentMethod.Contains("Stripe"))
-                                            {
-                                                <i class="fab fa-stripe text-primary fa-lg"></i>
-                                            }
-                                            else if (pay.PaymentMethod.Contains("Touch"))
-                                            {
-
-                                                <span class="badge bg-warning text-dark">TNG</span>
-                                            }
-                                            else
-                                            {
-
-                                                <i class="fas fa-money-bill text-success"></i>
-                                            }
-                                            <span class="ms-1 small">@pay.PaymentMethod</span>
-                                        </td>
-                                        <td>
-                                            @if (pay.IsDeposit)
-                                            {
-                                                <span class="badge bg-info text-dark">Deposit</span>
-                                            }
-                                            else
-                                            {
-
-                                                <span class="badge bg-secondary">Full/Balance</span>
-                                            }
-                                        </td>
-                                        <td>
-                                            @if (pay.PaymentStatus == "Refunded")
-                                            {
-                                                <span class="text-danger fw-bold">Refunded</span>
-                                            }
-                                            else if (pay.PaymentStatus.Contains("Failed"))
-                                            {
-
-                                                <span class="text-danger">Failed</span>
-                                            }
-                                            else if (pay.PaymentStatus == "Pending")
-                                            {
-
-                                                <span class="text-warning fw-bold">Pending</span>
-                                            }
-                                            else
-                                            {
-
-                                                <span class="text-success fw-bold">Paid</span>
-                                            }
-                                        </td>
-                                        <td class="text-end pe-4 fw-bold">RM @pay.AmountPaid.ToString("N2")</td>
+                                        <td colspan="5" class="text-center py-4 text-muted">No payment records found.</td>
                                     </tr>
                                 }
                             </tbody>
@@ -156,54 +170,65 @@
         </div>
 
         <div class="col-lg-4">
+
             <div class="card shadow-lg border-0 mb-4">
                 <div class="card-body p-4">
                     <h5 class="fw-bold mb-4">Payment Summary</h5>
 
-                    <div class="d-flex justify-content-between mb-2">
-                        <span class="text-muted">Total Package Price</span>
-                        <span>RM @Model.FinalAmount.ToString("N2")</span>
+                    <div class="d-flex justify-content-between mb-2 small">
+                        <span class="text-muted">Package Price (x@(Model.NumberOfPeople))</span>
+                        <span>RM @Model.TotalBeforeDiscount.ToString("N2")</span>
                     </div>
 
                     @if (Model.TotalDiscountAmount > 0)
                     {
-                        <div class="d-flex justify-content-between mb-2 text-success">
-                            <span>Discount Applied</span>
+                        <div class="d-flex justify-content-between mb-2 small text-success">
+                            <span>Total Discount</span>
                             <span>- RM @Model.TotalDiscountAmount.ToString("N2")</span>
                         </div>
                     }
 
-                    <hr>
+                    <hr class="my-3 opacity-25">
 
                     <div class="d-flex justify-content-between mb-3 align-items-center">
-                        <span class="fw-bold">Total Paid</span>
-                        <span class="fw-bold text-success fs-5">RM @((Model.FinalAmount - balanceDue).ToString("N2"))</span>
+                        <span class="fw-bold fs-5">Total</span>
+                        <span class="fw-bold fs-5">RM @Model.FinalAmount.ToString("N2")</span>
+                    </div>
+
+                    <div class="bg-light p-3 rounded mb-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-muted">Paid to date:</span>
+                            <span class="fw-bold text-success">RM @((Model.FinalAmount - balanceDue).ToString("N2"))</span>
+                        </div>
                     </div>
 
                     @if (balanceDue > 0 && Model.BookingStatus != "Cancelled")
                     {
-                        <div class="alert alert-warning border-warning">
+                        <div class="alert alert-warning border-warning mb-0">
                             <div class="d-flex justify-content-between align-items-center">
                                 <strong>Balance Due:</strong>
                                 <strong class="text-danger">RM @balanceDue.ToString("N2")</strong>
                             </div>
-                            <small class="text-muted d-block mt-2">Please pay the balance before the trip.</small>
+                            <hr class="my-2">
+                            <a asp-controller="Payment" asp-action="PayBalance" asp-route-bookingId="@Model.BookingID" class="btn btn-warning w-100 btn-sm fw-bold">
+                                Pay Balance Now
+                            </a>
                         </div>
                     }
                 </div>
             </div>
 
-            @if (Model.BookingStatus != "Cancelled")
+            @if (Model.BookingStatus != "Cancelled" && Model.BookingStatus != "Completed")
             {
                 <div class="card shadow-sm border-danger">
                     <div class="card-body p-4">
-                        <h5 class="fw-bold text-danger mb-3"><i class="fas fa-exclamation-triangle me-2"></i>Cancellation</h5>
+                        <h5 class="fw-bold text-danger mb-3"><i class="fas fa-exclamation-triangle me-2"></i>Cancellation Zone</h5>
 
                         @if (canCancel)
                         {
                             <p class="small text-muted mb-3">
-                                Your trip starts in <strong>@((Model.Package.StartDate - DateTime.Now).Days) days</strong>.
-                                You are eligible for a cancellation and refund (before 14 days).
+                                Your trip is in <strong>@((Model.Package.StartDate - DateTime.Now).Days) days</strong>.
+                                You are eligible for a refund (minus processing fees) if you cancel now.
                             </p>
 
                             <button type="button" class="btn btn-outline-danger w-100" data-bs-toggle="modal" data-bs-target="#cancelModal">
@@ -212,10 +237,14 @@
                         }
                         else
                         {
-                            <div class="alert alert-secondary mb-0 small">
-                                <i class="fas fa-lock me-1"></i> Cancellation is locked.
-                                <br>
-                                Trips starting within 14 days cannot be cancelled or refunded.
+                            <div class="alert alert-secondary mb-0 small border-0 bg-light text-muted">
+                                <div class="d-flex">
+                                    <i class="fas fa-lock me-2 mt-1"></i>
+                                    <div>
+                                        <strong>Cancellation Locked</strong><br />
+                                        Trips starting within 14 days cannot be cancelled or refunded online. Please contact support.
+                                    </div>
+                                </div>
                             </div>
                         }
                     </div>
@@ -225,27 +254,35 @@
     </div>
 </div>
 
-<div class="modal fade" id="cancelModal" tabindex="-1" aria-hidden="true">
+<div class="modal fade" id="cancelModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header bg-danger text-white">
-                <h5 class="modal-title">Confirm Cancellation</h5>
+                <h5 class="modal-title"><i class="fas fa-exclamation-circle me-2"></i>Confirm Cancellation</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <p class="fw-bold">Are you sure you want to cancel this booking?</p>
-                <p class="text-muted small">
-                    This action cannot be undone.
-                    If you paid via Stripe/Card, a refund will be initiated automatically.
-                    Manual payments will require admin approval for refunds.
+                <div class="text-center mb-3">
+                    <i class="fas fa-times-circle text-danger fa-4x mb-3"></i>
+                    <h5 class="fw-bold">Are you sure?</h5>
+                </div>
+                <p class="text-center text-muted px-3">
+                    This will cancel your booking for <strong>@Model.Package.PackageName</strong>.
                 </p>
+                <div class="alert alert-warning small">
+                    <ul class="mb-0 ps-3">
+                        <li>This action <strong>cannot</strong> be undone.</li>
+                        <li>Refunds (if eligible) will be processed to your original payment method via Stripe.</li>
+                    </ul>
+                </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Keep Booking</button>
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">No, Keep Booking</button>
+
                 <form asp-action="CancelBooking" asp-controller="Payment" method="post">
                     @Html.AntiForgeryToken()
                     <input type="hidden" name="bookingId" value="@Model.BookingID" />
-                    <button type="submit" class="btn btn-danger">Yes, Cancel & Refund</button>
+                    <button type="submit" class="btn btn-danger fw-bold">Yes, Cancel Booking</button>
                 </form>
             </div>
         </div>

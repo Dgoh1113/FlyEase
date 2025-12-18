@@ -7,16 +7,14 @@ namespace FlyEase.ViewModels
     public class PackagePerformanceReportVM
     {
         // ========== FILTER PARAMETERS ==========
-        [Display(Name = "Start Date")]
-        [DataType(DataType.Date)]
         public DateTime StartDate { get; set; }
-
-        [Display(Name = "End Date")]
-        [DataType(DataType.Date)]
         public DateTime EndDate { get; set; }
-
-        [Display(Name = "Category")]
         public string CategoryFilter { get; set; } = "All";
+        public int? PackageFilter { get; set; }
+
+        // ========== REPORT METADATA ==========
+        public DateTime GeneratedAt { get; set; } = DateTime.Now;
+        public string GeneratedBy { get; set; } = "Admin";
 
         // ========== SUMMARY STATISTICS ==========
         public int TotalPackages { get; set; }
@@ -25,44 +23,38 @@ namespace FlyEase.ViewModels
         public decimal AverageRevenuePerPackage { get; set; }
         public decimal AverageRating { get; set; }
 
-        // ========== CHART DATA ==========
-        public List<string> PackageNames { get; set; } = new List<string>();
-        public List<int> BookingCounts { get; set; } = new List<int>();
-        public List<string> TopPackageColors { get; set; } = new List<string>();
+        // ========== CHART DATA (Re-added) ==========
+        public List<string> ChartLabels { get; set; } = new List<string>();
+        public List<decimal> ChartValues { get; set; } = new List<decimal>();
 
-        public List<string> RevenuePackageNames { get; set; } = new List<string>();
-        public List<decimal> RevenueValues { get; set; } = new List<decimal>();
-
-        public List<string> RatingPackageNames { get; set; } = new List<string>();
-        public List<double> RatingValues { get; set; } = new List<double>();
-
-        // ========== DETAILED TABLE DATA ==========
+        // ========== DETAILED DATA ==========
         public List<PackagePerformanceDetailVM> Details { get; set; } = new List<PackagePerformanceDetailVM>();
 
-        // ========== AVAILABLE OPTIONS (FOR DROPDOWNS) ==========
+        // ========== DROPDOWN OPTIONS ==========
         public List<string> AvailableCategories { get; set; } = new List<string>();
-
-        // ========== TOP & BOTTOM PERFORMERS ==========
-        public List<PackagePerformanceDetailVM> TopPerformers { get; set; } = new List<PackagePerformanceDetailVM>();
-        public List<PackagePerformanceDetailVM> BottomPerformers { get; set; } = new List<PackagePerformanceDetailVM>();
+        public List<PackageSelectOption> AvailablePackages { get; set; } = new List<PackageSelectOption>();
     }
 
-    // Detail row for the table
     public class PackagePerformanceDetailVM
     {
         public int PackageID { get; set; }
-        public string PackageName { get; set; } = string.Empty;
-        public string Destination { get; set; } = string.Empty;
-        public string Category { get; set; } = string.Empty;
+        public string PackageName { get; set; }
+        public string Destination { get; set; }
+        public string Category { get; set; }
         public decimal Price { get; set; }
+
+        // Performance Metrics
         public int TotalBookings { get; set; }
         public int TotalPeople { get; set; }
         public decimal TotalRevenue { get; set; }
-        public decimal AverageRevenuePerBooking { get; set; }
         public double AverageRating { get; set; }
         public int TotalReviews { get; set; }
+
+        // Capacity Metrics
         public int AvailableSlots { get; set; }
-        public int BookedSlots => AvailableSlots > 0 ? TotalPeople : TotalPeople; // Simplified calculation
-        public decimal OccupancyRate { get; set; } // Percentage
+        public decimal OccupancyRate { get; set; }
+        public string Status { get; set; }
     }
+
+
 }

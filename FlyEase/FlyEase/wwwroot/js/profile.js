@@ -44,6 +44,7 @@ document.addEventListener('DOMContentLoaded', function () {
         // Default to bookings tab
         setTimeout(() => switchTab('bookings'), 50);
     }
+    
 
     // 3. Add click listeners to all tab items
     document.querySelectorAll('.tab-nav-item').forEach(item => {
@@ -150,6 +151,7 @@ document.addEventListener('DOMContentLoaded', function () {
             form.classList.add('was-validated');
         });
     });
+    initEditProfileValidation();
 });
 
 // Password Strength Calculation Function
@@ -345,3 +347,84 @@ window.resetPasswordForm = function () {
         });
     }
 };
+
+function initEditProfileValidation() {
+    const form = document.getElementById('updateProfileForm');
+    const nameInput = document.getElementById('FullName');
+    const phoneInput = document.getElementById('Phone');
+
+    if (!form) return; // Exit if form not found
+
+    // --- 1. Prevent Submit if Errors Exist ---
+    form.addEventListener('submit', function (e) {
+        // Run checks one last time before submitting
+        const isNameValid = /^[a-zA-Z\s]+$/.test(nameInput.value);
+        const isPhoneValid = /^\d{9,11}$/.test(phoneInput.value);
+
+        if (!isNameValid || !isPhoneValid) {
+            e.preventDefault(); // STOP the form
+            e.stopPropagation();
+
+            // Show errors to user
+            if (!isNameValid) showError(nameInput, 'Name can only contain letters and spaces.');
+            if (!isPhoneValid) showError(phoneInput, 'Phone number must be 9-11 digits.');
+        }
+    });
+
+    // --- 2. Real-time Name Check ---
+    if (nameInput) {
+        nameInput.addEventListener('input', function () {
+            // Regex: anything NOT a letter or space
+            if (/[^a-zA-Z\s]/.test(this.value)) {
+                showError(this, 'Name can only contain letters and spaces.');
+            } else {
+                clearError(this);
+            }
+        });
+    }
+
+    // --- 3. Real-time Phone Check ---
+    if (phoneInput) {
+        phoneInput.addEventListener('input', function () {
+            const val = this.value;
+            // Check for non-numbers
+            if (/[^0-9]/.test(val)) {
+                showError(this, 'Phone number must contain only digits.');
+            }
+            // Check length (only if they have typed something)
+            else if (val.length > 0 && (val.length < 9 || val.length > 11)) {
+                showError(this, 'Phone number must be between 9 and 11 digits.');
+            } else {
+                clearError(this);
+            }
+        });
+    }
+}
+
+// --- HELPER FUNCTIONS ---
+
+function showError(input, message) {
+    const parent = input.parentElement; // The .form-group or .col div
+    let errorSpan = parent.querySelector('.text-danger');
+
+    // Create error span if it doesn't exist
+    if (!errorSpan) {
+        errorSpan = document.createElement('span');
+        errorSpan.className = 'text-danger small mt-1 d-block';
+        parent.appendChild(errorSpan);
+    }
+
+    input.classList.add('is-invalid');
+    // Add Alert Icon to message
+    errorSpan.innerHTML = `<i class="fas fa-exclamation-triangle me-1"></i> ${message}`;
+}
+
+function clearError(input) {
+    const parent = input.parentElement;
+    const errorSpan = parent.querySelector('.text-danger');
+
+    input.classList.remove('is-invalid');
+    if (errorSpan) {
+        errorSpan.remove(); // Remove the error message entirely
+    }
+}

@@ -15,7 +15,7 @@
     h2, h5, h6, .display-4, th, td, small, .text-muted {
         color: var(--text-main) !important;
     }
-    /* Muted text override for dark mode specifically */
+
     [data-bs-theme="dark"] .text-muted {
         color: #adb5bd !important;
     }
@@ -28,7 +28,7 @@
         background-color: #2c3034;
         color: #fff;
     }
-    /* Badge tweaks for visibility */
+
     [data-bs-theme="dark"] .bg-success-subtle {
         background-color: rgba(25, 135, 84, 0.2) !important;
         color: #75b798 !important;
@@ -63,7 +63,6 @@
                 </div>
             </div>
         </div>
-
         <div class="col-lg-4">
             <div class="card h-100 border-0 shadow-sm border-start border-info border-4">
                 <div class="card-body text-center d-flex flex-column justify-content-center py-4">
@@ -73,13 +72,98 @@
                 </div>
             </div>
         </div>
-
         <div class="col-lg-4">
             <div class="card h-100 border-0 shadow-sm border-start border-success border-4">
                 <div class="card-body text-center d-flex flex-column justify-content-center py-4">
                     <h6 class="text-uppercase text-muted small fw-bold mb-2">Positive Sentiment</h6>
                     <div class="display-4 fw-bold text-success">@Model.PositivePercentage.ToString("0")%</div>
                     <small class="text-muted">Based on 4 & 5 star ratings</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-lg-6">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-header bg-transparent border-0 py-3">
+                    <h6 class="fw-bold mb-0"><i class="fas fa-tags me-2 text-primary"></i>Feedback Categories</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Category</th>
+                                    <th>Avg Rating</th>
+                                    <th>Count</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var cat in Model.CategoryRatings)
+                                {
+                                    <tr>
+                                        <td><span class="badge bg-light text-dark border">@cat.Key</span></td>
+                                        <td>
+                                            @cat.Value.ToString("0.0")
+                                            <i class="fas fa-star text-warning small"></i>
+                                        </td>
+                                        <td>
+                                            @if (Model.CategoryCounts.ContainsKey(cat.Key))
+                                            {
+                                                @Model.CategoryCounts[cat.Key]
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                                @if (!Model.CategoryRatings.Any())
+                                {
+                                    <tr><td colspan="3" class="text-center text-muted">No data available yet.</td></tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-header bg-transparent border-0 py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="fw-bold mb-0"><i class="fas fa-user-clock me-2 text-warning"></i>Users Who Haven't Rated</h6>
+                    <span class="badge bg-warning text-dark">@Model.UnratedCount Pending</span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="ps-4">User</th>
+                                    <th>Package</th>
+                                    <th class="text-end pe-4">Trip Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var booking in Model.UnratedBookings)
+                                {
+                                    <tr>
+                                        <td class="ps-4">
+                                            <div class="fw-bold">@booking.User.FullName</div>
+                                            <small class="text-muted">@booking.User.Email</small>
+                                        </td>
+                                        <td>@booking.Package.PackageName</td>
+                                        <td class="text-end pe-4 text-muted small">
+                                            @booking.TravelDate.ToString("dd MMM")
+                                        </td>
+                                    </tr>
+                                }
+                                @if (!Model.UnratedBookings.Any())
+                                {
+                                    <tr><td colspan="3" class="text-center py-4 text-muted">Everyone has rated their trips! 🎉</td></tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
@@ -196,19 +280,14 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         let myChart = null;
-        function getCssVar(name) {
-            return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
-        }
-
+        function getCssVar(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
         function initChart() {
             const ctx = document.getElementById('feedbackChart').getContext('2d');
             const isDark = document.documentElement.getAttribute('data-bs-theme') === 'dark';
-
             const textColor = getCssVar('--text-muted') || (isDark ? '#adb5bd' : '#6c757d');
             const gridColor = getCssVar('--border-color') || (isDark ? '#373b3e' : '#f0f0f0');
 
             if (myChart) myChart.destroy();
-
             myChart = new Chart(ctx, {
                 type: 'bar',
                 data: {
@@ -222,40 +301,21 @@
                             @((Model.RatingCounts != null && Model.RatingCounts.ContainsKey(2)) ? Model.RatingCounts[2] : 0),
                             @((Model.RatingCounts != null && Model.RatingCounts.ContainsKey(1)) ? Model.RatingCounts[1] : 0)
                         ],
-                        backgroundColor: [
-                            '#198754', '#20c997', '#ffc107', '#fd7e14', '#dc3545'
-                        ],
-                        borderRadius: 4,
-                        barPercentage: 0.65
+                        backgroundColor: ['#198754', '#20c997', '#ffc107', '#fd7e14', '#dc3545'],
+                        borderRadius: 4, barPercentage: 0.65
                     }]
                 },
                 options: {
-                    indexAxis: 'y',
-                    responsive: true,
-                    maintainAspectRatio: false,
+                    indexAxis: 'y', responsive: true, maintainAspectRatio: false,
                     plugins: { legend: { display: false } },
                     scales: {
-                        x: {
-                            beginAtZero: true,
-                            grid: { color: gridColor, drawBorder: false },
-                            ticks: { stepSize: 1, color: textColor }
-                        },
-                        y: {
-                            grid: { display: false },
-                            ticks: { font: { size: 13, weight: '600' }, color: textColor }
-                        }
+                        x: { beginAtZero: true, grid: { color: gridColor, drawBorder: false }, ticks: { stepSize: 1, color: textColor } },
+                        y: { grid: { display: false }, ticks: { font: { size: 13, weight: '600' }, color: textColor } }
                     }
                 }
             });
         }
-
         document.addEventListener("DOMContentLoaded", initChart);
-
-        // Auto-update chart when Dark Mode is toggled
-        new MutationObserver((mutations) => {
-            mutations.forEach((m) => {
-                if (m.attributeName === 'data-bs-theme') initChart();
-            });
-        }).observe(document.documentElement, { attributes: true });
+        new MutationObserver((mutations) => { mutations.forEach((m) => { if (m.attributeName === 'data-bs-theme') initChart(); }); }).observe(document.documentElement, { attributes: true });
     </script>
 }

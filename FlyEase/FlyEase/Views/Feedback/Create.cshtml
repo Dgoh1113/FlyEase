@@ -32,14 +32,14 @@
         transform: scale(1.3);
     }
 
-    /* === NEW STYLES FOR BUBBLE TAGS === */
+    /* Bubble Tags */
     .tag-container {
         display: flex;
         flex-wrap: wrap;
         justify-content: center;
         gap: 10px;
         margin-bottom: 20px;
-        min-height: 40px; /* Prevent jump when empty */
+        min-height: 40px;
     }
 
     .feedback-tag {
@@ -47,14 +47,14 @@
         background-color: white;
         color: #6c757d;
         padding: 8px 16px;
-        border-radius: 50px; /* Bubble shape */
+        border-radius: 50px;
         font-size: 0.9rem;
         cursor: pointer;
         transition: all 0.2s;
-        user-select: none;
         display: flex;
         align-items: center;
         gap: 8px;
+        user-select: none;
     }
 
         .feedback-tag:hover {
@@ -62,21 +62,19 @@
             border-color: #adb5bd;
         }
 
-        /* Active State (Selected) */
         .feedback-tag.active {
-            background-color: #e7f1ff; /* Light Blue Bg */
-            border-color: #0d6efd; /* Blue Border */
-            color: #0d6efd; /* Blue Text */
+            background-color: #e7f1ff;
+            border-color: #0d6efd;
+            color: #0d6efd;
             font-weight: bold;
         }
 
         .feedback-tag .remove-icon {
-            display: none; /* Hidden by default */
-            font-size: 1.1em;
+            display: none;
         }
 
         .feedback-tag.active .remove-icon {
-            display: inline-block; /* Show X when active */
+            display: inline-block;
         }
 </style>
 
@@ -95,25 +93,23 @@
                     </div>
 
                     <div class="card-body p-5 bg-white">
-
                         <div class="text-center mb-4">
                             <h5 class="text-uppercase text-muted small fw-bold ls-1">You visited</h5>
                             <h3 class="text-primary fw-bold">@Model.Booking.Package.PackageName</h3>
                             <p class="text-muted"><i class="far fa-calendar-alt me-2"></i>@Model.Booking.BookingDate.ToString("dd MMM yyyy")</p>
                         </div>
-
                         <hr class="my-4 opacity-10">
 
                         <form asp-action="Create" method="post">
                             <input type="hidden" asp-for="BookingID" />
                             @Html.AntiForgeryToken()
-
                             <div asp-validation-summary="ModelOnly" class="text-danger mb-3 text-center"></div>
 
                             <div class="mb-4 text-center">
                                 <label class="form-label fw-bold text-dark mb-2">Rate your experience</label>
                                 <div class="rating-group d-flex justify-content-center gap-3" style="font-size: 2rem; cursor: pointer;">
-                                    <input type="hidden" id="ratingInput" asp-for="Rating" value="5" /> <i class="fas fa-star text-warning star-icon" data-value="1" onclick="setRating(1)"></i>
+                                    <input type="hidden" id="ratingInput" asp-for="Rating" value="5" />
+                                    <i class="fas fa-star text-warning star-icon" data-value="1" onclick="setRating(1)"></i>
                                     <i class="fas fa-star text-warning star-icon" data-value="2" onclick="setRating(2)"></i>
                                     <i class="fas fa-star text-warning star-icon" data-value="3" onclick="setRating(3)"></i>
                                     <i class="fas fa-star text-warning star-icon" data-value="4" onclick="setRating(4)"></i>
@@ -135,10 +131,24 @@
                                 <span asp-validation-for="Emotion" class="text-danger d-block mt-2"></span>
                             </div>
 
+                            <div class="mb-4 text-center">
+                                <label class="form-label fw-bold text-dark">What influenced your rating the most?</label>
+                                <div class="d-flex justify-content-center">
+                                    <select id="categorySelect" name="SelectedCategory" class="form-select w-75 text-center shadow-sm"
+                                            style="border-radius: 20px; border: 2px solid #e7f1ff;" onchange="updateTags()">
+                                        <option value="General">General Experience</option>
+                                        <option value="Food">🍔 Food & Dining</option>
+                                        <option value="Environment">🌳 Environment & Scenery</option>
+                                        <option value="Service">💁 Service & Staff</option>
+                                        <option value="Value">💰 Value for Money</option>
+                                        <option value="Transportation">🚌 Transportation</option>
+                                    </select>
+                                </div>
+                            </div>
+
                             <div class="mb-2">
                                 <label class="form-label fw-bold text-dark small text-uppercase ls-1">Quick Options</label>
-                                <div id="tagContainer" class="tag-container">
-                                </div>
+                                <div id="tagContainer" class="tag-container"></div>
                             </div>
 
                             <div class="mb-4">
@@ -167,22 +177,32 @@
     @{
         await Html.RenderPartialAsync("_ValidationScriptsPartial");
     }
-
     <script>
-        // === DATA: PRE-READY OPTIONS ===
         const tagsData = {
-            bad: [ // 1-2 Stars
-                "Poor Environment", "Weak Wifi", "Dirty Facilities", "Bad View",
-                "Slow Service", "Noisy", "Overpriced", "Rude Staff", "Small Room"
-            ],
-            neutral: [ // 3 Stars
-                "Average Facilities", "Okay View", "Standard Service",
-                "Fair Price", "Acceptable Wifi", "Cleanliness Could Improve"
-            ],
-            good: [ // 4-5 Stars
-                "Excellent Service", "Stunning View", "Strong Wifi", "High Privacy",
-                "Great Value", "Clean & Comfortable", "Delicious Food", "Friendly Staff"
-            ]
+            bad: {
+                General: ["Poor Environment", "Weak Wifi", "Dirty Facilities", "Bad View", "Slow Service", "Noisy", "Overpriced"],
+                Food: ["Stale Food", "Bland Taste", "Cold Meal", "Small Portions", "Limited Options", "Overcooked"],
+                Environment: ["Dirty Room", "Noisy Area", "Bad Smell", "Uncomfortable Bed", "Poor View", "Old Facilities"],
+                Service: ["Rude Staff", "Slow Service", "Unhelpful", "Long Wait", "No English", "Ignored Requests"],
+                Value: ["Overpriced", "Hidden Costs", "Not Worth It", "Expensive Add-ons"],
+                Transportation: ["Late Pickup", "Unsafe Driving", "Old Vehicle", "No AC", "Uncomfortable Seats"]
+            },
+            neutral: {
+                General: ["Average Facilities", "Okay View", "Standard Service", "Fair Price", "Acceptable Wifi"],
+                Food: ["Average Taste", "Edible", "Standard Buffet", "Okay Portion"],
+                Environment: ["Clean Enough", "Okay View", "Standard Room", "Bit Noisy"],
+                Service: ["Okay Service", "Polite Staff", "Standard Check-in"],
+                Value: ["Fair Price", "Average Value", "Standard Market Rate"],
+                Transportation: ["On Time", "Okay Comfort", "Average Ride"]
+            },
+            good: {
+                General: ["Excellent Service", "Stunning View", "Strong Wifi", "High Privacy", "Great Value", "Clean & Comfortable"],
+                Food: ["Delicious", "Fresh Ingredients", "Great Variety", "Authentic Taste", "Generous Portions", "Best Meal"],
+                Environment: ["Stunning View", "Spotless Clean", "Beautiful Decor", "Relaxing Atmosphere", "Great Location"],
+                Service: ["Friendly Staff", "Went Above & Beyond", "Professional", "Warm Welcome", "Fast Service"],
+                Value: ["Great Value", "Worth Every Penny", "Cheap for Quality", "Good Deal"],
+                Transportation: ["Comfortable Ride", "Clean Vehicle", "Friendly Driver", "Luxury Car", "Smooth Journey"]
+            }
         };
 
         const stars = document.querySelectorAll('.star-icon');
@@ -190,103 +210,50 @@
         const ratingText = document.getElementById('ratingText');
         const tagContainer = document.getElementById('tagContainer');
         const commentBox = document.getElementById('comment');
-
+        const categorySelect = document.getElementById('categorySelect');
         const messages = ["Terrible", "Bad", "Okay", "Good", "Excellent!"];
 
-        // Initialize with default (5 stars)
-        document.addEventListener("DOMContentLoaded", function() {
-            setRating(5);
-        });
+        document.addEventListener("DOMContentLoaded", function() { setRating(5); });
 
         function setRating(value) {
-            // 1. Update Input & Text
             ratingInput.value = value;
             ratingText.innerText = messages[value - 1];
-
-            // 2. Update Star Visuals
             stars.forEach(star => {
                 const starValue = parseInt(star.getAttribute('data-value'));
-                if (starValue <= value) {
-                    star.classList.remove('far', 'text-muted');
-                    star.classList.add('fas', 'text-warning');
-                } else {
-                    star.classList.remove('fas', 'text-warning');
-                    star.classList.add('far', 'text-muted');
-                }
+                if (starValue <= value) { star.classList.remove('far', 'text-muted'); star.classList.add('fas', 'text-warning'); }
+                else { star.classList.remove('fas', 'text-warning'); star.classList.add('far', 'text-muted'); }
             });
-
-            // 3. Update Bubble Tags based on Rating
-            updateTags(value);
+            updateTags();
         }
 
-        function updateTags(rating) {
-            tagContainer.innerHTML = ""; // Clear existing
+        function updateTags() {
+            const rating = parseInt(ratingInput.value);
+            const category = categorySelect.value;
+            let ratingLevel = (rating <= 2) ? 'bad' : (rating == 3) ? 'neutral' : 'good';
+            let selectedTags = tagsData[ratingLevel][category] || tagsData[ratingLevel]['General'];
 
-            let selectedCategory = [];
-            if (rating <= 2) selectedCategory = tagsData.bad;
-            else if (rating == 3) selectedCategory = tagsData.neutral;
-            else selectedCategory = tagsData.good;
-
-            selectedCategory.forEach(text => {
-                // Create Bubble Element
+            tagContainer.innerHTML = "";
+            selectedTags.forEach(text => {
                 const tag = document.createElement("div");
                 tag.className = "feedback-tag";
                 tag.innerHTML = `${text} <span class="remove-icon">&times;</span>`;
-
-                // Click Event
-                tag.onclick = function() {
-                    toggleTag(tag, text);
-                };
-
+                tag.onclick = function() { toggleTag(tag, text); };
                 tagContainer.appendChild(tag);
             });
         }
 
         function toggleTag(element, text) {
-            // Check if currently active
             const isActive = element.classList.contains("active");
             let currentComment = commentBox.value;
-
             if (!isActive) {
-                // ADDING TAG
                 element.classList.add("active");
-
-                // Add text with comma if box is not empty
-                if (currentComment.trim() === "") {
-                    commentBox.value = text;
-                } else {
-                    commentBox.value = currentComment + ", " + text;
-                }
+                commentBox.value = (currentComment.trim() === "") ? text : currentComment + ", " + text;
             } else {
-                // REMOVING TAG (Logic to remove specific string)
                 element.classList.remove("active");
-
-                // We try to remove "Text, " or ", Text" or just "Text"
-                // This simple replace handles most cases but isn't perfect if user types manually.
-                if (currentComment.includes(text + ", ")) {
-                    commentBox.value = currentComment.replace(text + ", ", "");
-                } else if (currentComment.includes(", " + text)) {
-                    commentBox.value = currentComment.replace(", " + text, "");
-                } else {
-                    commentBox.value = currentComment.replace(text, "");
-                }
+                if (currentComment.includes(text + ", ")) commentBox.value = currentComment.replace(text + ", ", "");
+                else if (currentComment.includes(", " + text)) commentBox.value = currentComment.replace(", " + text, "");
+                else commentBox.value = currentComment.replace(text, "");
             }
         }
-
-        // Optional: Hover Effects for Stars
-        stars.forEach(star => {
-            star.addEventListener('mouseover', function() {
-                const hoverValue = this.getAttribute('data-value');
-                stars.forEach(s => {
-                    if (s.getAttribute('data-value') <= hoverValue) {
-                        s.style.transform = "scale(1.2)";
-                        s.style.transition = "transform 0.2s";
-                    }
-                });
-            });
-            star.addEventListener('mouseout', function() {
-                stars.forEach(s => { s.style.transform = "scale(1)"; });
-            });
-        });
     </script>
 }

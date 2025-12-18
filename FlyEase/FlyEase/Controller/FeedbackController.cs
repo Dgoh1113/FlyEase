@@ -1,8 +1,11 @@
 ﻿using FlyEase.Data;
+using FlyEase.Services;
+using FlyEase.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
@@ -13,10 +16,13 @@ namespace FlyEase.Controllers
     public class FeedbackController : Controller
     {
         private readonly FlyEaseDbContext _context;
+        private readonly EmailService _emailService;
 
-        public FeedbackController(FlyEaseDbContext context)
+        // INJECT EmailService here
+        public FeedbackController(FlyEaseDbContext context, EmailService emailService)
         {
             _context = context;
+            _emailService = emailService;
         }
 
         // GET: Create Review
@@ -44,12 +50,11 @@ namespace FlyEase.Controllers
                 return RedirectToAction("Profile", "Auth");
             }
 
-            // Create a Feedback model and populate it with the booking to pass to the View
             var model = new Feedback
             {
                 BookingID = bookingId,
-                Booking = booking, // Needed to display Package Name etc.
-                Rating = 5 // Default rating
+                Booking = booking,
+                Rating = 5
             };
 
             return View(model);
@@ -58,18 +63,15 @@ namespace FlyEase.Controllers
         // [POST] Create Review
         [HttpPost]
         [ValidateAntiForgeryToken]
-        // UPDATED: Now accepts the Feedback object directly for Validation
-        public async Task<IActionResult> Create(Feedback feedback)
+        public async Task<IActionResult> Create(Feedback feedback, string SelectedCategory)
         {
             var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
 
-            // "Booking" and "User" are navigation properties, not form inputs, so we ignore them for validation
             ModelState.Remove("Booking");
             ModelState.Remove("User");
 
             if (!ModelState.IsValid)
             {
-                // Validation Failed: Reload the Booking info so the View can display it again
                 feedback.Booking = await _context.Bookings
                     .Include(b => b.Package)
                     .FirstOrDefaultAsync(b => b.BookingID == feedback.BookingID);
@@ -77,25 +79,27 @@ namespace FlyEase.Controllers
                 return View(feedback);
             }
 
-            // Manually check Rating bounds if not handled by DataAnnotations
             if (feedback.Rating < 1 || feedback.Rating > 5)
             {
                 TempData["Error"] = "Please select a star rating between 1 and 5.";
-                // Reload booking for view
-                feedback.Booking = await _context.Bookings
-                   .Include(b => b.Package)
-                   .FirstOrDefaultAsync(b => b.BookingID == feedback.BookingID);
+                feedback.Booking = await _context.Bookings.Include(b => b.Package).FirstOrDefaultAsync(b => b.BookingID == feedback.BookingID);
                 return View(feedback);
             }
 
-            // Save Data
+            // --- NO DB CHANGE STRATEGY ---
+            // Prepend the category to the comment: "[Food] The food was..."
+            if (!string.IsNullOrEmpty(SelectedCategory) && SelectedCategory != "General")
+            {
+                feedback.Comment = $"[{SelectedCategory}] {feedback.Comment}";
+            }
+
             feedback.UserID = userId;
             feedback.CreatedDate = DateTime.Now;
 
             _context.Feedbacks.Add(feedback);
             await _context.SaveChangesAsync();
 
-            // Send Email
+            // Send Email using Injected Service
             try
             {
                 var booking = await _context.Bookings
@@ -105,8 +109,7 @@ namespace FlyEase.Controllers
 
                 if (booking != null)
                 {
-                    var emailService = new FlyEase.Services.EmailService();
-                    await emailService.SendReviewConfirmation(
+                    await _emailService.SendReviewConfirmation(
                         booking.User.Email,
                         booking.User.FullName,
                         booking.Package.PackageName,
@@ -116,10 +119,7 @@ namespace FlyEase.Controllers
                     );
                 }
             }
-            catch
-            {
-                // Ignore email errors
-            }
+            catch { }
 
             TempData["SuccessMessage"] = "Thank you for your feedback! A confirmation email has been sent.";
             return RedirectToAction("Profile", "Auth");
@@ -132,16 +132,18 @@ namespace FlyEase.Controllers
         public async Task<IActionResult> Edit(int bookingId)
         {
             var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
-
             var feedback = await _context.Feedbacks
-                .Include(f => f.Booking)
-                    .ThenInclude(b => b.Package)
+                .Include(f => f.Booking).ThenInclude(b => b.Package)
                 .Include(f => f.User)
                 .FirstOrDefaultAsync(f => f.BookingID == bookingId && f.UserID == userId);
 
-            if (feedback == null)
+            if (feedback == null) return NotFound("Review not found.");
+
+            // Remove the [Category] tag for display if it exists
+            if (feedback.Comment != null && feedback.Comment.StartsWith("[") && feedback.Comment.Contains("]"))
             {
-                return NotFound("Review not found or you don't have permission.");
+                int end = feedback.Comment.IndexOf("]");
+                feedback.Comment = feedback.Comment.Substring(end + 1).Trim();
             }
 
             return View(feedback);
@@ -155,12 +157,12 @@ namespace FlyEase.Controllers
         public async Task<IActionResult> Edit(int bookingId, int rating, string comment, string emotion)
         {
             var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
-
-            var feedback = await _context.Feedbacks
-                .FirstOrDefaultAsync(f => f.BookingID == bookingId && f.UserID == userId);
+            var feedback = await _context.Feedbacks.FirstOrDefaultAsync(f => f.BookingID == bookingId && f.UserID == userId);
 
             if (feedback == null) return NotFound();
 
+            // Note: In Edit, we lose the category unless we parse it out and save it back. 
+            // For simplicity, we just save the new comment.
             feedback.Rating = rating;
             feedback.Comment = comment;
             feedback.Emotion = emotion;
@@ -174,94 +176,152 @@ namespace FlyEase.Controllers
         }
 
         // ==========================================
-        // NEW FEATURE: PERSONAL TRAVEL INSIGHTS
-        // Analysis of the user's own review habits
+        // ADMIN ANALYTICS DASHBOARD
+        // ==========================================
+        [Authorize(Roles = "Admin,Staff")]
+        public async Task<IActionResult> Analytics()
+        {
+            // 1. Fetch All Feedbacks
+            var allFeedbacks = await _context.Feedbacks
+                .Include(f => f.Booking).ThenInclude(b => b.Package)
+                .Include(f => f.User)
+                .ToListAsync();
+
+            var vm = new FeedbackAnalyticsViewModel();
+
+            if (allFeedbacks.Any())
+            {
+                vm.TotalReviews = allFeedbacks.Count;
+                vm.AverageRating = allFeedbacks.Average(f => f.Rating);
+                vm.PositivePercentage = (double)allFeedbacks.Count(f => f.Rating >= 4) / vm.TotalReviews * 100;
+
+                vm.RatingCounts = allFeedbacks.GroupBy(f => f.Rating).ToDictionary(g => g.Key, g => g.Count());
+
+                // Recent Reviews (Clone list to modify comments for display)
+                vm.RecentReviews = allFeedbacks.OrderByDescending(f => f.CreatedDate).Take(5).ToList()
+                    .Select(f => new Feedback
+                    {
+                        FeedbackID = f.FeedbackID,
+                        User = f.User,
+                        Booking = f.Booking,
+                        Rating = f.Rating,
+                        CreatedDate = f.CreatedDate,
+                        Comment = (f.Comment != null && f.Comment.StartsWith("[")) ? f.Comment.Substring(f.Comment.IndexOf("]") + 1).Trim() : f.Comment
+                    }).ToList();
+
+                // Top & Bottom Packages
+                var packageStats = allFeedbacks.GroupBy(f => f.Booking.Package.PackageName)
+                    .Select(g => new { Name = g.Key, Rating = g.Average(f => f.Rating), Count = g.Count() }).ToList();
+
+                var best = packageStats.OrderByDescending(p => p.Rating).FirstOrDefault();
+                var worst = packageStats.OrderBy(p => p.Rating).FirstOrDefault();
+
+                if (best != null) vm.MostPopularPackage = new PopularPackageViewModel { PackageName = best.Name, AverageRating = best.Rating, ReviewCount = best.Count };
+                if (worst != null) vm.LeastPopularPackage = new PopularPackageViewModel { PackageName = worst.Name, AverageRating = worst.Rating, ReviewCount = worst.Count };
+
+                // --- CATEGORY ANALYSIS (Parsing logic) ---
+                var categoryData = new List<(string Cat, int Rating)>();
+
+                foreach (var f in allFeedbacks)
+                {
+                    string cat = "General";
+                    string text = f.Comment?.ToLower() ?? "";
+
+                    // Extract from [Tag]
+                    if (f.Comment != null && f.Comment.StartsWith("[") && f.Comment.Contains("]"))
+                    {
+                        int end = f.Comment.IndexOf("]");
+                        cat = f.Comment.Substring(1, end - 1);
+                    }
+                    else // Fallback Keywords
+                    {
+                        if (text.Contains("food") || text.Contains("meal") || text.Contains("delicious")) cat = "Food";
+                        else if (text.Contains("service") || text.Contains("staff") || text.Contains("guide")) cat = "Service";
+                        else if (text.Contains("view") || text.Contains("scenery") || text.Contains("environment")) cat = "Environment";
+                        else if (text.Contains("price") || text.Contains("worth") || text.Contains("cheap")) cat = "Value";
+                    }
+                    categoryData.Add((cat, f.Rating));
+                }
+
+                var catGroups = categoryData.GroupBy(x => x.Cat);
+                foreach (var grp in catGroups)
+                {
+                    vm.CategoryRatings.Add(grp.Key, grp.Average(x => x.Rating));
+                    vm.CategoryCounts.Add(grp.Key, grp.Count());
+                }
+            }
+
+            // --- UNRATED BOOKINGS ANALYSIS ---
+            // Get all completed/confirmed bookings
+            var completedBookings = await _context.Bookings
+                .Include(b => b.User).Include(b => b.Package)
+                .Where(b => b.BookingStatus == "Completed" || b.BookingStatus == "Confirmed")
+                .ToListAsync();
+
+            // Filter out those that already have a Feedback entry
+            var ratedBookingIds = allFeedbacks.Select(f => f.BookingID).ToHashSet();
+
+            var unratedList = completedBookings
+                .Where(b => !ratedBookingIds.Contains(b.BookingID) && b.TravelDate < DateTime.Now) // Trip must be in past
+                .OrderByDescending(b => b.TravelDate)
+                .ToList();
+
+            vm.UnratedCount = unratedList.Count;
+            vm.UnratedBookings = unratedList.Take(10).ToList();
+
+            return View(vm);
+        }
+
+        // ==========================================
+        // PERSONAL INSIGHTS (Travel DNA)
         // ==========================================
         [Authorize]
         public async Task<IActionResult> Insights()
         {
             var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
-
-            // 1. Fetch all reviews by this user
             var myReviews = await _context.Feedbacks
-                .Include(f => f.Booking)
-                .ThenInclude(b => b.Package)
+                .Include(f => f.Booking).ThenInclude(b => b.Package)
                 .Where(f => f.UserID == userId)
                 .OrderByDescending(f => f.CreatedDate)
                 .ToListAsync();
 
-            // 2. CHECK IF REVIEWS EXIST
             if (myReviews.Any())
             {
-                // LOGIC: Calculate Statistics
                 var totalReviews = myReviews.Count;
                 var avgGivenRating = myReviews.Average(r => r.Rating);
-                var totalWords = myReviews.Sum(r => r.Comment?.Split(' ').Length ?? 0);
 
-                // LOGIC: Determine "Travel Persona" based on Keywords & Ratings
-                string persona = "The Explorer"; // Default
+                string persona = "The Explorer";
                 string personaIcon = "fa-hiking";
                 string personaDesc = "You love seeing new places and having new experiences.";
 
-                // Join all comments to analyze keywords
-                var allText = string.Join(" ", myReviews.Select(r => r.Comment?.ToLower() ?? ""));
+                // Remove tags for word count analysis
+                var allText = string.Join(" ", myReviews.Select(r => {
+                    var c = r.Comment?.ToLower() ?? "";
+                    return c.Contains("]") ? c.Substring(c.IndexOf("]") + 1) : c;
+                }));
 
-                if (allText.Contains("food") || allText.Contains("meal") || allText.Contains("delicious"))
-                {
-                    persona = "The Foodie";
-                    personaIcon = "fa-utensils";
-                    personaDesc = "Your trips are defined by the delicious flavors you discover.";
-                }
-                else if (allText.Contains("cheap") || allText.Contains("price") || allText.Contains("value"))
-                {
-                    persona = "The Smart Saver";
-                    personaIcon = "fa-piggy-bank";
-                    personaDesc = "You know how to find the best deals and get the most value.";
-                }
-                else if (allText.Contains("service") || allText.Contains("staff") || allText.Contains("friendly"))
-                {
-                    persona = "The People Person";
-                    personaIcon = "fa-users";
-                    personaDesc = "For you, good service and friendly faces make the trip.";
-                }
-                else if (avgGivenRating >= 4.5)
-                {
-                    persona = "The Happy Traveler";
-                    personaIcon = "fa-smile-beam";
-                    personaDesc = "You tend to see the positive side of every journey!";
-                }
-                else if (avgGivenRating <= 2.5)
-                {
-                    persona = "The Critical Critic";
-                    personaIcon = "fa-gavel";
-                    personaDesc = "You have high standards and expect the best quality.";
-                }
+                if (allText.Contains("food") || allText.Contains("meal")) { persona = "The Foodie"; personaIcon = "fa-utensils"; personaDesc = "Your trips are defined by the delicious flavors you discover."; }
+                else if (allText.Contains("cheap") || allText.Contains("value")) { persona = "The Smart Saver"; personaIcon = "fa-piggy-bank"; personaDesc = "You know how to find the best deals."; }
+                else if (avgGivenRating >= 4.8) { persona = "The Happy Traveler"; personaIcon = "fa-smile-beam"; personaDesc = "You see the positive side of everything!"; }
 
-                // Pass Data to View
                 ViewBag.TotalReviews = totalReviews;
                 ViewBag.AvgGivenRating = avgGivenRating;
-                ViewBag.TotalWords = totalWords;
                 ViewBag.Persona = persona;
                 ViewBag.PersonaIcon = personaIcon;
                 ViewBag.PersonaDesc = personaDesc;
             }
             else
             {
-                // DEFAULT DATA FOR NO REVIEWS
                 ViewBag.TotalReviews = 0;
                 ViewBag.AvgGivenRating = 0.0;
-                ViewBag.TotalWords = 0;
                 ViewBag.Persona = "The Aspiring Traveler";
                 ViewBag.PersonaIcon = "fa-map-marked-alt";
-                ViewBag.PersonaDesc = "Your journey is just beginning. Book a trip to see your travel persona!";
             }
 
             return View(myReviews);
         }
 
-        // ==========================================
-        // ADMIN / STAFF VIEW (List of all feedback)
-        // ==========================================
+        // Admin List View
         [Authorize(Roles = "Admin,Staff")]
         public async Task<IActionResult> Index()
         {
@@ -270,42 +330,7 @@ namespace FlyEase.Controllers
                 .Include(f => f.User)
                 .OrderByDescending(f => f.CreatedDate)
                 .ToListAsync();
-
             return View(feedbacks);
         }
-
-        // ==========================================
-        // ANALYTICS DASHBOARD 
-        // ==========================================
-        [Authorize(Roles = "Admin,Staff")]
-        public async Task<IActionResult> Analytics()
-        {
-            var data = await _context.Feedbacks
-                .Include(f => f.Booking).ThenInclude(b => b.Package)
-                .GroupBy(f => f.Booking.Package.PackageName)
-                .Select(g => new FeedbackAnalyticsVM
-                {
-                    PackageName = g.Key,
-                    AverageRating = g.Average(f => (double)f.Rating),
-                    TotalReviews = g.Count(),
-                    OneStarCount = g.Count(f => f.Rating == 1),
-                    FiveStarCount = g.Count(f => f.Rating == 5)
-                })
-                .OrderByDescending(x => x.AverageRating)
-                .ThenByDescending(x => x.TotalReviews)
-                .ToListAsync();
-
-            return View(data);
-        }
-
-    }
-
-    public class FeedbackAnalyticsVM
-    {
-        public string PackageName { get; set; }
-        public double AverageRating { get; set; }
-        public int TotalReviews { get; set; }
-        public int OneStarCount { get; set; }
-        public int FiveStarCount { get; set; }
     }
 }
