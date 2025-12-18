@@ -1,0 +1,45 @@
+﻿@{
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+    // Detect current action to highlight the active tab
+    var currentAction = ViewContext.RouteData.Values["action"]?.ToString();
+}
+
+<link rel="stylesheet" href="~/css/report.css" />
+
+<div class="container-fluid py-4">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h6 class="h6 text-uppercase text-muted ls-1 mb-1">Analytics</h6>
+            <h2 class="h3 mb-0">Business Intelligence Reports</h2>
+        </div>
+    </div>
+
+    <div class="report-nav-container mb-4">
+        <ul class="nav nav-pills nav-fill flex-column flex-sm-row" id="report-tabs" role="tablist">
+            <li class="nav-item">
+                <a class="nav-link mb-sm-3 mb-md-0 @(currentAction == "SalesReport" ? "active" : "")"
+                   href="@Url.Action("SalesReport", "Report")">
+                    <i class="fas fa-file-invoice-dollar me-2"></i>Sales Transaction
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link mb-sm-3 mb-md-0 @(currentAction == "PackagePerformanceReport" ? "active" : "")"
+                   href="@Url.Action("PackagePerformanceReport", "Report")">
+                    <i class="fas fa-box-open me-2"></i>Package Performance
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link mb-sm-3 mb-md-0 @(currentAction == "CustomerInsightReport" ? "active" : "")"
+                   href="@Url.Action("CustomerInsightReport", "Report")">
+                    <i class="fas fa-users me-2"></i>Customer Insights
+                </a>
+            </li>
+        </ul>
+    </div>
+
+    <div class="report-content-wrapper">
+        @RenderBody()
+    </div>
+
+</div>
