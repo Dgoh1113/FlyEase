@@ -480,18 +480,60 @@ namespace FlyEase.Controllers
             TempData["Error"] = "Payment verification failed or was cancelled.";
             return RedirectToAction("PaymentMethod");
         }
-
-        // Core Processing Logic (DB Save)
+        // =========================================================
+        // CORE PROCESSING LOGIC (STRICT STATUS UPDATE)
+        // =========================================================
         private async Task<IActionResult> ProcessBooking(string paymentMethod, string transactionId)
         {
             var customerInfo = HttpContext.Session.GetCustomerInfo();
             var userId = HttpContext.Session.GetUserId();
             string paymentType = HttpContext.Session.GetString("PaymentType") ?? "Full";
-            bool isDeposit = (paymentType == "Deposit");
 
-            if (customerInfo == null || userId == 0) return RedirectToAction("Index", "Home");
+            // --- 1. DETERMINE STATUSES ---
+
+            bool isDeposit = (paymentType == "Deposit");
+            bool isCash = !string.IsNullOrEmpty(paymentMethod) &&
+                          paymentMethod.Contains("Cash", StringComparison.OrdinalIgnoreCase);
+
+            string finalPaymentStatus;
+            string finalBookingStatus;
+
+            if (isCash)
+            {
+                // Rule 1: Cash is ALWAYS Pending until Admin verifies it
+                finalPaymentStatus = "Pending";
+                finalBookingStatus = "Pending";
+            }
+            else if (isDeposit)
+            {
+                // Rule 2: Online Deposit (30%)
+                finalPaymentStatus = "Deposit";
+                finalBookingStatus = "Deposit";
+            }
+            else
+            {
+                // Rule 3: Online Full Payment (Card, FPX, GrabPay) -> Completed/Confirmed
+                finalPaymentStatus = "Completed";
+                finalBookingStatus = "Confirmed";
+            }
+
+            // --- VALIDATION & SETUP ---
+
+            if (customerInfo == null || userId == 0)
+            {
+                TempData["Error"] = "Session expired";
+                return RedirectToAction("Index", "Home");
+            }
 
             var package = await _context.Packages.FindAsync(customerInfo.PackageID);
+
+            if (package == null || package.AvailableSlots < customerInfo.NumberOfPeople)
+            {
+                TempData["Error"] = "Package not available (Sold Out)";
+                return RedirectToAction("Index", "Home");
+            }
+
+            // --- 2. SAVE BOOKING ---
 
             var booking = new Booking
             {
@@ -503,11 +545,49 @@ namespace FlyEase.Controllers
                 TotalBeforeDiscount = customerInfo.BasePrice,
                 TotalDiscountAmount = customerInfo.DiscountAmount,
                 FinalAmount = customerInfo.FinalAmount,
-                BookingStatus = isDeposit ? "Deposit" : "Confirmed"
+                BookingStatus = finalBookingStatus // Set based on logic above
             };
 
             _context.Bookings.Add(booking);
             await _context.SaveChangesAsync();
+
+            // --- 3. SAVE DISCOUNTS ---
+
+            var appliedDiscounts = HttpContext.Session.GetObject<List<DiscountInfo>>("AppliedDiscounts")
+                                   ?? new List<DiscountInfo>();
+
+            foreach (var discount in appliedDiscounts)
+            {
+                var bookingDiscount = new BookingDiscount
+                {
+                    BookingID = booking.BookingID,
+                    DiscountTypeID = discount.DiscountId ?? 0,
+                    AppliedAmount = discount.Amount
+                };
+
+                // Handle dynamically created system discounts (Bulk/Senior/Junior)
+                if (discount.DiscountId == null || discount.DiscountId == 0)
+                {
+                    var discountType = await _context.DiscountTypes
+                        .FirstOrDefaultAsync(d => d.DiscountName == discount.Name);
+
+                    if (discountType == null)
+                    {
+                        discountType = new DiscountType
+                        {
+                            DiscountName = discount.Name,
+                            DiscountRate = discount.Rate,
+                            IsActive = true
+                        };
+                        _context.DiscountTypes.Add(discountType);
+                        await _context.SaveChangesAsync();
+                    }
+                    bookingDiscount.DiscountTypeID = discountType.DiscountTypeID;
+                }
+                _context.BookingDiscounts.Add(bookingDiscount);
+            }
+
+            // --- 4. SAVE PAYMENT ---
 
             decimal paidAmount = isDeposit ? (customerInfo.FinalAmount * 0.30m) : customerInfo.FinalAmount;
 
@@ -518,18 +598,22 @@ namespace FlyEase.Controllers
                 AmountPaid = paidAmount,
                 IsDeposit = isDeposit,
                 PaymentDate = DateTime.Now,
-                PaymentStatus = "Completed",
+                PaymentStatus = finalPaymentStatus, // Set based on logic above
                 TransactionID = transactionId
             };
 
             _context.Payments.Add(payment);
+
+            // Deduct slots (Even for Cash pending, we usually reserve the slot to prevent double booking)
             package.AvailableSlots -= customerInfo.NumberOfPeople;
+
             await _context.SaveChangesAsync();
+
+            // Cleanup Session
             HttpContext.Session.ClearPaymentSession();
 
             return RedirectToAction("Success", new { bookingId = booking.BookingID });
         }
-
         [HttpGet]
         public async Task<IActionResult> Success(int bookingId)
         {
