@@ -435,7 +435,7 @@ namespace FlyEase.Controllers
         }
 
         // ==========================================
-        // 5. ANALYTICS (ADDED THIS METHOD)
+        // 2. ANALYTICS (ADDED THIS METHOD)
         // ==========================================
         [HttpGet("Analytics")]
         public async Task<IActionResult> Analytics()

@@ -1,5 +1,6 @@
 ﻿using FlyEase.Data;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace FlyEase.ViewModels
 {
@@ -35,4 +36,5 @@ namespace FlyEase.ViewModels
         public double AverageRating { get; set; }
         public int ReviewCount { get; set; }
     }
+
 }
