@@ -1,4 +1,5 @@
 ﻿using FlyEase.Data;
+using FlyEase.Services; // Ensure this is using the correct namespace for EmailService
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -13,10 +14,14 @@ namespace FlyEase.Controllers
     public class FeedbackController : Controller
     {
         private readonly FlyEaseDbContext _context;
+        // 1. ADD: EmailService Field
+        private readonly EmailService _emailService;
 
-        public FeedbackController(FlyEaseDbContext context)
+        // 2. UPDATE: Inject EmailService in Constructor
+        public FeedbackController(FlyEaseDbContext context, EmailService emailService)
         {
             _context = context;
+            _emailService = emailService;
         }
 
         // GET: Create Review
@@ -58,7 +63,6 @@ namespace FlyEase.Controllers
         // [POST] Create Review
         [HttpPost]
         [ValidateAntiForgeryToken]
-        // UPDATED: Now accepts the Feedback object directly for Validation
         public async Task<IActionResult> Create(Feedback feedback)
         {
             var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
@@ -105,8 +109,8 @@ namespace FlyEase.Controllers
 
                 if (booking != null)
                 {
-                    var emailService = new FlyEase.Services.EmailService();
-                    await emailService.SendReviewConfirmation(
+                    // 3. FIX: Use the injected _emailService instead of 'new EmailService()'
+                    await _emailService.SendReviewConfirmation(
                         booking.User.Email,
                         booking.User.FullName,
                         booking.Package.PackageName,
@@ -118,7 +122,7 @@ namespace FlyEase.Controllers
             }
             catch
             {
-                // Ignore email errors
+                // Ignore email errors so the user flow isn't interrupted
             }
 
             TempData["SuccessMessage"] = "Thank you for your feedback! A confirmation email has been sent.";

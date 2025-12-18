@@ -42,17 +42,22 @@ namespace FlyEase.Controllers
         private readonly IConfiguration _configuration;
         private readonly StripeService _stripeService;
         private readonly ILogger<PaymentController> _logger;
+        // 1. ADD: EmailService Field
+        private readonly EmailService _emailService;
 
         public PaymentController(
             FlyEaseDbContext context,
             IConfiguration configuration,
             ILogger<PaymentController> logger,
-            StripeService stripeService)
+            StripeService stripeService,
+            // 2. ADD: Inject EmailService
+            EmailService emailService)
         {
             _context = context;
             _configuration = configuration;
             _logger = logger;
             _stripeService = stripeService;
+            _emailService = emailService;
         }
 
         // =========================================================
@@ -369,39 +374,34 @@ namespace FlyEase.Controllers
         }
 
         // Step 4: Payment Method Selection
-        // [UPDATE THIS METHOD]
-        // Step 4: Payment Method Selection (Modified to handle Balance Payment)
         [HttpGet]
         public async Task<IActionResult> PaymentMethod()
         {
-            // CHECK 1: Is this a Balance Payment?
-            string paymentType = HttpContext.Session.GetString("PaymentType");
-            int? balanceBookingId = HttpContext.Session.GetInt32("BalancePayment_BookingID");
-
-            if (paymentType == "Balance" && balanceBookingId.HasValue)
-            {
-                var booking = await _context.Bookings.Include(b => b.Package).FirstOrDefaultAsync(b => b.BookingID == balanceBookingId.Value);
-                decimal amount = decimal.Parse(HttpContext.Session.GetString("BalancePayment_Amount") ?? "0");
-
-                var balanceModel = new PaymentMethodViewModel
-                {
-                    PackageName = booking.Package.PackageName,
-                    FinalAmount = amount,
-                    DepositAmount = 0, // No deposit option for balance payments
-                    SelectedMethod = "Credit Card",
-                    PaymentType = "Balance"
-                };
-
-                ViewBag.AllowDeposit = false;
-                ViewBag.DepositMessage = "Paying remaining balance.";
-                return View(balanceModel);
-            }
-
-            // CHECK 2: Standard New Booking Flow (Existing Code)
             var customerInfo = HttpContext.Session.GetCustomerInfo();
             if (customerInfo == null)
             {
                 return RedirectToAction("CustomerInfo", new { packageId = 1 });
+            }
+
+            // NEW: Handle "Pay Balance" Flow
+            string paymentType = HttpContext.Session.GetString("PaymentType");
+            if (paymentType == "Balance")
+            {
+                // When paying balance, we don't recalculate deposits or check start dates
+                var balanceAmountStr = HttpContext.Session.GetString("BalancePayment_Amount");
+                decimal balanceAmount = decimal.Parse(balanceAmountStr ?? "0");
+
+                var balanceModel = new PaymentMethodViewModel
+                {
+                    PackageName = "Balance Payment", // Generic name for balance
+                    FinalAmount = balanceAmount,
+                    DepositAmount = 0, // No deposit option for balance
+                    SelectedMethod = "Credit Card",
+                    PaymentType = "Balance"
+                };
+                ViewBag.AllowDeposit = false;
+                ViewBag.DepositMessage = "Paying remaining balance.";
+                return View(balanceModel);
             }
 
             var package = await _context.Packages.FindAsync(customerInfo.PackageID);
@@ -450,38 +450,29 @@ namespace FlyEase.Controllers
             return RedirectToAction("StripeCheckout");
         }
 
-        // [UPDATE THIS METHOD]
-        // Step 5: Stripe Checkout (Modified to calculate amount based on PaymentType)
+        // Step 5: Stripe Checkout
         [HttpGet]
         public async Task<IActionResult> StripeCheckout()
         {
+            var customerInfo = HttpContext.Session.GetCustomerInfo();
+            // Allow proceed if it's a Balance payment even if customerInfo is null (handled via session strings)
             string paymentType = HttpContext.Session.GetString("PaymentType") ?? "Full";
-            string selectedMethod = HttpContext.Session.GetPaymentMethod(); // Retrieved from Session (set in PaymentMethod POST)
 
+            if (customerInfo == null && paymentType != "Balance") return RedirectToAction("Index", "Home");
+
+            string selectedMethod = HttpContext.Session.GetPaymentMethod();
             decimal amountToPay = 0;
-            string referenceId = "";
 
-            // LOGIC: Determine Amount based on Type
             if (paymentType == "Balance")
             {
-                // Handle Balance
-                string balanceStr = HttpContext.Session.GetString("BalancePayment_Amount");
-                if (decimal.TryParse(balanceStr, out decimal bal)) amountToPay = bal;
-
-                int bookingId = HttpContext.Session.GetInt32("BalancePayment_BookingID") ?? 0;
-                referenceId = $"BAL-BK{bookingId}-{DateTime.Now.Ticks}";
+                var balStr = HttpContext.Session.GetString("BalancePayment_Amount");
+                amountToPay = decimal.Parse(balStr ?? "0");
             }
             else
             {
-                // Handle New Booking (Deposit or Full)
-                var customerInfo = HttpContext.Session.GetCustomerInfo();
-                if (customerInfo == null) return RedirectToAction("Index", "Home");
-
                 amountToPay = (paymentType == "Deposit")
-                    ? customerInfo.FinalAmount * 0.30m
-                    : customerInfo.FinalAmount;
-
-                referenceId = $"BK-{DateTime.Now.Ticks}";
+                   ? customerInfo.FinalAmount * 0.30m
+                   : customerInfo.FinalAmount;
             }
 
             var domain = $"{Request.Scheme}://{Request.Host}";
@@ -489,7 +480,7 @@ namespace FlyEase.Controllers
             var paymentMethodTypes = new List<string> { "card" };
             if (selectedMethod == "Online Banking") paymentMethodTypes.Add("fpx");
             if (selectedMethod == "GrabPay") paymentMethodTypes.Add("grabpay");
-            if (selectedMethod == "TouchNGo") { paymentMethodTypes.Add("grabpay"); } // TNG via GrabPay usually, or adjust accordingly
+            if (selectedMethod == "TouchNGo") { paymentMethodTypes.Add("grabpay"); }
 
             try
             {
@@ -498,7 +489,7 @@ namespace FlyEase.Controllers
                     "myr",
                     $"{domain}/Payment/StripeCallback?session_id={{CHECKOUT_SESSION_ID}}",
                     $"{domain}/Payment/PaymentMethod",
-                    referenceId,
+                    $"BK-{DateTime.Now.Ticks}",
                     paymentMethodTypes
                 );
 
@@ -511,8 +502,6 @@ namespace FlyEase.Controllers
             }
         }
 
-        // [UPDATE THIS METHOD]
-        // Stripe Callback (Modified to route to correct processor)
         [HttpGet]
         public async Task<IActionResult> StripeCallback(string session_id)
         {
@@ -522,68 +511,73 @@ namespace FlyEase.Controllers
             if (session.PaymentStatus == "paid")
             {
                 string method = HttpContext.Session.GetPaymentMethod() ?? "Stripe";
-                string paymentType = HttpContext.Session.GetString("PaymentType");
-
-                if (paymentType == "Balance")
-                {
-                    return await ProcessBalancePayment(method + " (Online)", session.PaymentIntentId);
-                }
-                else
-                {
-                    return await ProcessBooking(method + " (Online)", session.PaymentIntentId);
-                }
+                return await ProcessBooking(method + " (Online)", session.PaymentIntentId);
             }
 
             TempData["Error"] = "Payment verification failed or was cancelled.";
             return RedirectToAction("PaymentMethod");
         }
 
-        // [ADD THIS NEW PRIVATE METHOD]
-        // Handles saving the balance payment to the DB
-        private async Task<IActionResult> ProcessBalancePayment(string paymentMethod, string transactionId)
-        {
-            int bookingId = HttpContext.Session.GetInt32("BalancePayment_BookingID") ?? 0;
-            string amountStr = HttpContext.Session.GetString("BalancePayment_Amount");
-            decimal amount = decimal.Parse(amountStr ?? "0");
-
-            var booking = await _context.Bookings.FindAsync(bookingId);
-
-            if (booking != null)
-            {
-                // 1. Add Payment Record
-                var payment = new Payment
-                {
-                    BookingID = bookingId,
-                    PaymentMethod = paymentMethod,
-                    AmountPaid = amount,
-                    IsDeposit = false,
-                    PaymentDate = DateTime.Now,
-                    PaymentStatus = "Completed",
-                    TransactionID = transactionId
-                };
-                _context.Payments.Add(payment);
-
-                // 2. Update Booking Status -> Confirmed (Fully Paid)
-                booking.BookingStatus = "Confirmed";
-
-                await _context.SaveChangesAsync();
-            }
-
-            // Cleanup Session
-            HttpContext.Session.Remove("BalancePayment_BookingID");
-            HttpContext.Session.Remove("BalancePayment_Amount");
-            HttpContext.Session.Remove("PaymentType");
-            HttpContext.Session.ClearPaymentSession(); // Clears method selection
-
-            return RedirectToAction("Success", new { bookingId = bookingId });
-        }
+        // =========================================================
+        // CORE PROCESSING LOGIC (STRICT STATUS UPDATE)
+        // =========================================================
         private async Task<IActionResult> ProcessBooking(string paymentMethod, string transactionId)
         {
             var customerInfo = HttpContext.Session.GetCustomerInfo();
             var userId = HttpContext.Session.GetUserId();
             string paymentType = HttpContext.Session.GetString("PaymentType") ?? "Full";
 
-            // --- 1. DETERMINE STATUSES ---
+            // --- SPECIAL CASE: BALANCE PAYMENT ---
+            if (paymentType == "Balance")
+            {
+                int bookingId = HttpContext.Session.GetInt32("BalancePayment_BookingID") ?? 0;
+                var amountStr = HttpContext.Session.GetString("BalancePayment_Amount");
+                decimal amountPaid = decimal.Parse(amountStr ?? "0");
+
+                var existingBooking = await _context.Bookings
+                    .Include(b => b.Package)
+                    .Include(b => b.User) // Include user for email
+                    .FirstOrDefaultAsync(b => b.BookingID == bookingId);
+
+                if (existingBooking != null)
+                {
+                    var balPayment = new Payment
+                    {
+                        BookingID = bookingId,
+                        PaymentMethod = paymentMethod,
+                        AmountPaid = amountPaid,
+                        IsDeposit = false,
+                        PaymentDate = DateTime.Now,
+                        PaymentStatus = "Completed", // Balance paid = completed
+                        TransactionID = transactionId
+                    };
+                    _context.Payments.Add(balPayment);
+
+                    // Update Booking Status to Completed/Confirmed
+                    if (existingBooking.BookingStatus == "Deposit") existingBooking.BookingStatus = "Confirmed";
+
+                    await _context.SaveChangesAsync();
+
+                    // SEND EMAIL FOR BALANCE PAYMENT
+                    if (existingBooking.User != null)
+                    {
+                        await _emailService.SendBookingConfirmation(
+                           existingBooking.User.Email,
+                           existingBooking.User.FullName,
+                           existingBooking.BookingID,
+                           existingBooking.Package.PackageName,
+                           amountPaid,
+                           "Balance Paid - Confirmed"
+                       );
+                    }
+
+                    HttpContext.Session.Remove("BalancePayment_BookingID");
+                    HttpContext.Session.Remove("BalancePayment_Amount");
+                    return RedirectToAction("BookingHistoryDetails", new { id = bookingId });
+                }
+            }
+
+            // --- STANDARD BOOKING FLOW ---
 
             bool isDeposit = (paymentType == "Deposit");
             bool isCash = !string.IsNullOrEmpty(paymentMethod) &&
@@ -592,25 +586,21 @@ namespace FlyEase.Controllers
             string finalPaymentStatus;
             string finalBookingStatus;
 
-            // UPDATED LOGIC ORDER:
-            // 1. Check Deposit First ("deposit status will be deposit for all")
-            if (isDeposit)
+            if (isCash)
             {
-                // Applies to both Online Deposit and Cash Deposit
-                finalPaymentStatus = "Deposit";
-                finalBookingStatus = "Deposit";
-            }
-            // 2. Then Check Cash ("for cash it will pending")
-            // This now applies only to Full Cash payments, as Deposit was handled above
-            else if (isCash)
-            {
+                // Rule 1: Cash is ALWAYS Pending until Admin verifies it
                 finalPaymentStatus = "Pending";
                 finalBookingStatus = "Pending";
             }
-            // 3. Default to Online Full Payment ("booking status confirmed")
+            else if (isDeposit)
+            {
+                // Rule 2: Online Deposit (30%)
+                finalPaymentStatus = "Deposit";
+                finalBookingStatus = "Deposit";
+            }
             else
             {
-                // Online Full Payment (Card, FPX, GrabPay, TnG)
+                // Rule 3: Online Full Payment (Card, FPX, GrabPay) -> Completed/Confirmed
                 finalPaymentStatus = "Completed";
                 finalBookingStatus = "Confirmed";
             }
@@ -702,17 +692,39 @@ namespace FlyEase.Controllers
 
             _context.Payments.Add(payment);
 
-            // Deduct slots
+            // Deduct slots (Even for Cash pending, we usually reserve the slot to prevent double booking)
             package.AvailableSlots -= customerInfo.NumberOfPeople;
 
             await _context.SaveChangesAsync();
+
+            // 3. NEW: SEND CONFIRMATION EMAIL
+            try
+            {
+                var user = await _context.Users.FindAsync(userId);
+                if (user != null)
+                {
+                    await _emailService.SendBookingConfirmation(
+                        user.Email,
+                        user.FullName,
+                        booking.BookingID,
+                        customerInfo.PackageName,
+                        paidAmount,
+                        finalBookingStatus
+                    );
+                }
+            }
+            catch (Exception ex)
+            {
+                // Log error but do not stop the user flow
+                _logger.LogError(ex, "Failed to send booking confirmation email.");
+            }
 
             // Cleanup Session
             HttpContext.Session.ClearPaymentSession();
 
             return RedirectToAction("Success", new { bookingId = booking.BookingID });
         }
-        
+
         [HttpGet]
         public async Task<IActionResult> Success(int bookingId)
         {
@@ -747,7 +759,8 @@ namespace FlyEase.Controllers
                 discountRate = discount.DiscountRate ?? 0
             });
         }
-           [HttpGet]
+
+        [HttpGet]
         [Authorize]
         public async Task<IActionResult> BookingHistoryDetails(int id)
         {
@@ -781,6 +794,7 @@ namespace FlyEase.Controllers
 
             return View(booking);
         }
+
         [HttpPost]
         [Authorize]
         [ValidateAntiForgeryToken]
@@ -813,6 +827,7 @@ namespace FlyEase.Controllers
             try
             {
                 bool refundAttempted = false;
+                decimal refundAmount = 0;
 
                 foreach (var payment in booking.Payments)
                 {
@@ -827,6 +842,7 @@ namespace FlyEase.Controllers
 
                             payment.PaymentStatus = "Refunded";
                             refundAttempted = true;
+                            refundAmount += payment.AmountPaid;
                         }
                     }
                 }
@@ -838,6 +854,14 @@ namespace FlyEase.Controllers
                 booking.Package.AvailableSlots += booking.NumberOfPeople;
 
                 await _context.SaveChangesAsync();
+
+                // SEND REFUND EMAIL
+                await _emailService.SendRefundNotification(
+                    user.Email,
+                    user.FullName,
+                    booking.Package.PackageName,
+                    refundAmount
+                );
 
                 if (refundAttempted)
                 {
@@ -861,7 +885,10 @@ namespace FlyEase.Controllers
 
             return RedirectToAction("BookingHistoryDetails", new { id = bookingId });
         }
-        // Initiates the balance payment flow by storing details in session
+
+        // ==========================================
+        // PAY BALANCE (GET)
+        // ==========================================
         [Authorize]
         [HttpGet]
         public async Task<IActionResult> PayBalance(int bookingId)
@@ -897,6 +924,4 @@ namespace FlyEase.Controllers
             return RedirectToAction("PaymentMethod");
         }
     }
-
-
 }
