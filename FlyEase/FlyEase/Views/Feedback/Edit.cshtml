@@ -6,6 +6,7 @@
 }
 
 <style>
+    /* Emotion Radio Styles */
     .emotion-group input[type="radio"] {
         display: none;
     }
@@ -17,9 +18,7 @@
         transition: all 0.2s ease;
         margin: 0 10px;
         filter: grayscale(100%);
-        /* Prevent text selection cursor */
         user-select: none;
-        -webkit-user-select: none;
     }
 
         .emotion-group label:hover {
@@ -32,6 +31,51 @@
         filter: grayscale(0%);
         transform: scale(1.3);
     }
+
+    /* Bubble Tags */
+    .tag-container {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 10px;
+        margin-bottom: 20px;
+        min-height: 40px;
+    }
+
+    .feedback-tag {
+        border: 1px solid #ced4da;
+        background-color: white;
+        color: #6c757d;
+        padding: 8px 16px;
+        border-radius: 50px;
+        font-size: 0.9rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        user-select: none;
+    }
+
+        .feedback-tag:hover {
+            background-color: #f8f9fa;
+            border-color: #adb5bd;
+        }
+
+        .feedback-tag.active {
+            background-color: #e7f1ff;
+            border-color: #0d6efd;
+            color: #0d6efd;
+            font-weight: bold;
+        }
+
+        .feedback-tag .remove-icon {
+            display: none;
+        }
+
+        .feedback-tag.active .remove-icon {
+            display: inline-block;
+        }
 </style>
 
 <div class="container-fluid min-vh-100 d-flex justify-content-center align-items-center" style="background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);">
@@ -50,57 +94,70 @@
 
                     <div class="card-body p-5 bg-white">
                         <form asp-action="Edit" method="post">
-                            <input type="hidden" name="bookingId" value="@Model.BookingID" />
+                            <input type="hidden" asp-for="BookingID" />
                             @Html.AntiForgeryToken()
+                            <div asp-validation-summary="ModelOnly" class="text-danger mb-3 text-center"></div>
 
                             <div class="mb-4 text-center">
                                 <label class="form-label fw-bold text-dark mb-2">Rate your experience</label>
                                 <div class="rating-group d-flex justify-content-center gap-3" style="font-size: 2rem; cursor: pointer;">
-                                    <input type="hidden" id="ratingInput" name="rating" value="@Model.Rating" />
-
-                                    @for (int i = 1; i <= 5; i++)
-                                    {
-                                        var starClass = i <= Model.Rating ? "fas text-warning" : "far text-muted";
-                                        <i class="@starClass fa-star star-icon" data-value="@i" onclick="setRating(@i)"></i>
-                                    }
+                                    <input type="hidden" id="ratingInput" asp-for="Rating" />
+                                    <i class="fas fa-star text-warning star-icon" data-value="1" onclick="setRating(1)"></i>
+                                    <i class="fas fa-star text-warning star-icon" data-value="2" onclick="setRating(2)"></i>
+                                    <i class="fas fa-star text-warning star-icon" data-value="3" onclick="setRating(3)"></i>
+                                    <i class="fas fa-star text-warning star-icon" data-value="4" onclick="setRating(4)"></i>
+                                    <i class="fas fa-star text-warning star-icon" data-value="5" onclick="setRating(5)"></i>
                                 </div>
-                                <div class="form-text mt-2" id="ratingText">Updated Rating</div>
+                                <div class="form-text mt-2" id="ratingText"></div>
+                                <span asp-validation-for="Rating" class="text-danger"></span>
                             </div>
 
                             <div class="mb-4 text-center">
                                 <label class="form-label d-block fw-bold">How did this trip make you feel?</label>
                                 <div class="emotion-group d-flex justify-content-center mt-2">
+                                    <input type="radio" id="emo1" asp-for="Emotion" value="Sad"><label for="emo1" title="Disappointed">😞</label>
+                                    <input type="radio" id="emo2" asp-for="Emotion" value="Neutral"><label for="emo2" title="It was okay">😐</label>
+                                    <input type="radio" id="emo3" asp-for="Emotion" value="Happy"><label for="emo3" title="Happy">🙂</label>
+                                    <input type="radio" id="emo4" asp-for="Emotion" value="Excited"><label for="emo4" title="Excited">🤩</label>
+                                    <input type="radio" id="emo5" asp-for="Emotion" value="Loved"><label for="emo5" title="Loved it!">😍</label>
+                                </div>
+                                <span asp-validation-for="Emotion" class="text-danger d-block mt-2"></span>
+                            </div>
 
-                                    <input type="radio" id="emo1" name="emotion" value="Sad" @(Model.Emotion == "Sad" ? "checked" : "") required>
-                                    <label for="emo1" title="Disappointed">😞</label>
-
-                                    <input type="radio" id="emo2" name="emotion" value="Neutral" @(Model.Emotion == "Neutral" ? "checked" : "")>
-                                    <label for="emo2" title="It was okay">😐</label>
-
-                                    <input type="radio" id="emo3" name="emotion" value="Happy" @(Model.Emotion == "Happy" ? "checked" : "")>
-                                    <label for="emo3" title="Happy">🙂</label>
-
-                                    <input type="radio" id="emo4" name="emotion" value="Excited" @(Model.Emotion == "Excited" ? "checked" : "")>
-                                    <label for="emo4" title="Excited">🤩</label>
-
-                                    <input type="radio" id="emo5" name="emotion" value="Loved" @(Model.Emotion == "Loved" ? "checked" : "")>
-                                    <label for="emo5" title="Loved it!">😍</label>
+                            <div class="mb-4 text-center">
+                                <label class="form-label fw-bold text-dark">What influenced your rating the most?</label>
+                                <div class="d-flex justify-content-center">
+                                    <select id="categorySelect" name="SelectedCategory" class="form-select w-75 text-center shadow-sm"
+                                            style="border-radius: 20px; border: 2px solid #e7f1ff;" onchange="updateTags()">
+                                        <option value="General">General Experience</option>
+                                        <option value="Food">🍔 Food & Dining</option>
+                                        <option value="Environment">🌳 Environment & Scenery</option>
+                                        <option value="Service">💁 Service & Staff</option>
+                                        <option value="Value">💰 Value for Money</option>
+                                        <option value="Transportation">🚌 Transportation</option>
+                                    </select>
                                 </div>
                             </div>
 
+                            <div class="mb-2">
+                                <label class="form-label fw-bold text-dark small text-uppercase ls-1">Quick Options</label>
+                                <div id="tagContainer" class="tag-container"></div>
+                            </div>
+
                             <div class="mb-4">
-                                <label for="comment" class="form-label fw-bold text-dark">Your Feedback</label>
-                                <textarea name="comment" id="comment" rows="4" class="form-control bg-light border-0"
-                                          style="border-radius: 15px; padding: 15px;">@Model.Comment</textarea>
+                                <label asp-for="Comment" class="form-label fw-bold text-dark">Your Feedback</label>
+                                <input type="hidden" id="rawComment" value="@Model.Comment" />
+                                <textarea asp-for="Comment" id="comment" rows="4" class="form-control bg-light border-0"
+                                          style="border-radius: 15px; padding: 15px;"
+                                          placeholder="Tell us what you loved or what we could improve..."></textarea>
+                                <span asp-validation-for="Comment" class="text-danger"></span>
                             </div>
 
                             <div class="d-grid gap-2">
                                 <button type="submit" class="btn btn-primary btn-lg rounded-pill fw-bold shadow-sm">
-                                    Update Review <i class="fas fa-sync-alt ms-2"></i>
+                                    Update Review <i class="fas fa-save ms-2"></i>
                                 </button>
-                                <a asp-controller="Auth" asp-action="Profile" class="btn btn-link text-muted text-decoration-none">
-                                    Cancel
-                                </a>
+                                <a asp-controller="Auth" asp-action="Profile" class="btn btn-link text-muted text-decoration-none">Cancel</a>
                             </div>
                         </form>
                     </div>
@@ -111,42 +168,113 @@
 </div>
 
 @section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
     <script>
+        // Tag Data Structure
+        const tagsData = {
+            bad: {
+                General: ["Poor Environment", "Weak Wifi", "Dirty Facilities", "Bad View", "Slow Service", "Noisy", "Overpriced"],
+                Food: ["Stale Food", "Bland Taste", "Cold Meal", "Small Portions", "Limited Options", "Overcooked"],
+                Environment: ["Dirty Room", "Noisy Area", "Bad Smell", "Uncomfortable Bed", "Poor View", "Old Facilities"],
+                Service: ["Rude Staff", "Slow Service", "Unhelpful", "Long Wait", "No English", "Ignored Requests"],
+                Value: ["Overpriced", "Hidden Costs", "Not Worth It", "Expensive Add-ons"],
+                Transportation: ["Late Pickup", "Unsafe Driving", "Old Vehicle", "No AC", "Uncomfortable Seats"]
+            },
+            neutral: {
+                General: ["Average Facilities", "Okay View", "Standard Service", "Fair Price", "Acceptable Wifi"],
+                Food: ["Average Taste", "Edible", "Standard Buffet", "Okay Portion"],
+                Environment: ["Clean Enough", "Okay View", "Standard Room", "Bit Noisy"],
+                Service: ["Okay Service", "Polite Staff", "Standard Check-in"],
+                Value: ["Fair Price", "Average Value", "Standard Market Rate"],
+                Transportation: ["On Time", "Okay Comfort", "Average Ride"]
+            },
+            good: {
+                General: ["Excellent Service", "Stunning View", "Strong Wifi", "High Privacy", "Great Value", "Clean & Comfortable"],
+                Food: ["Delicious", "Fresh Ingredients", "Great Variety", "Authentic Taste", "Generous Portions", "Best Meal"],
+                Environment: ["Stunning View", "Spotless Clean", "Beautiful Decor", "Relaxing Atmosphere", "Great Location"],
+                Service: ["Friendly Staff", "Went Above & Beyond", "Professional", "Warm Welcome", "Fast Service"],
+                Value: ["Great Value", "Worth Every Penny", "Cheap for Quality", "Good Deal"],
+                Transportation: ["Comfortable Ride", "Clean Vehicle", "Friendly Driver", "Luxury Car", "Smooth Journey"]
+            }
+        };
+
         const stars = document.querySelectorAll('.star-icon');
         const ratingInput = document.getElementById('ratingInput');
         const ratingText = document.getElementById('ratingText');
+        const tagContainer = document.getElementById('tagContainer');
+        const commentBox = document.getElementById('comment');
+        const categorySelect = document.getElementById('categorySelect');
         const messages = ["Terrible", "Bad", "Okay", "Good", "Excellent!"];
+
+        // Initialization
+        document.addEventListener("DOMContentLoaded", function() {
+            // 1. Initialize Rating
+            setRating(@Model.Rating);
+
+            // 2. Initialize Category & Comment parsing
+            const raw = document.getElementById('rawComment').value;
+            if(raw && raw.startsWith('[')) {
+                const closeIndex = raw.indexOf(']');
+                if(closeIndex > 0) {
+                    const cat = raw.substring(1, closeIndex);
+                    // Select category in dropdown
+                    categorySelect.value = cat;
+                    // Clean comment box (remove the [Category] part)
+                    commentBox.value = raw.substring(closeIndex + 1).trim();
+                }
+            } else {
+                // If no category tag found, default to 'General'
+                categorySelect.value = "General";
+            }
+
+            // 3. Update tags based on the restored state
+            updateTags();
+        });
 
         function setRating(value) {
             ratingInput.value = value;
             ratingText.innerText = messages[value - 1];
-
             stars.forEach(star => {
                 const starValue = parseInt(star.getAttribute('data-value'));
-                if (starValue <= value) {
-                    star.classList.remove('far', 'text-muted');
-                    star.classList.add('fas', 'text-warning');
-                } else {
-                    star.classList.remove('fas', 'text-warning');
-                    star.classList.add('far', 'text-muted');
-                }
+                if (starValue <= value) { star.classList.remove('far', 'text-muted'); star.classList.add('fas', 'text-warning'); }
+                else { star.classList.remove('fas', 'text-warning'); star.classList.add('far', 'text-muted'); }
+            });
+            updateTags();
+        }
+
+        function updateTags() {
+            const rating = parseInt(ratingInput.value);
+            const category = categorySelect.value;
+            let ratingLevel = (rating <= 2) ? 'bad' : (rating == 3) ? 'neutral' : 'good';
+            let selectedTags = tagsData[ratingLevel][category] || tagsData[ratingLevel]['General'];
+
+            tagContainer.innerHTML = "";
+            selectedTags.forEach(text => {
+                const tag = document.createElement("div");
+                tag.className = "feedback-tag";
+                // Check if this tag is already in the comment (to highlight it)
+                if(commentBox.value.includes(text)) tag.classList.add("active");
+
+                tag.innerHTML = `${text} <span class="remove-icon">&times;</span>`;
+                tag.onclick = function() { toggleTag(tag, text); };
+                tagContainer.appendChild(tag);
             });
         }
 
-        // Add hover effect logic here same as Create page if needed
-        stars.forEach(star => {
-            star.addEventListener('mouseover', function() {
-                const hoverValue = this.getAttribute('data-value');
-                stars.forEach(s => {
-                    if (s.getAttribute('data-value') <= hoverValue) {
-                        s.style.transform = "scale(1.2)";
-                        s.style.transition = "transform 0.2s";
-                    }
-                });
-            });
-            star.addEventListener('mouseout', function() {
-                stars.forEach(s => { s.style.transform = "scale(1)"; });
-            });
-        });
+        function toggleTag(element, text) {
+            const isActive = element.classList.contains("active");
+            let currentComment = commentBox.value;
+            if (!isActive) {
+                element.classList.add("active");
+                commentBox.value = (currentComment.trim() === "") ? text : currentComment + ", " + text;
+            } else {
+                element.classList.remove("active");
+                if (currentComment.includes(text + ", ")) commentBox.value = currentComment.replace(text + ", ", "");
+                else if (currentComment.includes(", " + text)) commentBox.value = currentComment.replace(", " + text, "");
+                else commentBox.value = currentComment.replace(text, "");
+            }
+        }
     </script>
 }
