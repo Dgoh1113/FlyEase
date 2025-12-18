@@ -10,14 +10,27 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 
-// Data Transfer Object for Price Calculation API
+// Data Transfer Object
 public class PriceRequest
 {
     public int PackageId { get; set; }
     public int People { get; set; }
     public int Seniors { get; set; }
     public int Juniors { get; set; }
-    public DateTime TravelDate { get; set; }
+    public string VoucherCode { get; set; }
+    public DateTime? TravelDate { get; set; }
+    public DateTime? MainPassengerDOB { get; set; }
+}
+
+// Helper DTO for internal calculation
+public class CalculationResult
+{
+    public decimal BasePrice { get; set; }
+    public decimal TotalDiscount { get; set; }
+    public decimal FinalAmount { get; set; }
+    public List<string> Breakdown { get; set; } = new List<string>();
+    public bool IsVoucherValid { get; set; }
+    public string VoucherMessage { get; set; }
 }
 
 namespace FlyEase.Controllers
@@ -42,7 +55,7 @@ namespace FlyEase.Controllers
         }
 
         // =========================================================
-        // STEP 1: CUSTOMER INFO
+        // STEP 1: CUSTOMER INFO (GET)
         // =========================================================
         [HttpGet]
         public async Task<IActionResult> CustomerInfo(int packageId, int people = 1)
@@ -58,6 +71,17 @@ namespace FlyEase.Controllers
 
             var package = await _context.Packages.FindAsync(packageId);
             if (package == null) return NotFound();
+
+            // --- NEW: CHECK AVAILABILITY IN DB ---
+            // We check if "Senior" or "Junior" discounts exist in the DB to decide whether to show the dropdowns
+            var activeDiscounts = await _context.DiscountTypes
+                .Where(d => d.IsActive)
+                .Select(d => d.DiscountName.ToUpper())
+                .ToListAsync();
+
+            ViewBag.HasSeniorParams = activeDiscounts.Any(n => n.Contains("SENIOR"));
+            ViewBag.HasJuniorParams = activeDiscounts.Any(n => n.Contains("JUNIOR"));
+            // -------------------------------------
 
             string displayPhone = user.Phone;
             if (!string.IsNullOrEmpty(displayPhone) && displayPhone.StartsWith("+60")) displayPhone = displayPhone.Substring(3);
@@ -78,9 +102,12 @@ namespace FlyEase.Controllers
                 NumberOfJuniors = 0
             };
 
-            // --- CHANGED: Now awaits the async version ---
-            await CalculateDiscountsAsync(vm);
+            // Calculate initial price (0 seniors/juniors)
+            var calc = await CalculateBookingDetailsAsync(packageId, people, 0, 0, null);
+            vm.DiscountAmount = calc.TotalDiscount;
+            vm.FinalAmount = calc.FinalAmount;
 
+            // Save Initial Session
             HttpContext.Session.SetString("OriginalPackageId", packageId.ToString());
             HttpContext.Session.SetString("OriginalPeople", people.ToString());
             HttpContext.Session.SetCustomerInfo(vm);
@@ -89,6 +116,9 @@ namespace FlyEase.Controllers
             return View(vm);
         }
 
+        // =========================================================
+        // STEP 1: CUSTOMER INFO (POST)
+        // =========================================================
         [HttpPost]
         public async Task<IActionResult> CustomerInfo(CustomerInfoViewModel model)
         {
@@ -98,100 +128,239 @@ namespace FlyEase.Controllers
                 return RedirectToAction("Index", "Home");
             }
 
+            // --- NEW: STRICT VALIDATION ---
+            // Verify DB again to prevent tampering
+            var activeDiscounts = await _context.DiscountTypes
+                .Where(d => d.IsActive)
+                .Select(d => d.DiscountName.ToUpper())
+                .ToListAsync();
+
+            bool seniorAllowed = activeDiscounts.Any(n => n.Contains("SENIOR"));
+            bool juniorAllowed = activeDiscounts.Any(n => n.Contains("JUNIOR"));
+
+            if (model.NumberOfSeniors > 0 && !seniorAllowed)
+            {
+                ModelState.AddModelError("NumberOfSeniors", "Senior discount is not currently available.");
+            }
+            if (model.NumberOfJuniors > 0 && !juniorAllowed)
+            {
+                ModelState.AddModelError("NumberOfJuniors", "Junior discount is not currently available.");
+            }
+            // ------------------------------
+
             if ((model.NumberOfSeniors + model.NumberOfJuniors) > model.NumberOfPeople)
             {
-                ModelState.AddModelError("NumberOfPeople", "Total people must be greater than or equal to Seniors + Juniors.");
+                ModelState.AddModelError("NumberOfPeople", "Total people count must include Seniors and Juniors.");
             }
 
-            if (!ModelState.IsValid) return View(model);
-
-            // --- CRITICAL FIX: Ensure BasePrice is correct before recalculating ---
-            // The model might have a stale BasePrice from the form. We should verify it against the DB price.
-            var package = await _context.Packages.FindAsync(model.PackageID);
-            if (package != null)
+            if (!ModelState.IsValid)
             {
-                model.PackagePrice = package.Price;
-                model.BasePrice = package.Price * model.NumberOfPeople;
+                // Reload ViewBags if returning with error
+                ViewBag.HasSeniorParams = seniorAllowed;
+                ViewBag.HasJuniorParams = juniorAllowed;
+                return View(model);
             }
 
-            // --- CHANGED: Now calls the async version that includes DB discounts ---
-            await CalculateDiscountsAsync(model);
+            // RECALCULATE EVERYTHING SERVER SIDE
+            var calc = await CalculateBookingDetailsAsync(
+                model.PackageID,
+                model.NumberOfPeople,
+                model.NumberOfSeniors,
+                model.NumberOfJuniors,
+                null // Voucher usually applied via API later
+            );
 
-            // Now the 'model' has the correct FinalAmount with ALL discounts applied
+            // Update model with the calculated truths
+            model.BasePrice = calc.BasePrice;
+            model.DiscountAmount = calc.TotalDiscount;
+            model.FinalAmount = calc.FinalAmount;
+
+            // Update Session
             HttpContext.Session.SetCustomerInfo(model);
 
             return RedirectToAction("PaymentMethod");
         }
 
         // =========================================================
-        // API: DYNAMIC PRICE CALCULATION
+        // STEP 2: VALIDATE VOUCHER (API)
         // =========================================================
         [HttpPost]
-        public async Task<IActionResult> CalculatePrice([FromBody] PriceRequest request)
+        public async Task<IActionResult> ApplyVoucher([FromBody] PriceRequest request)
         {
-            var package = await _context.Packages.FindAsync(request.PackageId);
-            if (package == null) return Json(new { success = false, message = "Package not found" });
+            if (string.IsNullOrEmpty(request.VoucherCode)) return Json(new { success = false, message = "Code is empty." });
 
-            decimal basePriceTotal = package.Price * request.People;
-            decimal totalDiscount = 0;
-            var discountDetails = new List<string>();
+            var discount = await _context.DiscountTypes
+                .FirstOrDefaultAsync(d => d.DiscountName == request.VoucherCode);
 
-            // 1. BULK DISCOUNT (> 3 People)
-            if (request.People > 3)
+            if (discount == null) return Json(new { success = false, message = "Invalid Code." });
+
+            var validationResult = ValidateDiscountRules(discount, request);
+
+            if (!validationResult.IsValid)
             {
-                decimal bulkDisc = basePriceTotal * 0.10m;
-                totalDiscount += bulkDisc;
-                discountDetails.Add($"Bulk Group (>3 pax): -RM {bulkDisc:N2}");
+                return Json(new { success = false, message = validationResult.ErrorMessage });
             }
-
-            // 2. SENIOR DISCOUNT (60+)
-            if (request.Seniors > 0)
-            {
-                decimal seniorDiscAmount = (package.Price * 0.20m) * request.Seniors;
-                totalDiscount += seniorDiscAmount;
-                discountDetails.Add($"Senior Citizen ({request.Seniors}x): -RM {seniorDiscAmount:N2}");
-            }
-
-            // 3. JUNIOR DISCOUNT (<12)
-            if (request.Juniors > 0)
-            {
-                decimal juniorDiscAmount = (package.Price * 0.15m) * request.Juniors;
-                totalDiscount += juniorDiscAmount;
-                discountDetails.Add($"Junior/Child ({request.Juniors}x): -RM {juniorDiscAmount:N2}");
-            }
-
-            // 4. DATABASE DISCOUNTS
-            var dbDiscounts = await _context.DiscountTypes.ToListAsync();
-            foreach (var d in dbDiscounts)
-            {
-                if (d.DiscountRate.HasValue && d.DiscountRate.Value > 0)
-                {
-                    decimal amount = basePriceTotal * d.DiscountRate.Value;
-                    totalDiscount += amount;
-                    discountDetails.Add($"{d.DiscountName} ({d.DiscountRate.Value * 100:0}%): -RM {amount:N2}");
-                }
-                else if (d.DiscountAmount.HasValue && d.DiscountAmount.Value > 0)
-                {
-                    totalDiscount += d.DiscountAmount.Value;
-                    discountDetails.Add($"{d.DiscountName}: -RM {d.DiscountAmount.Value:N2}");
-                }
-            }
-
-            if (totalDiscount > basePriceTotal) totalDiscount = basePriceTotal;
-            decimal finalAmount = basePriceTotal - totalDiscount;
 
             return Json(new
             {
                 success = true,
-                basePrice = basePriceTotal,
-                discountAmount = totalDiscount,
-                finalAmount = finalAmount,
-                breakdown = discountDetails
+                message = "Voucher Applied Successfully!",
+                discountAmount = discount.DiscountAmount ?? 0,
+                discountRate = discount.DiscountRate ?? 0
             });
         }
 
         // =========================================================
-        // STEP 2: PAYMENT METHOD
+        // STEP 3: CALCULATE PRICE API (THE BRAIN)
+        // =========================================================
+        [HttpPost]
+        public async Task<IActionResult> CalculatePrice([FromBody] PriceRequest request)
+        {
+            var result = await CalculateBookingDetailsAsync(
+                request.PackageId,
+                request.People,
+                request.Seniors,
+                request.Juniors,
+                request.VoucherCode,
+                request
+            );
+
+            if (result.BasePrice == 0) return Json(new { success = false, message = "Package not found" });
+
+            return Json(new
+            {
+                success = true,
+                basePrice = result.BasePrice,
+                discountAmount = result.TotalDiscount,
+                finalAmount = result.FinalAmount,
+                breakdown = result.Breakdown
+            });
+        }
+
+        // =========================================================
+        // CENTRALIZED CALCULATION ENGINE (STACKING + VALIDATION)
+        // =========================================================
+        private async Task<CalculationResult> CalculateBookingDetailsAsync(
+            int packageId, int people, int seniors, int juniors, string voucherCode, PriceRequest fullRequest = null)
+        {
+            var result = new CalculationResult();
+
+            var package = await _context.Packages.FindAsync(packageId);
+            if (package == null) return result;
+
+            result.BasePrice = package.Price * people;
+
+            decimal accumulatedDiscount = 0;
+            var allDiscounts = await _context.DiscountTypes.Where(d => d.IsActive).ToListAsync();
+
+            // 1. Calculate Standard SENIOR Discount
+            // Logic: Only calculate if the DB actually has a "Senior" record
+            if (seniors > 0)
+            {
+                var snrConfig = allDiscounts.FirstOrDefault(x => x.DiscountName.ToUpper().Contains("SENIOR"));
+
+                if (snrConfig != null) // Only proceed if configured in DB
+                {
+                    decimal snrAmount = 0;
+                    if (snrConfig.DiscountRate.HasValue) snrAmount = (package.Price * snrConfig.DiscountRate.Value) * seniors;
+                    else if (snrConfig.DiscountAmount.HasValue) snrAmount = snrConfig.DiscountAmount.Value * seniors;
+
+                    accumulatedDiscount += snrAmount; // Stack it
+                    result.Breakdown.Add($"Senior x{seniors}: -RM{snrAmount:N2}");
+                }
+            }
+
+            // 2. Calculate Standard JUNIOR Discount
+            if (juniors > 0)
+            {
+                var jnrConfig = allDiscounts.FirstOrDefault(x => x.DiscountName.ToUpper().Contains("JUNIOR"));
+
+                if (jnrConfig != null) // Only proceed if configured in DB
+                {
+                    decimal jnrAmount = 0;
+                    if (jnrConfig.DiscountRate.HasValue) jnrAmount = (package.Price * jnrConfig.DiscountRate.Value) * juniors;
+                    else if (jnrConfig.DiscountAmount.HasValue) jnrAmount = jnrConfig.DiscountAmount.Value * juniors;
+
+                    accumulatedDiscount += jnrAmount; // Stack it
+                    result.Breakdown.Add($"Junior x{juniors}: -RM{jnrAmount:N2}");
+                }
+            }
+
+            // 3. Auto-Apply System/Bulk Discounts
+            foreach (var d in allDiscounts.Where(x => string.IsNullOrEmpty(x.AgeCriteria) && (x.MinPax.HasValue || x.MinSpend.HasValue)))
+            {
+                if (d.DiscountName.Contains("Bulk") && people >= (d.MinPax ?? 3))
+                {
+                    decimal bulkAmt = 0;
+                    if (d.DiscountRate.HasValue) bulkAmt = result.BasePrice * d.DiscountRate.Value;
+                    else if (d.DiscountAmount.HasValue) bulkAmt = d.DiscountAmount.Value;
+
+                    if (bulkAmt > 0)
+                    {
+                        accumulatedDiscount += bulkAmt;
+                        result.Breakdown.Add($"{d.DiscountName}: -RM{bulkAmt:N2}");
+                    }
+                }
+            }
+
+            // 4. Apply Voucher Code
+            if (!string.IsNullOrEmpty(voucherCode))
+            {
+                var voucher = allDiscounts.FirstOrDefault(d => d.DiscountName.Equals(voucherCode.Trim(), StringComparison.OrdinalIgnoreCase));
+                if (voucher != null)
+                {
+                    bool isValid = true;
+                    if (fullRequest != null) isValid = ValidateDiscountRules(voucher, fullRequest).IsValid;
+
+                    if (isValid)
+                    {
+                        decimal vAmount = 0;
+                        if (voucher.DiscountAmount.HasValue) vAmount = voucher.DiscountAmount.Value;
+                        else if (voucher.DiscountRate.HasValue) vAmount = result.BasePrice * voucher.DiscountRate.Value;
+
+                        accumulatedDiscount += vAmount;
+                        result.Breakdown.Add($"Voucher ({voucher.DiscountName}): -RM{vAmount:N2}");
+                    }
+                }
+            }
+
+            // Safety: Cap discount at total price (cannot be negative)
+            if (accumulatedDiscount > result.BasePrice) accumulatedDiscount = result.BasePrice;
+
+            result.TotalDiscount = accumulatedDiscount;
+            result.FinalAmount = result.BasePrice - accumulatedDiscount;
+
+            return result;
+        }
+
+        // =========================================================
+        // HELPER: RULE VALIDATION
+        // =========================================================
+        private (bool IsValid, string ErrorMessage) ValidateDiscountRules(DiscountType d, PriceRequest r)
+        {
+            if (!d.IsActive) return (false, "This voucher is inactive.");
+            if (d.StartDate.HasValue && DateTime.Now < d.StartDate.Value) return (false, "Promotion has not started yet.");
+            if (d.EndDate.HasValue && DateTime.Now > d.EndDate.Value) return (false, "Promotion has expired.");
+            if (d.MinPax.HasValue && r.People < d.MinPax.Value) return (false, $"Minimum {d.MinPax} people required.");
+
+            if (!string.IsNullOrEmpty(d.AgeCriteria) && d.AgeLimit.HasValue && r.MainPassengerDOB.HasValue)
+            {
+                int age = CalculateAge(r.MainPassengerDOB.Value);
+                if (d.AgeCriteria == "Greater" && age < d.AgeLimit.Value) return (false, $"Only valid for passengers older than {d.AgeLimit.Value}.");
+                if (d.AgeCriteria == "Less" && age > d.AgeLimit.Value) return (false, $"Only valid for passengers younger than {d.AgeLimit.Value}.");
+            }
+
+            if (d.EarlyBirdDays.HasValue && d.EarlyBirdDays.Value > 0 && r.TravelDate.HasValue)
+            {
+                var daysUntilTrip = (r.TravelDate.Value - DateTime.Now).TotalDays;
+                if (daysUntilTrip < d.EarlyBirdDays.Value) return (false, $"Must book at least {d.EarlyBirdDays.Value} days in advance.");
+            }
+
+            return (true, "");
+        }
+
+        // =========================================================
+        // STEP 4: PAYMENT METHOD SELECTION
         // =========================================================
         [HttpGet]
         public async Task<IActionResult> PaymentMethod()
@@ -219,9 +388,6 @@ namespace FlyEase.Controllers
 
             ViewBag.AllowDeposit = allowDeposit;
             ViewBag.DepositMessage = depositMessage;
-
-            // Debugging: Verify if FinalAmount is correct here
-            // _logger.LogInformation($"Base: {customerInfo.BasePrice}, Discount: {customerInfo.DiscountAmount}, Final: {customerInfo.FinalAmount}");
 
             decimal depositAmount = customerInfo.FinalAmount * 0.30m;
 
@@ -267,7 +433,7 @@ namespace FlyEase.Controllers
         }
 
         // =========================================================
-        // STEP 3: UNIFIED STRIPE CHECKOUT
+        // STEP 5: STRIPE CHECKOUT
         // =========================================================
         [HttpGet]
         public async Task<IActionResult> StripeCheckout()
@@ -284,29 +450,10 @@ namespace FlyEase.Controllers
 
             var domain = $"{Request.Scheme}://{Request.Host}";
 
-            var paymentMethodTypes = new List<string>();
-
-            switch (selectedMethod)
-            {
-                case "Credit Card":
-                    paymentMethodTypes.Add("card");
-                    break;
-                case "Online Banking":
-                    paymentMethodTypes.Add("fpx");
-                    break;
-                case "GrabPay":
-                    paymentMethodTypes.Add("grabpay");
-                    break;
-                case "TouchNGo":
-                    paymentMethodTypes.Add("fpx");
-                    paymentMethodTypes.Add("grabpay");
-                    break;
-                default:
-                    paymentMethodTypes.Add("card");
-                    paymentMethodTypes.Add("fpx");
-                    paymentMethodTypes.Add("grabpay");
-                    break;
-            }
+            var paymentMethodTypes = new List<string> { "card" };
+            if (selectedMethod == "Online Banking") paymentMethodTypes.Add("fpx");
+            if (selectedMethod == "GrabPay") paymentMethodTypes.Add("grabpay");
+            if (selectedMethod == "TouchNGo") { paymentMethodTypes.Add("grabpay"); }
 
             try
             {
@@ -345,9 +492,8 @@ namespace FlyEase.Controllers
         }
 
         // =========================================================
-        // CORE PROCESSING LOGIC
+        // CORE PROCESSING LOGIC (DB SAVE)
         // =========================================================
-
         private async Task<IActionResult> ProcessBooking(string paymentMethod, string transactionId)
         {
             var customerInfo = HttpContext.Session.GetCustomerInfo();
@@ -540,7 +686,6 @@ namespace FlyEase.Controllers
         // =========================================================
         // HELPER METHODS
         // =========================================================
-
         private async Task<User> GetCurrentUserAsync()
         {
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -554,48 +699,20 @@ namespace FlyEase.Controllers
             return null;
         }
 
-        // --- UPDATED HELPER: Now Async and Includes DB Discounts ---
-        private async Task CalculateDiscountsAsync(CustomerInfoViewModel model)
+        private int CalculateAge(DateTime dob)
         {
-            decimal totalDiscount = 0;
-
-            // 1. Bulk Discount
-            if (model.NumberOfPeople > 3) totalDiscount += model.BasePrice * 0.10m;
-
-            decimal unitPrice = model.BasePrice / (model.NumberOfPeople > 0 ? model.NumberOfPeople : 1);
-
-            // 2. Senior/Junior Logic
-            totalDiscount += (unitPrice * 0.20m) * model.NumberOfSeniors;
-            totalDiscount += (unitPrice * 0.15m) * model.NumberOfJuniors;
-
-            // 3. Database Discounts (The missing part)
-            var dbDiscounts = await _context.DiscountTypes.ToListAsync();
-            foreach (var d in dbDiscounts)
-            {
-                if (d.DiscountRate.HasValue && d.DiscountRate.Value > 0)
-                {
-                    decimal amount = model.BasePrice * d.DiscountRate.Value;
-                    totalDiscount += amount;
-                }
-                else if (d.DiscountAmount.HasValue && d.DiscountAmount.Value > 0)
-                {
-                    totalDiscount += d.DiscountAmount.Value;
-                }
-            }
-
-            if (totalDiscount > model.BasePrice) totalDiscount = model.BasePrice;
-
-            model.DiscountAmount = totalDiscount;
-            model.FinalAmount = model.BasePrice - totalDiscount;
+            var today = DateTime.Today;
+            var age = today.Year - dob.Year;
+            if (dob.Date > today.AddYears(-age)) age--;
+            return age;
         }
 
         [HttpGet]
         public async Task<IActionResult> GetDiscounts()
         {
-            var discounts = await _context.DiscountTypes.Select(d => new { name = d.DiscountName, rate = d.DiscountRate, amount = d.DiscountAmount }).ToListAsync();
-            discounts.Add(new { name = "Bulk Discount (>3 Pax)", rate = (decimal?)0.10, amount = (decimal?)null });
-            discounts.Add(new { name = "Senior Citizen (60+)", rate = (decimal?)0.20, amount = (decimal?)null });
-            discounts.Add(new { name = "Junior/Child (<12)", rate = (decimal?)0.15, amount = (decimal?)null });
+            var discounts = await _context.DiscountTypes
+                .Select(d => new { name = d.DiscountName, rate = d.DiscountRate, amount = d.DiscountAmount })
+                .ToListAsync();
             return Json(discounts);
         }
     }
