@@ -1,5 +1,4 @@
-﻿
-@using FlyEase.ViewModels
+﻿@using FlyEase.ViewModels
 @model PackageManagementViewModel
 
 @{
@@ -12,6 +11,7 @@
 <link href='https://fonts.googleapis.com/css?family=Lato' rel='stylesheet' type='text/css'>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <div class="management-hero">
     <div class="hero-content">
@@ -84,7 +84,7 @@
                             <input type="text" id="locSearch" class="form-control" placeholder="Search place...">
                             <button type="button" class="btn btn-secondary" onclick="searchLocation()">Search</button>
                         </div>
-                        <div id="adminMap"></div>
+                        <div id="adminMap" style="height: 300px;"></div>
                         <small class="text-muted">Drag the marker to pinpoint the exact location.</small>
                         <input type="hidden" id="p_lat" name="Latitude" value="3.1390" />
                         <input type="hidden" id="p_long" name="Longitude" value="101.6869" />
@@ -167,6 +167,33 @@
 
         <div class="list-card">
             <div class="list-header"><h3>Existing Packages</h3></div>
+
+            <div class="card bg-light border-0 mb-3">
+                <div class="card-body p-3">
+                    <div class="row g-2">
+                        <div class="col-md-6">
+                            <div class="input-group">
+                                <span class="input-group-text bg-white border-end-0"><i class="fas fa-search text-muted"></i></span>
+                                <input type="text" id="searchInput" class="form-control border-start-0 ps-0"
+                                       placeholder="Search Package Name or Booking ID..."
+                                       onkeydown="if(event.key === 'Enter') searchPackages()">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <select id="categoryFilter" class="form-select" onchange="searchPackages()">
+                                <option value="">All Categories</option>
+                                @foreach (var category in Model.Categories)
+                                {
+                                    <option value="@category.CategoryID" selected="@(Model.SelectedCategoryId == category.CategoryID)">@category.CategoryName</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <button class="btn btn-primary w-100" onclick="searchPackages()">Filter</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
             <div class="packages-grid" id="packagesGrid">
                 <partial name="_PackageListPartial" model="Model" />
             </div>
@@ -192,10 +219,24 @@
 
         async function refreshPackageList() {
             try {
-                const response = await fetch(`@Url.Action("GetPackageList")?page=${currentPage}`);
+                // Collect Search and Filter Values
+                const search = document.getElementById('searchInput').value;
+                const category = document.getElementById('categoryFilter').value;
+
+                // Build Query String with Search parameters
+                const url = `@Url.Action("GetPackageList")?page=${currentPage}&search=${encodeURIComponent(search)}&category=${category}`;
+
+                const response = await fetch(url);
                 const html = await response.text();
                 document.getElementById('packagesGrid').innerHTML = html;
-            } catch (e) { console.error("Failed to refresh list", e); }
+            } catch (e) {
+                console.error("Failed to refresh list", e);
+            }
+        }
+
+        function searchPackages() {
+            currentPage = 1; // Reset to page 1 for new searches
+            refreshPackageList();
         }
 
         async function submitForm() {
@@ -221,7 +262,7 @@
             uploadedFiles.forEach(file => { formData.append('ImageFiles', file); });
 
             const existingImgs = Array.from(document.querySelectorAll('#existingImagesGallery .gallery-item:not(.deleted) img'))
-                                      .map(img => img.getAttribute('data-server-path'));
+                                        .map(img => img.getAttribute('data-server-path'));
             if (existingImgs.length > 0) formData.append('OrderedExistingImages', existingImgs.join(','));
 
             const id = document.getElementById('packageIdInput').value;
@@ -246,11 +287,9 @@
                     document.getElementById('alertArea').scrollIntoView({ behavior: 'smooth', block: 'center' });
                 } else {
                     showAlert('danger', result.message);
-
                     if (result.errors) {
-                        let firstErrorField = null;
+                         let firstErrorField = null;
                         for (const key in result.errors) {
-                            let selector = `[name="${key}"]`;
                             const field = document.querySelector(`[name='${key}']`) || document.querySelector(`[name="${key}"]`);
 
                             if (field) {
@@ -452,6 +491,7 @@
             }
         }
 
+        // --- Calendar Widget Logic ---
         class CalendarWidget {
             constructor(containerId, inputId, type) {
                 this.container = document.getElementById(containerId);
@@ -556,9 +596,8 @@
             if(s && e.value && e.value < s) { e.value = s; if(typeof syncItineraryDays === 'function') syncItineraryDays(); }
         }
 
-        // --- UPDATED CONFIRM DELETE FUNCTION ---
+        // --- Confirm Delete Logic (Uses Partial View Inputs) ---
         function confirmDelete(packageId, bookingCount) {
-            // Helper function to execute deletion logic
             const executeDelete = () => {
                 const form = document.getElementById('delete-form-' + packageId);
                 const formData = new FormData(form);
@@ -571,7 +610,6 @@
             };
 
             if (bookingCount > 0) {
-                // High risk: Active bookings exist -> Use strict timer
                 Swal.fire({
                     title: '⚠️ Active Bookings Found!',
                     html: `This package has <b>${bookingCount} active bookings</b>.<br>Deleting it will <b>automatically cancel</b> & <b>refund</b> bookings.<br><br><span id="delete-timer-msg" style="color:#d33; font-weight:bold;">Wait 3s...</span>`,
@@ -601,7 +639,6 @@
                     if (result.isConfirmed) executeDelete();
                 });
             } else {
-                // Low risk: No bookings -> Immediate confirmation
                 Swal.fire({
                     title: 'Delete Package?',
                     text: "You won't be able to revert this!",
@@ -647,6 +684,7 @@
             } catch (e) { console.error(e); }
         }
         document.addEventListener("DOMContentLoaded", function () { initMap(); });
+
         let itineraryIndex = 0;
         function createItineraryRowHTML(index, dayNumber, title = "", desc = "") {
             return `<div class="card mb-2 p-3 bg-light border itinerary-row"><div class="d-flex justify-content-between"><strong>Day <span class="day-label">${dayNumber}</span></strong><button type="button" class="btn btn-sm btn-danger py-0" onclick="removeItineraryRow(this)">&times;</button></div><div class="row mt-2"><div class="col-md-2"><input type="number" class="form-control form-control-sm day-input" name="Itinerary[${index}].DayNumber" value="${dayNumber}" readonly /></div><div class="col-md-10"><input type="text" class="form-control form-control-sm title-input" name="Itinerary[${index}].Title" value="${title}" placeholder="Title" required /><div class="invalid-feedback d-none">Title is required</div></div></div><div class="mt-2"><textarea class="form-control form-control-sm desc-input" name="Itinerary[${index}].ActivityDescription" rows="2" placeholder="Description..." required>${desc}</textarea><div class="invalid-feedback d-none">Description is required</div></div></div>`;

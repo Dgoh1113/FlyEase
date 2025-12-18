@@ -3,15 +3,9 @@ using FlyEase.Data;
 using FlyEase.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-
-
-    using Microsoft.AspNetCore.Mvc;
-    using Microsoft.EntityFrameworkCore;
-    using FlyEase.Data;
-    using FlyEase.ViewModels;
-    using Microsoft.AspNetCore.Authorization;
-    using FlyEase.Services;
-    using System.Linq; // Ensure LINQ is available
+using Microsoft.EntityFrameworkCore;
+using FlyEase.Services;
+using System.Linq;
 
 namespace FlyEase.Controllers
 {
@@ -76,15 +70,31 @@ namespace FlyEase.Controllers
             });
         }
 
-        // 3. AJAX: Refresh List
+        // 3. AJAX: Refresh List (UPDATED)
         [HttpGet]
-        public async Task<IActionResult> GetPackageList(int page = 1)
+        public async Task<IActionResult> GetPackageList(int page = 1, string search = "", int? category = null)
         {
             int pageSize = 4;
             var query = _context.Packages
                 .Include(p => p.Category)
                 .Include(p => p.Bookings)
-                .OrderByDescending(p => p.PackageID);
+                .AsQueryable();
+
+            // Apply Search Filter (Package Name OR Booking ID)
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                string searchLower = search.ToLower().Trim();
+                query = query.Where(p => p.PackageName.ToLower().Contains(searchLower)
+                                      || p.Bookings.Any(b => b.BookingID.ToString().Contains(searchLower)));
+            }
+
+            // Apply Category Filter
+            if (category.HasValue && category.Value > 0)
+            {
+                query = query.Where(p => p.CategoryID == category.Value);
+            }
+
+            query = query.OrderByDescending(p => p.PackageID);
 
             int totalItems = await query.CountAsync();
             var items = await query.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
@@ -94,7 +104,9 @@ namespace FlyEase.Controllers
                 Packages = items,
                 CurrentPage = page,
                 TotalPages = (int)Math.Ceiling(totalItems / (double)pageSize),
-                PageSize = pageSize
+                PageSize = pageSize,
+                SearchTerm = search,
+                SelectedCategoryId = category
             };
 
             return PartialView("_PackageListPartial", vm);
@@ -107,7 +119,6 @@ namespace FlyEase.Controllers
         {
             if (!ModelState.IsValid)
             {
-                // Return detailed validation errors
                 var errors = ModelState.Where(x => x.Value.Errors.Count > 0)
                                        .ToDictionary(k => k.Key, v => v.Value.Errors.Select(e => e.ErrorMessage).ToArray());
 
@@ -181,7 +192,6 @@ namespace FlyEase.Controllers
         {
             if (!ModelState.IsValid)
             {
-                // Return detailed validation errors
                 var errors = ModelState.Where(x => x.Value.Errors.Count > 0)
                                        .ToDictionary(k => k.Key, v => v.Value.Errors.Select(e => e.ErrorMessage).ToArray());
 
@@ -263,7 +273,7 @@ namespace FlyEase.Controllers
             }
         }
 
-        // 6. Delete Action & Helpers (Unchanged)
+        // 6. Delete Action & Helpers
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Delete(int id)

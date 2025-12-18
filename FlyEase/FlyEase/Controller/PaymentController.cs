@@ -480,18 +480,60 @@ namespace FlyEase.Controllers
             TempData["Error"] = "Payment verification failed or was cancelled.";
             return RedirectToAction("PaymentMethod");
         }
-
-        // Core Processing Logic (DB Save)
+        // =========================================================
+        // CORE PROCESSING LOGIC (STRICT STATUS UPDATE)
+        // =========================================================
         private async Task<IActionResult> ProcessBooking(string paymentMethod, string transactionId)
         {
             var customerInfo = HttpContext.Session.GetCustomerInfo();
             var userId = HttpContext.Session.GetUserId();
             string paymentType = HttpContext.Session.GetString("PaymentType") ?? "Full";
-            bool isDeposit = (paymentType == "Deposit");
 
-            if (customerInfo == null || userId == 0) return RedirectToAction("Index", "Home");
+            // --- 1. DETERMINE STATUSES ---
+
+            bool isDeposit = (paymentType == "Deposit");
+            bool isCash = !string.IsNullOrEmpty(paymentMethod) &&
+                          paymentMethod.Contains("Cash", StringComparison.OrdinalIgnoreCase);
+
+            string finalPaymentStatus;
+            string finalBookingStatus;
+
+            if (isCash)
+            {
+                // Rule 1: Cash is ALWAYS Pending until Admin verifies it
+                finalPaymentStatus = "Pending";
+                finalBookingStatus = "Pending";
+            }
+            else if (isDeposit)
+            {
+                // Rule 2: Online Deposit (30%)
+                finalPaymentStatus = "Deposit";
+                finalBookingStatus = "Deposit";
+            }
+            else
+            {
+                // Rule 3: Online Full Payment (Card, FPX, GrabPay) -> Completed/Confirmed
+                finalPaymentStatus = "Completed";
+                finalBookingStatus = "Confirmed";
+            }
+
+            // --- VALIDATION & SETUP ---
+
+            if (customerInfo == null || userId == 0)
+            {
+                TempData["Error"] = "Session expired";
+                return RedirectToAction("Index", "Home");
+            }
 
             var package = await _context.Packages.FindAsync(customerInfo.PackageID);
+
+            if (package == null || package.AvailableSlots < customerInfo.NumberOfPeople)
+            {
+                TempData["Error"] = "Package not available (Sold Out)";
+                return RedirectToAction("Index", "Home");
+            }
+
+            // --- 2. SAVE BOOKING ---
 
             var booking = new Booking
             {
@@ -503,11 +545,49 @@ namespace FlyEase.Controllers
                 TotalBeforeDiscount = customerInfo.BasePrice,
                 TotalDiscountAmount = customerInfo.DiscountAmount,
                 FinalAmount = customerInfo.FinalAmount,
-                BookingStatus = isDeposit ? "Deposit" : "Confirmed"
+                BookingStatus = finalBookingStatus // Set based on logic above
             };
 
             _context.Bookings.Add(booking);
             await _context.SaveChangesAsync();
+
+            // --- 3. SAVE DISCOUNTS ---
+
+            var appliedDiscounts = HttpContext.Session.GetObject<List<DiscountInfo>>("AppliedDiscounts")
+                                   ?? new List<DiscountInfo>();
+
+            foreach (var discount in appliedDiscounts)
+            {
+                var bookingDiscount = new BookingDiscount
+                {
+                    BookingID = booking.BookingID,
+                    DiscountTypeID = discount.DiscountId ?? 0,
+                    AppliedAmount = discount.Amount
+                };
+
+                // Handle dynamically created system discounts (Bulk/Senior/Junior)
+                if (discount.DiscountId == null || discount.DiscountId == 0)
+                {
+                    var discountType = await _context.DiscountTypes
+                        .FirstOrDefaultAsync(d => d.DiscountName == discount.Name);
+
+                    if (discountType == null)
+                    {
+                        discountType = new DiscountType
+                        {
+                            DiscountName = discount.Name,
+                            DiscountRate = discount.Rate,
+                            IsActive = true
+                        };
+                        _context.DiscountTypes.Add(discountType);
+                        await _context.SaveChangesAsync();
+                    }
+                    bookingDiscount.DiscountTypeID = discountType.DiscountTypeID;
+                }
+                _context.BookingDiscounts.Add(bookingDiscount);
+            }
+
+            // --- 4. SAVE PAYMENT ---
 
             decimal paidAmount = isDeposit ? (customerInfo.FinalAmount * 0.30m) : customerInfo.FinalAmount;
 
@@ -518,18 +598,22 @@ namespace FlyEase.Controllers
                 AmountPaid = paidAmount,
                 IsDeposit = isDeposit,
                 PaymentDate = DateTime.Now,
-                PaymentStatus = "Completed",
+                PaymentStatus = finalPaymentStatus, // Set based on logic above
                 TransactionID = transactionId
             };
 
             _context.Payments.Add(payment);
+
+            // Deduct slots (Even for Cash pending, we usually reserve the slot to prevent double booking)
             package.AvailableSlots -= customerInfo.NumberOfPeople;
+
             await _context.SaveChangesAsync();
+
+            // Cleanup Session
             HttpContext.Session.ClearPaymentSession();
 
             return RedirectToAction("Success", new { bookingId = booking.BookingID });
         }
-
         [HttpGet]
         public async Task<IActionResult> Success(int bookingId)
         {
@@ -564,5 +648,120 @@ namespace FlyEase.Controllers
                 discountRate = discount.DiscountRate ?? 0
             });
         }
+           [HttpGet]
+        [Authorize]
+        public async Task<IActionResult> BookingHistoryDetails(int id)
+        {
+            var userEmail = User.FindFirst(ClaimTypes.Email)?.Value;
+            if (userEmail == null) return RedirectToAction("Login", "Auth");
+
+            var booking = await _context.Bookings
+                .Include(b => b.Package)
+                .Include(b => b.Payments)
+                .Include(b => b.User)
+                .FirstOrDefaultAsync(b => b.BookingID == id && b.User.Email == userEmail);
+
+            if (booking == null) return NotFound();
+
+            if (booking.BookingStatus == "Confirmed" && booking.Package.EndDate < DateTime.Now)
+            {
+                booking.BookingStatus = "Completed";
+                _context.Bookings.Update(booking);
+                await _context.SaveChangesAsync();
+            }
+
+            ViewBag.CanCancel = (booking.Package.StartDate - DateTime.Now).TotalDays > 14
+                                && booking.BookingStatus != "Cancelled"
+                                && booking.BookingStatus != "Completed";
+
+            decimal totalPaid = booking.Payments
+                .Where(p => p.PaymentStatus == "Completed" || p.PaymentStatus == "Deposit")
+                .Sum(p => p.AmountPaid);
+
+            ViewBag.BalanceDue = booking.FinalAmount - totalPaid;
+
+            return View(booking);
+        }
+        [HttpPost]
+        [Authorize]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CancelBooking(int bookingId)
+        {
+            // 1. Identify the User
+            var userEmail = User.FindFirst(ClaimTypes.Email)?.Value;
+            // distinct query to ensure we get the user ID even if they logged in via cookie claim
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == userEmail);
+
+            if (user == null) return RedirectToAction("Login", "Auth");
+
+            // 2. Find the Booking (Ensure it belongs to this user)
+            var booking = await _context.Bookings
+                .Include(b => b.Package)
+                .Include(b => b.Payments)
+                .FirstOrDefaultAsync(b => b.BookingID == bookingId && b.UserID == user.UserID);
+
+            if (booking == null) return NotFound();
+
+            // 3. Validate 14-Day Cancellation Policy
+            var daysUntilTrip = (booking.Package.StartDate - DateTime.Now).TotalDays;
+            if (daysUntilTrip <= 14)
+            {
+                TempData["Error"] = "Cancellation is not allowed within 14 days of the trip.";
+                return RedirectToAction("BookingHistoryDetails", new { id = bookingId });
+            }
+
+            // 4. Process Refunds & Cancellation
+            try
+            {
+                bool refundAttempted = false;
+
+                foreach (var payment in booking.Payments)
+                {
+                    // Only refund Completed or Deposit payments
+                    if (payment.PaymentStatus == "Completed" || payment.PaymentStatus == "Deposit")
+                    {
+                        // Check if it's a valid Stripe Transaction (Starts with 'pi_')
+                        if (!string.IsNullOrEmpty(payment.TransactionID) && payment.TransactionID.StartsWith("pi_"))
+                        {
+                            // Call the Service to process refund via Stripe API
+                            await _stripeService.RefundPaymentAsync(payment.TransactionID);
+
+                            payment.PaymentStatus = "Refunded";
+                            refundAttempted = true;
+                        }
+                    }
+                }
+
+                // 5. Update Database
+                booking.BookingStatus = "Cancelled";
+
+                // Return the slots to the package
+                booking.Package.AvailableSlots += booking.NumberOfPeople;
+
+                await _context.SaveChangesAsync();
+
+                if (refundAttempted)
+                {
+                    TempData["Success"] = "Booking cancelled and refund processed successfully.";
+                }
+                else
+                {
+                    TempData["Success"] = "Booking cancelled successfully.";
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error cancelling booking ID {BookingId}", bookingId);
+                TempData["Error"] = "Booking cancelled locally, but there was an issue processing the refund with the bank. Please contact support.";
+
+                // Still mark as cancelled in DB so the user doesn't try again, 
+                // but the payment status might need manual admin intervention
+                booking.BookingStatus = "Cancelled";
+                await _context.SaveChangesAsync();
+            }
+
+            return RedirectToAction("BookingHistoryDetails", new { id = bookingId });
+        }
     }
+
 }

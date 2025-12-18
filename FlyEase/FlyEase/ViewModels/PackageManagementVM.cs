@@ -23,6 +23,9 @@ namespace FlyEase.ViewModels
         public string Message { get; set; } = string.Empty;
         public bool IsSuccess { get; set; }
         public string? NewCategoryName { get; set; }
+
+        // Search & Filter Properties
+        public string SearchTerm { get; set; } = string.Empty;
         public int? SelectedCategoryId { get; set; }
 
         // --- PAGINATION PROPERTIES ---
