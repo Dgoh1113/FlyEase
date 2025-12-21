@@ -64,7 +64,7 @@ namespace FlyEase.Controllers
         // STEP 1: CUSTOMER INFO (GET)
         // =========================================================
         [HttpGet]
-        public async Task<IActionResult> CustomerInfo(int packageId, int people = 1)
+        public async Task<IActionResult> CustomerInfo(int packageId, int people)
         {
             var user = await GetCurrentUserAsync();
             if (user == null) { TempData["Error"] = "Please login first"; return RedirectToAction("Login", "Auth"); }
@@ -111,7 +111,6 @@ namespace FlyEase.Controllers
             var sessionInfo = HttpContext.Session.GetCustomerInfo();
             if (sessionInfo != null && sessionInfo.PackageID == packageId)
             {
-                vm.NumberOfPeople = sessionInfo.NumberOfPeople;
                 vm.NumberOfSeniors = sessionInfo.NumberOfSeniors;
                 vm.NumberOfJuniors = sessionInfo.NumberOfJuniors;
                 vm.VoucherCode = sessionInfo.VoucherCode;
